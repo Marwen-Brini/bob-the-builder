@@ -1,0 +1,54 @@
+{
+    "name": "bob/query-builder",
+    "description": "A highly optimized PHP query builder with Laravel-like fluent syntax",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bob Builder",
+            "email": "bob@builder.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1|^8.2|^8.3|^8.4",
+        "ext-pdo": "*"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "phpstan/phpstan": "^2.0",
+        "infection/infection": "^0.29",
+        "mockery/mockery": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bob\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bob\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/bob"
+    ],
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "test:coverage": "vendor/bin/pest --coverage --coverage-html=coverage",
+        "test:mutation": "vendor/bin/infection",
+        "analyse": "vendor/bin/phpstan analyse",
+        "check": [
+            "@test",
+            "@analyse"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "infection/extension-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

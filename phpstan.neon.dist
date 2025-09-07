@@ -1,0 +1,14 @@
+parameters:
+    level: 9
+    paths:
+        - src
+        - tests
+    scanFiles:
+        - vendor/pestphp/pest/src/Functions.php
+        - vendor/pestphp/pest/src/Pest.php
+    ignoreErrors:
+        - '#Call to an undefined method Pest\\Expectation#'
+        - '#Access to an undefined property Pest\\Support\\HigherOrderTapProxy#'
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    treatPhpDocTypesAsCertain: false
