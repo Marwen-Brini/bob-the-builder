@@ -2,6 +2,7 @@
 
 namespace Bob\Database;
 
+use Bob\Cache\QueryCache;
 use Bob\Contracts\BuilderInterface;
 use Bob\Contracts\ConnectionInterface;
 use Bob\Contracts\ExpressionInterface;
@@ -29,6 +30,11 @@ class Connection implements ConnectionInterface
     protected array $queryLog = [];
     protected bool $loggingQueries = false;
     protected bool $pretending = false;
+    protected array $preparedStatements = [];
+    protected bool $cachePreparedStatements = true;
+    protected int $maxCachedStatements = 100;
+    protected ?QueryCache $queryCache = null;
+    protected ?QueryProfiler $profiler = null;
 
     public function __construct(array $config = [])
     {
@@ -182,16 +188,35 @@ class Connection implements ConnectionInterface
 
     public function select(string $query, array $bindings = [], bool $useReadPdo = true): array
     {
-        return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+        // Check cache first
+        if ($this->queryCache && $this->queryCache->isEnabled()) {
+            $cacheKey = $this->queryCache->generateKey($query, $bindings);
+            $cached = $this->queryCache->get($cacheKey);
+            
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $result = $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
             if ($this->pretending) {
                 return [];
             }
 
-            $statement = $this->getPdoForSelect($useReadPdo)->prepare($query);
+            $pdo = $this->getPdoForSelect($useReadPdo);
+            $statement = $this->getCachedStatement($query, $pdo);
             $statement->execute($bindings);
 
             return $statement->fetchAll(PDO::FETCH_ASSOC);
         });
+
+        // Cache the result
+        if ($this->queryCache && $this->queryCache->isEnabled()) {
+            $cacheKey = $this->queryCache->generateKey($query, $bindings);
+            $this->queryCache->put($cacheKey, $result);
+        }
+
+        return $result;
     }
 
     protected function getPdoForSelect(bool $useReadPdo = true): PDO
@@ -228,7 +253,7 @@ class Connection implements ConnectionInterface
                 return true;
             }
 
-            $statement = $this->getPdo()->prepare($query);
+            $statement = $this->getCachedStatement($query, $this->getPdo());
 
             return $statement->execute($bindings);
         });
@@ -241,7 +266,7 @@ class Connection implements ConnectionInterface
                 return 0;
             }
 
-            $statement = $this->getPdo()->prepare($query);
+            $statement = $this->getCachedStatement($query, $this->getPdo());
             $statement->execute($bindings);
 
             return $statement->rowCount();
@@ -262,14 +287,28 @@ class Connection implements ConnectionInterface
     protected function run(string $query, array $bindings, Closure $callback)
     {
         $start = microtime(true);
+        
+        // Start profiling
+        $profileId = '';
+        if ($this->profiler && $this->profiler->isEnabled()) {
+            $profileId = $this->profiler->start($query, $bindings);
+        }
 
         try {
             $result = $callback($query, $bindings);
         } catch (Throwable $e) {
+            if ($profileId) {
+                $this->profiler->end($profileId);
+            }
             throw $e;
         }
 
         $time = microtime(true) - $start;
+
+        // End profiling
+        if ($profileId) {
+            $this->profiler->end($profileId);
+        }
 
         if ($this->loggingQueries) {
             $this->logQuery($query, $bindings, $time);
@@ -408,5 +447,107 @@ class Connection implements ConnectionInterface
     public function raw($value): ExpressionInterface
     {
         return new Expression($value);
+    }
+
+    protected function getCachedStatement(string $query, PDO $pdo): \PDOStatement
+    {
+        if (!$this->cachePreparedStatements) {
+            return $pdo->prepare($query);
+        }
+
+        $key = spl_object_hash($pdo) . ':' . $query;
+        
+        if (!isset($this->preparedStatements[$key])) {
+            if (count($this->preparedStatements) >= $this->maxCachedStatements) {
+                array_shift($this->preparedStatements);
+            }
+            
+            $this->preparedStatements[$key] = $pdo->prepare($query);
+        }
+        
+        return $this->preparedStatements[$key];
+    }
+
+    public function enableStatementCaching(): void
+    {
+        $this->cachePreparedStatements = true;
+    }
+
+    public function disableStatementCaching(): void
+    {
+        $this->cachePreparedStatements = false;
+        $this->clearStatementCache();
+    }
+
+    public function clearStatementCache(): void
+    {
+        $this->preparedStatements = [];
+    }
+
+    public function getStatementCacheSize(): int
+    {
+        return count($this->preparedStatements);
+    }
+
+    public function setMaxCachedStatements(int $max): void
+    {
+        $this->maxCachedStatements = max(1, $max);
+        
+        while (count($this->preparedStatements) > $this->maxCachedStatements) {
+            array_shift($this->preparedStatements);
+        }
+    }
+
+    public function enableQueryCache(int $maxItems = 1000, int $ttl = 3600): void
+    {
+        $this->queryCache = new QueryCache($maxItems, $ttl);
+    }
+
+    public function disableQueryCache(): void
+    {
+        if ($this->queryCache) {
+            $this->queryCache->disable();
+        }
+    }
+
+    public function flushQueryCache(): void
+    {
+        if ($this->queryCache) {
+            $this->queryCache->flush();
+        }
+    }
+
+    public function getQueryCache(): ?QueryCache
+    {
+        return $this->queryCache;
+    }
+
+    public function enableProfiling(): void
+    {
+        if (!$this->profiler) {
+            $this->profiler = new QueryProfiler();
+        }
+        $this->profiler->enable();
+    }
+
+    public function disableProfiling(): void
+    {
+        if ($this->profiler) {
+            $this->profiler->disable();
+        }
+    }
+
+    public function getProfiler(): ?QueryProfiler
+    {
+        return $this->profiler;
+    }
+
+    public function getProfilingReport(): array
+    {
+        if (!$this->profiler) {
+            return ['enabled' => false, 'message' => 'Profiling not initialized'];
+        }
+        
+        return $this->profiler->getReport();
     }
 }
