@@ -3,11 +3,13 @@
 namespace Bob\Database;
 
 use Bob\Cache\QueryCache;
+use Bob\Concerns\LogsQueries;
 use Bob\Contracts\BuilderInterface;
 use Bob\Contracts\ConnectionInterface;
 use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
+use Bob\Logging\Log;
 use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Grammars\MySQLGrammar;
@@ -16,10 +18,12 @@ use Bob\Query\Grammars\SQLiteGrammar;
 use Bob\Query\Processor;
 use Closure;
 use PDO;
+use Psr\Log\LoggerAwareInterface;
 use Throwable;
 
-class Connection implements ConnectionInterface
+class Connection implements ConnectionInterface, LoggerAwareInterface
 {
+    use LogsQueries;
     protected ?PDO $pdo = null;
     protected ?PDO $readPdo = null;
     protected array $config = [];
@@ -27,8 +31,6 @@ class Connection implements ConnectionInterface
     protected ProcessorInterface $postProcessor;
     protected string $tablePrefix = '';
     protected int $transactions = 0;
-    protected array $queryLog = [];
-    protected bool $loggingQueries = false;
     protected bool $pretending = false;
     protected array $preparedStatements = [];
     protected bool $cachePreparedStatements = true;
@@ -43,6 +45,21 @@ class Connection implements ConnectionInterface
         
         $this->useDefaultQueryGrammar();
         $this->useDefaultPostProcessor();
+        
+        // Register with global Log facade
+        Log::registerConnection($this);
+        
+        // Initialize logging if configured locally or globally
+        if (($config['logging'] ?? false) || Log::isEnabled()) {
+            $this->enableQueryLog();
+        }
+        
+        // Set logger if provided locally or use global logger
+        if (isset($config['logger'])) {
+            $this->setLogger($config['logger']);
+        } elseif (Log::getLogger()) {
+            $this->setLogger(Log::getLogger());
+        }
     }
 
     protected function useDefaultQueryGrammar(): void
@@ -90,7 +107,14 @@ class Connection implements ConnectionInterface
 
         $options[PDO::ATTR_ERRMODE] = PDO::ERRMODE_EXCEPTION;
 
-        return new PDO($dsn, $username, $password, $options);
+        try {
+            $pdo = new PDO($dsn, $username, $password, $options);
+            $this->logConnection('established', $this->config);
+            return $pdo;
+        } catch (\PDOException $e) {
+            $this->logConnection('failed', $this->config);
+            throw $e;
+        }
     }
 
     protected function getMySQLDsn(): string
@@ -176,6 +200,15 @@ class Connection implements ConnectionInterface
     public function getTablePrefix(): string
     {
         return $this->tablePrefix;
+    }
+
+    public function getConfig(string $key = null)
+    {
+        if ($key === null) {
+            return $this->config;
+        }
+        
+        return $this->config[$key] ?? null;
     }
 
     public function setTablePrefix(string $prefix): self
@@ -310,7 +343,7 @@ class Connection implements ConnectionInterface
             $this->profiler->end($profileId);
         }
 
-        if ($this->loggingQueries) {
+        if ($this->isLoggingEnabled()) {
             $this->logQuery($query, $bindings, $time);
         }
 
@@ -330,10 +363,6 @@ class Connection implements ConnectionInterface
         return $bindings;
     }
 
-    public function logQuery(string $query, array $bindings, float $time = null): void
-    {
-        $this->queryLog[] = compact('query', 'bindings', 'time');
-    }
 
     public function transaction(Closure $callback, int $attempts = 1)
     {
@@ -359,10 +388,13 @@ class Connection implements ConnectionInterface
     {
         if ($this->transactions == 0) {
             $this->getPdo()->beginTransaction();
+            $this->logTransaction('started');
         } elseif ($this->transactions >= 1 && $this->queryGrammar->supportsSavepoints()) {
+            $savepoint = 'trans' . ($this->transactions + 1);
             $this->getPdo()->exec(
-                $this->queryGrammar->compileSavepoint('trans' . ($this->transactions + 1))
+                $this->queryGrammar->compileSavepoint($savepoint)
             );
+            $this->logTransaction('savepoint', $savepoint);
         }
 
         $this->transactions++;
@@ -372,6 +404,7 @@ class Connection implements ConnectionInterface
     {
         if ($this->transactions == 1) {
             $this->getPdo()->commit();
+            $this->logTransaction('committed');
         }
 
         $this->transactions = max(0, $this->transactions - 1);
@@ -381,10 +414,13 @@ class Connection implements ConnectionInterface
     {
         if ($this->transactions == 1) {
             $this->getPdo()->rollBack();
+            $this->logTransaction('rolled back');
         } elseif ($this->transactions > 1 && $this->queryGrammar->supportsSavepoints()) {
+            $savepoint = 'trans' . $this->transactions;
             $this->getPdo()->exec(
-                $this->queryGrammar->compileSavepointRollBack('trans' . $this->transactions)
+                $this->queryGrammar->compileSavepointRollBack($savepoint)
             );
+            $this->logTransaction('savepoint rolled back', $savepoint);
         }
 
         $this->transactions = max(0, $this->transactions - 1);
@@ -398,15 +434,15 @@ class Connection implements ConnectionInterface
     public function pretend(Closure $callback): array
     {
         $this->pretending = true;
-        $this->queryLog = [];
-        $this->loggingQueries = true;
+        $this->clearQueryLog();
+        $this->enableQueryLog();
 
         $callback($this);
 
         $this->pretending = false;
-        $this->loggingQueries = false;
+        $this->disableQueryLog();
 
-        return $this->queryLog;
+        return $this->getQueryLog();
     }
 
     public function pretending(): bool
@@ -414,29 +450,16 @@ class Connection implements ConnectionInterface
         return $this->pretending;
     }
 
-    public function enableQueryLog(): void
-    {
-        $this->loggingQueries = true;
-    }
-
-    public function disableQueryLog(): void
-    {
-        $this->loggingQueries = false;
-    }
 
     public function logging(): bool
     {
-        return $this->loggingQueries;
+        return $this->isLoggingEnabled();
     }
 
-    public function getQueryLog(): array
-    {
-        return $this->queryLog;
-    }
 
     public function flushQueryLog(): void
     {
-        $this->queryLog = [];
+        $this->clearQueryLog();
     }
 
     public function table(string $table): BuilderInterface
