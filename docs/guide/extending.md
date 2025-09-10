@@ -459,59 +459,292 @@ your-bob-extension/
 
 ## Testing Your Extensions
 
-```php
-<?php
+Bob Query Builder uses Pest for testing. Here's how to write tests for your extensions:
 
-use PHPUnit\Framework\TestCase;
+### Setting Up Tests with Pest
+
+```php
 use Bob\Query\Builder;
 use Bob\Database\Connection;
 
-class ExtensionTest extends TestCase
-{
-    protected Connection $connection;
+beforeEach(function () {
+    // Setup database connection
+    $this->connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => ':memory:'
+    ]);
     
-    protected function setUp(): void
-    {
-        $this->connection = new Connection([
-            'driver' => 'sqlite',
-            'database' => ':memory:'
-        ]);
-        
-        // Register your extensions
-        MyExtension::register();
-    }
+    // Clear any existing extensions
+    Builder::clearMacros();
+    Builder::clearScopes();
+    Builder::clearFinders();
+});
+
+afterEach(function () {
+    // Clean up extensions after each test
+    Builder::clearMacros();
+    Builder::clearScopes();
+    Builder::clearFinders();
+});
+```
+
+### Testing Macros
+
+```php
+test('can register and use custom macros', function () {
+    // Register a macro
+    Builder::macro('whereActive', function() {
+        return $this->where('status', '=', 'active');
+    });
     
-    protected function tearDown(): void
-    {
-        MyExtension::unregister();
-    }
+    // Test that the macro exists
+    expect(Builder::hasMacro('whereActive'))->toBeTrue();
     
-    public function testCustomMacro(): void
-    {
-        $query = $this->connection->table('users');
-        
-        // Test that your macro works
-        $this->assertInstanceOf(Builder::class, $query->myCustomMethod());
-    }
+    // Use the macro
+    $query = $this->connection->table('users')->whereActive();
+    $sql = $query->toSql();
     
-    public function testCustomScope(): void
-    {
-        $query = $this->connection->table('posts')
-            ->withScope('myScope');
-        
-        $sql = $query->toSql();
-        $this->assertStringContainsString('expected SQL', $sql);
-    }
+    expect($sql)->toContain('status');
+    expect($query->getBindings())->toContain('active');
+});
+
+test('can chain multiple macros', function () {
+    Builder::macro('active', function() {
+        return $this->where('status', '=', 'active');
+    });
     
-    public function testDynamicFinder(): void
-    {
-        $query = $this->connection->table('users');
-        
-        // Test dynamic finder
-        $result = $query->findByCustomField('value');
-        $this->assertNotNull($result);
-    }
-}
+    Builder::macro('recent', function($days = 7) {
+        $date = date('Y-m-d', strtotime("-{$days} days"));
+        return $this->where('created_at', '>=', $date);
+    });
+    
+    $query = $this->connection->table('users')
+        ->active()
+        ->recent(30);
+    
+    expect($query->toSql())->toContain('status')
+        ->and($query->toSql())->toContain('created_at');
+});
+```
+
+### Testing Scopes
+
+```php
+test('can use local scopes', function () {
+    Builder::scope('published', function() {
+        return $this->where('status', '=', 'published');
+    });
+    
+    expect(Builder::hasScope('published'))->toBeTrue();
+    
+    $query = $this->connection->table('posts')
+        ->withScope('published');
+    
+    expect($query->getBindings())->toContain('published');
+});
+
+test('can use parameterized scopes', function () {
+    Builder::scope('ofType', function($type) {
+        return $this->where('type', '=', $type);
+    });
+    
+    $query = $this->connection->table('products')
+        ->withScope('ofType', 'electronics');
+    
+    expect($query->getBindings())->toContain('electronics');
+});
+```
+
+### Testing Dynamic Finders
+
+```php
+test('can use dynamic finders', function () {
+    // Create test table
+    $this->connection->statement('
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            email TEXT,
+            status TEXT
+        )
+    ');
+    
+    $this->connection->table('users')->insert([
+        ['email' => 'test@example.com', 'status' => 'active']
+    ]);
+    
+    $user = $this->connection->table('users')
+        ->findByEmail('test@example.com');
+    
+    expect($user)->toBeArray()
+        ->and($user['email'])->toBe('test@example.com');
+});
+
+test('can register custom finder patterns', function () {
+    Builder::registerFinder('/^getBySlug$/', function($matches, $params) {
+        $slug = $params[0] ?? null;
+        return $this->where('slug', '=', $slug)->first();
+    });
+    
+    // Mock the behavior
+    $query = $this->connection->table('posts');
+    
+    expect(fn() => $query->getBySlug('test-slug'))
+        ->not->toThrow();
+});
+```
+
+### Testing Chain Combinations
+
+```php
+test('can chain multiple extensions together', function () {
+    // Setup test data
+    $this->connection->statement('
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            email TEXT,
+            status TEXT,
+            created_at TEXT
+        )
+    ');
+    
+    $this->connection->table('users')->insert([
+        ['name' => 'Active User', 'email' => 'active@example.com', 'status' => 'active', 'created_at' => date('Y-m-d')],
+        ['name' => 'Old User', 'email' => 'old@example.com', 'status' => 'active', 'created_at' => '2020-01-01'],
+        ['name' => 'Inactive User', 'email' => 'inactive@example.com', 'status' => 'inactive', 'created_at' => date('Y-m-d')],
+    ]);
+    
+    // Register extensions
+    Builder::macro('active', function() {
+        return $this->where('status', '=', 'active');
+    });
+    
+    Builder::scope('recent', function($days = 7) {
+        $date = date('Y-m-d', strtotime("-{$days} days"));
+        return $this->where('created_at', '>=', $date);
+    });
+    
+    // Chain everything
+    $users = $this->connection->table('users')
+        ->active()
+        ->withScope('recent', 30)
+        ->whereByEmail('active@example.com')
+        ->get();
+    
+    expect($users)->toHaveCount(1)
+        ->and($users[0]['name'])->toBe('Active User');
+});
+```
+
+### Common Testing Pitfalls and Solutions
+
+1. **Date Range Issues**: When testing date-based scopes, ensure your test data falls within the expected range:
+   ```php
+   // Bad: May exclude test data if dates are old
+   ->recent(365)
+   
+   // Good: Use a large enough range for test data
+   ->recent(5000)
+   ```
+
+2. **Global Scope Order**: When removing global scopes, call `withoutGlobalScope()` before `withGlobalScopes()`:
+   ```php
+   // Correct order
+   $query = $connection->table('users')
+       ->withoutGlobalScope('activeOnly')
+       ->withGlobalScopes();
+   ```
+
+3. **Extension Cleanup**: Always clear extensions in test setup/teardown to prevent interference:
+   ```php
+   beforeEach(function () {
+       Builder::clearMacros();
+       Builder::clearScopes();
+       Builder::clearFinders();
+   });
+   ```
+
+4. **Array vs Object Results**: PDO returns arrays by default, not objects:
+   ```php
+   // Correct assertion for array results
+   expect($user['email'])->toBe('test@example.com');
+   
+   // Not this (unless you've configured PDO differently)
+   expect($user->email)->toBe('test@example.com');
+   ```
+
+### Running Tests
+
+```bash
+# Run all tests
+vendor/bin/pest
+
+# Run specific test file
+vendor/bin/pest tests/Feature/ExtensionSystemTest.php
+
+# Run with filter
+vendor/bin/pest --filter="can register and use macros"
+
+# Run with coverage
+vendor/bin/pest --coverage
+```
+
+### Example Complete Test File
+
+```php
+<?php
+
+use Bob\Database\Connection;
+use Bob\Query\Builder;
+
+beforeEach(function () {
+    $this->connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+    ]);
+    
+    // Create test table
+    $this->connection->statement('
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            email TEXT,
+            status TEXT,
+            created_at TEXT
+        )
+    ');
+    
+    // Insert test data
+    $this->connection->table('users')->insert([
+        ['name' => 'John Doe', 'email' => 'john@example.com', 'status' => 'active', 'created_at' => '2024-01-01'],
+        ['name' => 'Jane Smith', 'email' => 'jane@example.com', 'status' => 'inactive', 'created_at' => '2024-01-02'],
+    ]);
+    
+    // Clear extensions
+    Builder::clearMacros();
+    Builder::clearScopes();
+    Builder::clearFinders();
+});
+
+afterEach(function () {
+    Builder::clearMacros();
+    Builder::clearScopes();
+    Builder::clearFinders();
+});
+
+test('my custom extension works', function () {
+    // Your test implementation
+    Builder::macro('whereActive', function() {
+        return $this->where('status', '=', 'active');
+    });
+    
+    $activeUsers = $this->connection->table('users')
+        ->whereActive()
+        ->get();
+    
+    expect($activeUsers)->toHaveCount(1)
+        ->and($activeUsers[0]['name'])->toBe('John Doe');
+});
 ```
 
 ## Best Practices
