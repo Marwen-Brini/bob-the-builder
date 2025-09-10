@@ -56,6 +56,7 @@ export default defineConfig({
         {
           text: 'Advanced Features',
           items: [
+            { text: 'Logging', link: '/guide/logging' },
             { text: 'Extending Bob', link: '/guide/extending' },
             { text: 'Macros', link: '/guide/macros' },
             { text: 'Query Scopes', link: '/guide/scopes' },
