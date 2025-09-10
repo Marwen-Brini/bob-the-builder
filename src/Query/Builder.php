@@ -8,9 +8,12 @@ use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
 use Closure;
+use BadMethodCallException;
 
 class Builder implements BuilderInterface
 {
+    use Macroable, Scopeable, DynamicFinder;
+    
     public ConnectionInterface $connection;
     public GrammarInterface $grammar;
     public ProcessorInterface $processor;
@@ -824,6 +827,56 @@ class Builder implements BuilderInterface
     public function clone(): self
     {
         return clone $this;
+    }
+
+    /**
+     * Handle dynamic method calls.
+     *
+     * @param string $method
+     * @param array $parameters
+     * @return mixed
+     * @throws BadMethodCallException
+     */
+    public function __call(string $method, array $parameters)
+    {
+        // First, check for dynamic finders (findBySlug, whereByStatus, etc.)
+        $result = $this->handleDynamicFinder($method, $parameters);
+        if ($result !== null) {
+            return $result;
+        }
+
+        // Then check for local scopes
+        if (static::hasScope($method)) {
+            return $this->withScope($method, ...$parameters);
+        }
+
+        // Then check for macros
+        if (static::hasMacro($method)) {
+            $macro = static::$macros[$method];
+            if ($macro instanceof Closure) {
+                $macro = $macro->bindTo($this, static::class);
+            }
+            return $macro(...$parameters);
+        }
+
+        // Finally, throw an exception
+        throw new BadMethodCallException(sprintf(
+            'Method %s::%s does not exist.',
+            static::class,
+            $method
+        ));
+    }
+
+    /**
+     * Create a new query instance with global scopes applied.
+     *
+     * @return self
+     */
+    public function withGlobalScopes(): self
+    {
+        $query = clone $this;
+        $query->applyGlobalScopes();
+        return $query;
     }
 }
 

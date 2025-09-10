@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Find autoloader
+$autoloadPaths = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+    __DIR__ . '/../../../../vendor/autoload.php',
+];
+
+$autoloaderFound = false;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        require $path;
+        $autoloaderFound = true;
+        break;
+    }
+}
+
+if (!$autoloaderFound) {
+    echo "Error: Composer autoloader not found.\n";
+    echo "Please run 'composer install' first.\n";
+    exit(1);
+}
+
+use Bob\cli\BobCommand;
+
+try {
+    $command = new BobCommand();
+    exit($command->run($argv));
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+    exit(1);
+}

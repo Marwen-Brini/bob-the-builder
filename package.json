@@ -1,0 +1,21 @@
+{
+  "name": "builder",
+  "version": "1.0.0",
+  "description": "A highly optimized, standalone PHP query builder with Laravel-like fluent syntax. Originally designed to enhance Quantum ORM's query building capabilities, **Bob Query Builder is a fully independent package that can be used in ANY PHP project** - from WordPress plugins to modern PHP frameworks, microservices, or standalone applications.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}
