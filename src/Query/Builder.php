@@ -566,9 +566,10 @@ class Builder implements BuilderInterface
                 return false;
             }
 
+            $hasMore = count($results) == $count;
             unset($results);
             $page++;
-        } while (count($results) == $count);
+        } while ($hasMore);
 
         return true;
     }
