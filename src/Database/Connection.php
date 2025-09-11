@@ -11,7 +11,6 @@ use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
 use Bob\Logging\Log;
 use Bob\Query\Builder;
-use Bob\Query\Grammar;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Grammars\PostgreSQLGrammar;
 use Bob\Query\Grammars\SQLiteGrammar;
@@ -24,36 +23,49 @@ use Throwable;
 class Connection implements ConnectionInterface, LoggerAwareInterface
 {
     use LogsQueries;
+
     protected ?PDO $pdo = null;
+
     protected ?PDO $readPdo = null;
+
     protected array $config = [];
+
     protected GrammarInterface $queryGrammar;
+
     protected ProcessorInterface $postProcessor;
+
     protected string $tablePrefix = '';
+
     protected int $transactions = 0;
+
     protected bool $pretending = false;
+
     protected array $preparedStatements = [];
+
     protected bool $cachePreparedStatements = true;
+
     protected int $maxCachedStatements = 100;
+
     protected ?QueryCache $queryCache = null;
+
     protected ?QueryProfiler $profiler = null;
 
     public function __construct(array $config = [])
     {
         $this->config = $config;
         $this->tablePrefix = $config['prefix'] ?? '';
-        
+
         $this->useDefaultQueryGrammar();
         $this->useDefaultPostProcessor();
-        
+
         // Register with global Log facade
         Log::registerConnection($this);
-        
+
         // Initialize logging if configured locally or globally
         if (($config['logging'] ?? false) || Log::isEnabled()) {
             $this->enableQueryLog();
         }
-        
+
         // Set logger if provided locally or use global logger
         if (isset($config['logger'])) {
             $this->setLogger($config['logger']);
@@ -65,20 +77,20 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     protected function useDefaultQueryGrammar(): void
     {
         $driver = $this->config['driver'] ?? 'mysql';
-        
+
         $this->queryGrammar = match ($driver) {
-            'mysql' => new MySQLGrammar(),
-            'pgsql', 'postgres', 'postgresql' => new PostgreSQLGrammar(),
-            'sqlite' => new SQLiteGrammar(),
-            default => new MySQLGrammar(),
+            'mysql' => new MySQLGrammar,
+            'pgsql', 'postgres', 'postgresql' => new PostgreSQLGrammar,
+            'sqlite' => new SQLiteGrammar,
+            default => new MySQLGrammar,
         };
-        
+
         $this->queryGrammar->setTablePrefix($this->tablePrefix);
     }
 
     protected function useDefaultPostProcessor(): void
     {
-        $this->postProcessor = new Processor();
+        $this->postProcessor = new Processor;
     }
 
     public function getPdo(): PDO
@@ -93,7 +105,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     protected function createConnection(): PDO
     {
         $driver = $this->config['driver'] ?? 'mysql';
-        
+
         $dsn = match ($driver) {
             'mysql' => $this->getMySQLDsn(),
             'pgsql', 'postgres', 'postgresql' => $this->getPostgresDsn(),
@@ -110,6 +122,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         try {
             $pdo = new PDO($dsn, $username, $password, $options);
             $this->logConnection('established', $this->config);
+
             return $pdo;
         } catch (\PDOException $e) {
             $this->logConnection('failed', $this->config);
@@ -139,14 +152,14 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     protected function getSQLiteDsn(): string
     {
         $database = $this->config['database'] ?? ':memory:';
-        
+
         return "sqlite:{$database}";
     }
 
     public function setPdo(PDO $pdo): self
     {
         $this->pdo = $pdo;
-        
+
         return $this;
     }
 
@@ -181,7 +194,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     public function setQueryGrammar(GrammarInterface $grammar): self
     {
         $this->queryGrammar = $grammar;
-        
+
         return $this;
     }
 
@@ -193,7 +206,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     public function setPostProcessor(ProcessorInterface $processor): self
     {
         $this->postProcessor = $processor;
-        
+
         return $this;
     }
 
@@ -202,12 +215,12 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $this->tablePrefix;
     }
 
-    public function getConfig(string $key = null)
+    public function getConfig(?string $key = null)
     {
         if ($key === null) {
             return $this->config;
         }
-        
+
         return $this->config[$key] ?? null;
     }
 
@@ -215,7 +228,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     {
         $this->tablePrefix = $prefix;
         $this->queryGrammar->setTablePrefix($prefix);
-        
+
         return $this;
     }
 
@@ -225,7 +238,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         if ($this->queryCache && $this->queryCache->isEnabled()) {
             $cacheKey = $this->queryCache->generateKey($query, $bindings);
             $cached = $this->queryCache->get($cacheKey);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -320,7 +333,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     protected function run(string $query, array $bindings, Closure $callback)
     {
         $start = microtime(true);
-        
+
         // Start profiling
         $profileId = '';
         if ($this->profiler && $this->profiler->isEnabled()) {
@@ -363,7 +376,6 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $bindings;
     }
 
-
     public function transaction(Closure $callback, int $attempts = 1)
     {
         for ($currentAttempt = 1; $currentAttempt <= $attempts; $currentAttempt++) {
@@ -372,7 +384,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             try {
                 $callbackResult = $callback($this);
                 $this->commit();
-                
+
                 return $callbackResult;
             } catch (Throwable $e) {
                 $this->rollBack();
@@ -390,7 +402,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $this->getPdo()->beginTransaction();
             $this->logTransaction('started');
         } elseif ($this->transactions >= 1 && $this->queryGrammar->supportsSavepoints()) {
-            $savepoint = 'trans' . ($this->transactions + 1);
+            $savepoint = 'trans'.($this->transactions + 1);
             $this->getPdo()->exec(
                 $this->queryGrammar->compileSavepoint($savepoint)
             );
@@ -416,7 +428,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $this->getPdo()->rollBack();
             $this->logTransaction('rolled back');
         } elseif ($this->transactions > 1 && $this->queryGrammar->supportsSavepoints()) {
-            $savepoint = 'trans' . $this->transactions;
+            $savepoint = 'trans'.$this->transactions;
             $this->getPdo()->exec(
                 $this->queryGrammar->compileSavepointRollBack($savepoint)
             );
@@ -450,12 +462,10 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $this->pretending;
     }
 
-
     public function logging(): bool
     {
         return $this->isLoggingEnabled();
     }
-
 
     public function flushQueryLog(): void
     {
@@ -474,20 +484,20 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     protected function getCachedStatement(string $query, PDO $pdo): \PDOStatement
     {
-        if (!$this->cachePreparedStatements) {
+        if (! $this->cachePreparedStatements) {
             return $pdo->prepare($query);
         }
 
-        $key = spl_object_hash($pdo) . ':' . $query;
-        
-        if (!isset($this->preparedStatements[$key])) {
+        $key = spl_object_hash($pdo).':'.$query;
+
+        if (! isset($this->preparedStatements[$key])) {
             if (count($this->preparedStatements) >= $this->maxCachedStatements) {
                 array_shift($this->preparedStatements);
             }
-            
+
             $this->preparedStatements[$key] = $pdo->prepare($query);
         }
-        
+
         return $this->preparedStatements[$key];
     }
 
@@ -515,7 +525,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     public function setMaxCachedStatements(int $max): void
     {
         $this->maxCachedStatements = max(1, $max);
-        
+
         while (count($this->preparedStatements) > $this->maxCachedStatements) {
             array_shift($this->preparedStatements);
         }
@@ -547,8 +557,8 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function enableProfiling(): void
     {
-        if (!$this->profiler) {
-            $this->profiler = new QueryProfiler();
+        if (! $this->profiler) {
+            $this->profiler = new QueryProfiler;
         }
         $this->profiler->enable();
     }
@@ -567,10 +577,10 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function getProfilingReport(): array
     {
-        if (!$this->profiler) {
+        if (! $this->profiler) {
             return ['enabled' => false, 'message' => 'Profiling not initialized'];
         }
-        
+
         return $this->profiler->getReport();
     }
 }

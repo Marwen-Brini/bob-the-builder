@@ -29,7 +29,7 @@ class ConnectionException extends Exception
         $driver = $config['driver'] ?? 'unknown';
         $host = $config['host'] ?? 'unknown';
         $database = $config['database'] ?? 'unknown';
-        
+
         $message = sprintf(
             "Failed to connect to %s database '%s' at '%s'",
             $driver,
@@ -38,7 +38,7 @@ class ConnectionException extends Exception
         );
 
         if ($previous) {
-            $message .= ": " . $previous->getMessage();
+            $message .= ': '.$previous->getMessage();
         }
 
         return new static($message, $config, 0, $previous);
@@ -50,7 +50,7 @@ class ConnectionException extends Exception
     public static function unsupportedDriver(string $driver): self
     {
         return new static(
-            sprintf("Unsupported database driver: %s. Supported drivers are: mysql, pgsql, sqlite", $driver),
+            sprintf('Unsupported database driver: %s. Supported drivers are: mysql, pgsql, sqlite', $driver),
             ['driver' => $driver]
         );
     }
@@ -61,7 +61,7 @@ class ConnectionException extends Exception
     public static function missingConfiguration(string $key): self
     {
         return new static(
-            sprintf("Database configuration missing required key: %s", $key),
+            sprintf('Database configuration missing required key: %s', $key),
             ['missing_key' => $key]
         );
     }
@@ -82,10 +82,10 @@ class ConnectionException extends Exception
      */
     public static function transactionError(string $operation, ?Throwable $previous = null): self
     {
-        $message = sprintf("Transaction %s failed", $operation);
-        
+        $message = sprintf('Transaction %s failed', $operation);
+
         if ($previous) {
-            $message .= ": " . $previous->getMessage();
+            $message .= ': '.$previous->getMessage();
         }
 
         return new static($message, ['operation' => $operation], 0, $previous);

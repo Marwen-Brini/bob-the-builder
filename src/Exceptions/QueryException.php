@@ -10,13 +10,14 @@ use Throwable;
 class QueryException extends Exception
 {
     protected string $sql = '';
+
     protected array $bindings = [];
 
     public function __construct(
-        string $message = '', 
-        string $sql = '', 
-        array $bindings = [], 
-        int $code = 0, 
+        string $message = '',
+        string $sql = '',
+        array $bindings = [],
+        int $code = 0,
         ?Throwable $previous = null
     ) {
         parent::__construct($message, $code, $previous);
@@ -30,9 +31,9 @@ class QueryException extends Exception
     public static function formatMessage(string $sql, array $bindings, ?Throwable $previous = null): string
     {
         $message = $previous ? $previous->getMessage() : 'Database query error';
-        
+
         return sprintf(
-            "%s (SQL: %s)",
+            '%s (SQL: %s)',
             $message,
             self::formatSqlWithBindings($sql, $bindings)
         );
@@ -42,12 +43,12 @@ class QueryException extends Exception
      * Create a new query exception instance.
      */
     public static function fromSqlAndBindings(
-        string $sql, 
-        array $bindings = [], 
+        string $sql,
+        array $bindings = [],
         ?Throwable $previous = null
     ): self {
         $message = self::formatMessage($sql, $bindings, $previous);
-        
+
         return new static($message, $sql, $bindings, 0, $previous);
     }
 

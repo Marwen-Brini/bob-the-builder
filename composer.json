@@ -15,10 +15,11 @@
         "psr/log": "^3.0"
     },
     "require-dev": {
-        "pestphp/pest": "^3.0",
-        "phpstan/phpstan": "^2.0",
         "infection/infection": "^0.29",
-        "mockery/mockery": "^1.6"
+        "laravel/pint": "^1.24",
+        "mockery/mockery": "^1.6",
+        "pestphp/pest": "^3.0",
+        "phpstan/phpstan": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -38,9 +39,12 @@
         "test:coverage": "vendor/bin/pest --coverage --coverage-html=coverage",
         "test:mutation": "vendor/bin/infection",
         "analyse": "vendor/bin/phpstan analyse",
+        "format": "vendor/bin/pint",
+        "format:test": "vendor/bin/pint --test",
         "check": [
             "@test",
-            "@analyse"
+            "@analyse",
+            "@format:test"
         ]
     },
     "config": {

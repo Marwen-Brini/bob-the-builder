@@ -2,9 +2,8 @@
 
 namespace Bob\Database;
 
-use Bob\Query\Builder;
 use Bob\Contracts\ConnectionInterface;
-use BadMethodCallException;
+use Bob\Query\Builder;
 
 /**
  * Base Model class that provides ActiveRecord-like functionality
@@ -65,9 +64,10 @@ abstract class Model
      */
     public static function getConnection(): ConnectionInterface
     {
-        if (!static::$connection) {
+        if (! static::$connection) {
             throw new \RuntimeException('No database connection configured for models');
         }
+
         return static::$connection;
     }
 
@@ -77,6 +77,7 @@ abstract class Model
     public static function query(): Builder
     {
         $instance = new static;
+
         return static::getConnection()->table($instance->getTable());
     }
 
@@ -85,12 +86,13 @@ abstract class Model
      */
     public function getTable(): string
     {
-        if (!empty($this->table)) {
+        if (! empty($this->table)) {
             return $this->table;
         }
 
         // Auto-generate table name from class name
         $className = (new \ReflectionClass($this))->getShortName();
+
         return $this->pluralize(strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $className)));
     }
 
@@ -102,15 +104,15 @@ abstract class Model
         $last = substr($singular, -1);
         $beforeLast = substr($singular, -2, 1);
 
-        if ($last === 'y' && !in_array($beforeLast, ['a', 'e', 'i', 'o', 'u'])) {
-            return substr($singular, 0, -1) . 'ies';
+        if ($last === 'y' && ! in_array($beforeLast, ['a', 'e', 'i', 'o', 'u'])) {
+            return substr($singular, 0, -1).'ies';
         }
 
         if (substr($singular, -1) === 's') {
-            return $singular . 'es';
+            return $singular.'es';
         }
 
-        return $singular . 's';
+        return $singular.'s';
     }
 
     /**
@@ -130,6 +132,7 @@ abstract class Model
         foreach ($attributes as $key => $value) {
             $this->setAttribute($key, $value);
         }
+
         return $this;
     }
 
@@ -139,6 +142,7 @@ abstract class Model
     public function setAttribute(string $key, $value): self
     {
         $this->attributes[$key] = $value;
+
         return $this;
     }
 
@@ -158,6 +162,7 @@ abstract class Model
         if ($this->exists()) {
             return $this->update();
         }
+
         return $this->insert();
     }
 
@@ -173,10 +178,11 @@ abstract class Model
         }
 
         $id = static::query()->insertGetId($this->attributes);
-        
+
         if ($id) {
             $this->setAttribute($this->primaryKey, $id);
             $this->original = $this->attributes;
+
             return true;
         }
 
@@ -193,7 +199,7 @@ abstract class Model
         }
 
         $dirty = $this->getDirty();
-        
+
         if (empty($dirty)) {
             return true;
         }
@@ -204,6 +210,7 @@ abstract class Model
 
         if ($updated) {
             $this->original = $this->attributes;
+
             return true;
         }
 
@@ -215,7 +222,7 @@ abstract class Model
      */
     public function delete(): bool
     {
-        if (!$this->exists()) {
+        if (! $this->exists()) {
             return false;
         }
 
@@ -229,9 +236,9 @@ abstract class Model
      */
     public function exists(): bool
     {
-        return !empty($this->original) && 
-               isset($this->attributes[$this->primaryKey]) && 
-               !empty($this->attributes[$this->primaryKey]);
+        return ! empty($this->original) &&
+               isset($this->attributes[$this->primaryKey]) &&
+               ! empty($this->attributes[$this->primaryKey]);
     }
 
     /**
@@ -240,9 +247,9 @@ abstract class Model
     public function getDirty(): array
     {
         $dirty = [];
-        
+
         foreach ($this->attributes as $key => $value) {
-            if (!array_key_exists($key, $this->original) || $value !== $this->original[$key]) {
+            if (! array_key_exists($key, $this->original) || $value !== $this->original[$key]) {
                 $dirty[$key] = $value;
             }
         }
@@ -256,6 +263,7 @@ abstract class Model
     public static function create(array $attributes): ?self
     {
         $model = new static($attributes);
+
         return $model->save() ? $model : null;
     }
 
@@ -278,8 +286,8 @@ abstract class Model
     public static function findOrFail($id): self
     {
         $model = static::find($id);
-        
-        if (!$model) {
+
+        if (! $model) {
             throw new \RuntimeException("Model not found with ID: {$id}");
         }
 
@@ -292,6 +300,7 @@ abstract class Model
     public static function all(): array
     {
         $results = static::query()->get();
+
         return static::hydrateMany($results);
     }
 
@@ -301,6 +310,7 @@ abstract class Model
     public static function first(): ?self
     {
         $result = static::query()->first();
+
         return $result ? static::hydrate($result) : null;
     }
 
@@ -312,6 +322,7 @@ abstract class Model
         $attributes = is_object($data) ? (array) $data : $data;
         $model = new static($attributes);
         $model->original = $attributes;
+
         return $model;
     }
 
@@ -320,7 +331,7 @@ abstract class Model
      */
     protected static function hydrateMany(array $results): array
     {
-        return array_map(fn($result) => static::hydrate($result), $results);
+        return array_map(fn ($result) => static::hydrate($result), $results);
     }
 
     /**
@@ -373,7 +384,7 @@ abstract class Model
 
     /**
      * Handle dynamic method calls
-     * 
+     *
      * This allows for model-specific methods and forwards to query builder
      */
     public static function __callStatic(string $method, array $arguments)
@@ -381,7 +392,7 @@ abstract class Model
         // First check if the method exists on the model instance
         // This allows for custom static methods defined in child models
         $instance = new static;
-        
+
         // Check for custom instance methods that should work statically
         if (method_exists($instance, $method)) {
             // If it's a custom finder method, call it
@@ -389,10 +400,11 @@ abstract class Model
         }
 
         // Check for scope methods (scopeMethodName becomes methodName)
-        $scopeMethod = 'scope' . ucfirst($method);
+        $scopeMethod = 'scope'.ucfirst($method);
         if (method_exists($instance, $scopeMethod)) {
             $query = static::query();
             $instance->$scopeMethod($query, ...$arguments);
+
             return $query;
         }
 
@@ -407,7 +419,7 @@ abstract class Model
     {
         // Forward to query builder with current model constraints
         $query = static::query();
-        
+
         if ($this->exists()) {
             $query->where($this->primaryKey, $this->getAttribute($this->primaryKey));
         }
@@ -417,20 +429,20 @@ abstract class Model
 
     /**
      * Example of how to define custom methods in child models:
-     * 
+     *
      * In your Post model:
-     * 
+     *
      * public static function findBySlug(string $slug): ?self
      * {
      *     $result = static::query()->where('slug', $slug)->first();
      *     return $result ? static::hydrate($result) : null;
      * }
-     * 
+     *
      * public function scopePublished(Builder $query): void
      * {
      *     $query->where('status', 'published');
      * }
-     * 
+     *
      * Then you can use:
      * $post = Post::findBySlug('my-post');
      * $posts = Post::published()->get();

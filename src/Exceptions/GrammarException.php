@@ -10,6 +10,7 @@ use Throwable;
 class GrammarException extends Exception
 {
     protected string $method = '';
+
     protected string $grammar = '';
 
     public function __construct(
@@ -42,7 +43,7 @@ class GrammarException extends Exception
     public static function invalidOperator(string $operator): self
     {
         return new static(
-            sprintf("Invalid SQL operator: %s", $operator),
+            sprintf('Invalid SQL operator: %s', $operator),
             '',
             ''
         );
@@ -54,7 +55,7 @@ class GrammarException extends Exception
     public static function compilationError(string $component, string $reason): self
     {
         return new static(
-            sprintf("Failed to compile %s: %s", $component, $reason),
+            sprintf('Failed to compile %s: %s', $component, $reason),
             $component,
             ''
         );
@@ -66,7 +67,7 @@ class GrammarException extends Exception
     public static function missingComponent(string $component): self
     {
         return new static(
-            sprintf("Cannot compile query: missing %s component", $component),
+            sprintf('Cannot compile query: missing %s component', $component),
             '',
             ''
         );
@@ -78,7 +79,7 @@ class GrammarException extends Exception
     public static function invalidJoinType(string $type): self
     {
         return new static(
-            sprintf("Invalid join type: %s. Supported types are: inner, left, right, cross", $type),
+            sprintf('Invalid join type: %s. Supported types are: inner, left, right, cross', $type),
             '',
             ''
         );
@@ -90,7 +91,7 @@ class GrammarException extends Exception
     public static function invalidAggregate(string $function): self
     {
         return new static(
-            sprintf("Invalid aggregate function: %s. Supported functions are: count, sum, avg, min, max", $function),
+            sprintf('Invalid aggregate function: %s. Supported functions are: count, sum, avg, min, max', $function),
             '',
             ''
         );
@@ -102,7 +103,7 @@ class GrammarException extends Exception
     public static function bindingError(string $reason): self
     {
         return new static(
-            sprintf("Parameter binding error: %s", $reason),
+            sprintf('Parameter binding error: %s', $reason),
             '',
             ''
         );

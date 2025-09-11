@@ -5,36 +5,36 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
 test('can enable and disable logging', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     expect($logger->isEnabled())->toBeTrue();
-    
+
     $logger->setEnabled(false);
     expect($logger->isEnabled())->toBeFalse();
-    
+
     $logger->setEnabled(true);
     expect($logger->isEnabled())->toBeTrue();
 });
 
 test('can set underlying PSR-3 logger', function () {
     $psrLogger = Mockery::mock(LoggerInterface::class);
-    $queryLogger = new QueryLogger();
-    
+    $queryLogger = new QueryLogger;
+
     $queryLogger->setLogger($psrLogger);
-    
+
     $psrLogger->shouldReceive('log')
         ->once()
         ->with(LogLevel::DEBUG, 'Query executed', Mockery::type('array'));
-    
+
     $queryLogger->logQuery('SELECT * FROM users', [], 10.5);
 });
 
 test('logs queries with bindings when enabled', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $logger->setLogBindings(true);
-    
+
     $logger->logQuery('SELECT * FROM users WHERE id = ?', [1], 10.5);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(1);
     expect($log[0])->toHaveKeys(['query', 'bindings', 'time']);
@@ -42,22 +42,22 @@ test('logs queries with bindings when enabled', function () {
 });
 
 test('logs queries without bindings when disabled', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $logger->setLogBindings(false);
-    
+
     $logger->logQuery('SELECT * FROM users WHERE id = ?', [1], 10.5);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(1);
     expect($log[0])->not->toHaveKey('bindings');
 });
 
 test('logs execution time when enabled', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $logger->setLogTime(true);
-    
+
     $logger->logQuery('SELECT * FROM users', [], 10.5);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(1);
     expect($log[0])->toHaveKey('time');
@@ -65,11 +65,11 @@ test('logs execution time when enabled', function () {
 });
 
 test('does not log execution time when disabled', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $logger->setLogTime(false);
-    
+
     $logger->logQuery('SELECT * FROM users', [], 10.5);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(1);
     expect($log[0])->not->toHaveKey('time');
@@ -79,22 +79,22 @@ test('identifies slow queries', function () {
     $psrLogger = Mockery::mock(LoggerInterface::class);
     $queryLogger = new QueryLogger($psrLogger);
     $queryLogger->setSlowQueryThreshold(100);
-    
+
     $psrLogger->shouldReceive('log')
         ->once()
         ->with(LogLevel::WARNING, 'Slow query detected', Mockery::on(function ($context) {
             return $context['slow_query'] === true;
         }));
-    
+
     $queryLogger->logQuery('SELECT * FROM large_table', [], 150);
 });
 
 test('logs query errors', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $exception = new Exception('Table not found');
-    
+
     $logger->logQueryError('SELECT * FROM invalid_table', [], $exception);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(1);
     expect($log[0])->toHaveKeys(['level', 'message', 'context']);
@@ -103,12 +103,12 @@ test('logs query errors', function () {
 });
 
 test('logs transaction events', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     $logger->logTransaction('started');
     $logger->logTransaction('savepoint', 'sp1');
     $logger->logTransaction('committed');
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(3);
     expect($log[0]['message'])->toContain('Transaction started');
@@ -117,8 +117,8 @@ test('logs transaction events', function () {
 });
 
 test('logs connection events without password', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     $config = [
         'driver' => 'mysql',
         'host' => 'localhost',
@@ -126,9 +126,9 @@ test('logs connection events without password', function () {
         'password' => 'secret',
         'database' => 'test',
     ];
-    
+
     $logger->logConnection('established', $config);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(1);
     expect($log[0]['context']['config'])->not->toHaveKey('password');
@@ -136,18 +136,18 @@ test('logs connection events without password', function () {
 });
 
 test('respects maximum query log size', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     // Set max to 2
     $reflection = new ReflectionClass($logger);
     $property = $reflection->getProperty('maxQueryLog');
     $property->setAccessible(true);
     $property->setValue($logger, 2);
-    
+
     $logger->logQuery('Query 1', [], 1);
     $logger->logQuery('Query 2', [], 2);
     $logger->logQuery('Query 3', [], 3);
-    
+
     $log = $logger->getQueryLog();
     expect($log)->toHaveCount(2);
     expect($log[0]['query'])->toBe('Query 2');
@@ -155,27 +155,27 @@ test('respects maximum query log size', function () {
 });
 
 test('can clear query log', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     $logger->logQuery('SELECT * FROM users', [], 10);
     expect($logger->getQueryLog())->toHaveCount(1);
-    
+
     $logger->clearQueryLog();
     expect($logger->getQueryLog())->toBeEmpty();
 });
 
 test('provides query statistics', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $logger->setSlowQueryThreshold(50);
-    
+
     $logger->logQuery('SELECT * FROM users', [], 10);
     $logger->logQuery('INSERT INTO posts', [], 20);
     $logger->logQuery('UPDATE users SET active = 1', [], 60);
     $logger->logQuery('DELETE FROM sessions', [], 5);
     $logger->logQuery('SELECT * FROM large_table', [], 100);
-    
+
     $stats = $logger->getStatistics();
-    
+
     expect($stats['total_queries'])->toBe(5);
     expect($stats['total_time'])->toBe('195ms');
     expect($stats['average_time'])->toBe('39ms');
@@ -189,8 +189,8 @@ test('provides query statistics', function () {
 });
 
 test('identifies query types correctly', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     $queries = [
         'SELECT * FROM users' => 'SELECT',
         'INSERT INTO posts VALUES (1)' => 'INSERT',
@@ -201,13 +201,13 @@ test('identifies query types correctly', function () {
         'ALTER TABLE users ADD COLUMN age INT' => 'ALTER',
         'TRUNCATE TABLE logs' => 'OTHER',
     ];
-    
+
     foreach ($queries as $query => $expectedType) {
         $logger->logQuery($query, [], 1);
     }
-    
+
     $stats = $logger->getStatistics();
-    
+
     expect($stats['queries_by_type'])->toMatchArray([
         'SELECT' => 1,
         'INSERT' => 1,
@@ -223,7 +223,7 @@ test('identifies query types correctly', function () {
 test('implements PSR-3 logger interface methods', function () {
     $psrLogger = Mockery::mock(LoggerInterface::class);
     $queryLogger = new QueryLogger($psrLogger);
-    
+
     $methods = [
         'emergency' => LogLevel::EMERGENCY,
         'alert' => LogLevel::ALERT,
@@ -234,26 +234,26 @@ test('implements PSR-3 logger interface methods', function () {
         'info' => LogLevel::INFO,
         'debug' => LogLevel::DEBUG,
     ];
-    
+
     foreach ($methods as $method => $level) {
         $psrLogger->shouldReceive($method)
             ->once()
             ->with('Test message', ['context' => 'data']);
-        
+
         $queryLogger->$method('Test message', ['context' => 'data']);
     }
 });
 
 test('stores logs in memory when no PSR-3 logger provided', function () {
-    $logger = new QueryLogger();
-    
+    $logger = new QueryLogger;
+
     $logger->error('Error message', ['code' => 500]);
     $logger->warning('Warning message', ['threshold' => 100]);
     $logger->info('Info message', ['status' => 'ok']);
     $logger->debug('Debug message', ['data' => 'test']);
-    
+
     $log = $logger->getQueryLog();
-    
+
     expect($log)->toHaveCount(4);
     expect($log[0]['level'])->toBe('error');
     expect($log[1]['level'])->toBe('warning');
@@ -262,13 +262,13 @@ test('stores logs in memory when no PSR-3 logger provided', function () {
 });
 
 test('does not log when disabled', function () {
-    $logger = new QueryLogger();
+    $logger = new QueryLogger;
     $logger->setEnabled(false);
-    
+
     $logger->logQuery('SELECT * FROM users', [], 10);
-    $logger->logQueryError('SELECT * FROM invalid', [], new Exception());
+    $logger->logQueryError('SELECT * FROM invalid', [], new Exception);
     $logger->logTransaction('started');
     $logger->logConnection('established', []);
-    
+
     expect($logger->getQueryLog())->toBeEmpty();
 });

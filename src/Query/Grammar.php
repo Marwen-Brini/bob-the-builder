@@ -9,6 +9,7 @@ use Bob\Contracts\GrammarInterface;
 abstract class Grammar implements GrammarInterface
 {
     protected string $tablePrefix = '';
+
     protected array $operators = [];
 
     public function compileSelect(BuilderInterface $query): string
@@ -37,8 +38,8 @@ abstract class Grammar implements GrammarInterface
         $sql = [];
 
         foreach ($this->selectComponents as $component) {
-            if (!is_null($query->$component)) {
-                $method = 'compile' . ucfirst($component);
+            if (! is_null($query->$component)) {
+                $method = 'compile'.ucfirst($component);
                 $sql[$component] = $this->$method($query, $query->$component);
             }
         }
@@ -73,26 +74,26 @@ abstract class Grammar implements GrammarInterface
         $column = $this->columnize($aggregate['columns']);
 
         if ($query->distinct && $column !== '*') {
-            $column = 'distinct ' . $column;
+            $column = 'distinct '.$column;
         }
 
-        return 'select ' . $aggregate['function'] . '(' . $column . ') as aggregate';
+        return 'select '.$aggregate['function'].'('.$column.') as aggregate';
     }
 
     protected function compileColumns(BuilderInterface $query, array $columns): string
     {
-        if (!is_null($query->aggregate)) {
+        if (! is_null($query->aggregate)) {
             return '';
         }
 
         $select = $query->distinct ? 'select distinct ' : 'select ';
 
-        return $select . $this->columnize($columns);
+        return $select.$this->columnize($columns);
     }
 
     protected function compileFrom(BuilderInterface $query, string $table): string
     {
-        return 'from ' . $this->wrapTable($table);
+        return 'from '.$this->wrapTable($table);
     }
 
     protected function compileJoins(BuilderInterface $query, array $joins): string
@@ -121,10 +122,11 @@ abstract class Grammar implements GrammarInterface
     protected function compileJoinConstraint(array $where): string
     {
         if ($where['type'] === 'Column') {
-            $constraint = $this->wrap($where['first']) . ' ' . $where['operator'] . ' ' . $this->wrap($where['second']);
-            if ($where['boolean'] !== 'and' || !empty($where['previous'])) {
-                return $where['boolean'] . ' ' . $constraint;
+            $constraint = $this->wrap($where['first']).' '.$where['operator'].' '.$this->wrap($where['second']);
+            if ($where['boolean'] !== 'and' || ! empty($where['previous'])) {
+                return $where['boolean'].' '.$constraint;
             }
+
             return $constraint;
         }
 
@@ -133,20 +135,20 @@ abstract class Grammar implements GrammarInterface
 
     protected function compileGroups(BuilderInterface $query, array $groups): string
     {
-        return 'group by ' . $this->columnize($groups);
+        return 'group by '.$this->columnize($groups);
     }
 
     protected function compileHavings(BuilderInterface $query, array $havings): string
     {
         $sql = implode(' ', array_map([$this, 'compileHaving'], $havings));
 
-        return 'having ' . $this->removeLeadingBoolean($sql);
+        return 'having '.$this->removeLeadingBoolean($sql);
     }
 
     protected function compileHaving(array $having): string
     {
         if ($having['type'] === 'Raw') {
-            return $having['boolean'] . ' ' . $having['sql'];
+            return $having['boolean'].' '.$having['sql'];
         }
 
         return $this->compileBasicHaving($having);
@@ -157,7 +159,7 @@ abstract class Grammar implements GrammarInterface
         $column = $this->wrap($having['column']);
         $parameter = $this->parameter($having['value']);
 
-        return $having['boolean'] . ' ' . $column . ' ' . $having['operator'] . ' ' . $parameter;
+        return $having['boolean'].' '.$column.' '.$having['operator'].' '.$parameter;
     }
 
     protected function compileOrders(BuilderInterface $query, array $orders): string
@@ -172,11 +174,11 @@ abstract class Grammar implements GrammarInterface
             if (isset($order['type']) && $order['type'] === 'Raw') {
                 $sql[] = $order['sql'];
             } else {
-                $sql[] = $this->wrap($order['column']) . ' ' . $order['direction'];
+                $sql[] = $this->wrap($order['column']).' '.$order['direction'];
             }
         }
 
-        return 'order by ' . implode(', ', $sql);
+        return 'order by '.implode(', ', $sql);
     }
 
     protected function compileLimit(BuilderInterface $query, int $limit): string
@@ -197,16 +199,16 @@ abstract class Grammar implements GrammarInterface
             $sql .= $this->compileUnion($union);
         }
 
-        if (!empty($query->unionOrders)) {
-            $sql .= ' ' . $this->compileOrders($query, $query->unionOrders);
+        if (! empty($query->unionOrders)) {
+            $sql .= ' '.$this->compileOrders($query, $query->unionOrders);
         }
 
         if (isset($query->unionLimit)) {
-            $sql .= ' ' . $this->compileLimit($query, $query->unionLimit);
+            $sql .= ' '.$this->compileLimit($query, $query->unionLimit);
         }
 
         if (isset($query->unionOffset)) {
-            $sql .= ' ' . $this->compileOffset($query, $query->unionOffset);
+            $sql .= ' '.$this->compileOffset($query, $query->unionOffset);
         }
 
         return ltrim($sql);
@@ -216,7 +218,7 @@ abstract class Grammar implements GrammarInterface
     {
         $conjunction = $union['all'] ? ' union all ' : ' union ';
 
-        return $conjunction . '(' . $union['query']->toSql() . ')';
+        return $conjunction.'('.$union['query']->toSql().')';
     }
 
     protected function compileWheres(BuilderInterface $query): string
@@ -229,10 +231,10 @@ abstract class Grammar implements GrammarInterface
 
         foreach ($query->wheres as $where) {
             $method = "where{$where['type']}";
-            $sql[] = $where['boolean'] . ' ' . $this->$method($query, $where);
+            $sql[] = $where['boolean'].' '.$this->$method($query, $where);
         }
 
-        return 'where ' . $this->removeLeadingBoolean(implode(' ', $sql));
+        return 'where '.$this->removeLeadingBoolean(implode(' ', $sql));
     }
 
     protected function removeLeadingBoolean(string $value): string
@@ -244,16 +246,17 @@ abstract class Grammar implements GrammarInterface
     {
         $value = $this->parameter($where['value']);
 
-        return $this->wrap($where['column']) . ' ' . $where['operator'] . ' ' . $value;
+        return $this->wrap($where['column']).' '.$where['operator'].' '.$value;
     }
 
     protected function whereIn(BuilderInterface $query, array $where): string
     {
-        if (!empty($where['values'])) {
+        if (! empty($where['values'])) {
             if (is_array($where['values'])) {
-                return $this->wrap($where['column']) . ' in (' . $this->parameterize($where['values']) . ')';
+                return $this->wrap($where['column']).' in ('.$this->parameterize($where['values']).')';
             }
-            return $this->wrap($where['column']) . ' in (' . $this->compileSelect($where['values']) . ')';
+
+            return $this->wrap($where['column']).' in ('.$this->compileSelect($where['values']).')';
         }
 
         return '0 = 1';
@@ -261,18 +264,18 @@ abstract class Grammar implements GrammarInterface
 
     protected function whereInSub(BuilderInterface $query, array $where): string
     {
-        return $this->wrap($where['column']) . ' in (' . $this->compileSelect($where['query']) . ')';
+        return $this->wrap($where['column']).' in ('.$this->compileSelect($where['query']).')';
     }
 
     protected function whereNotInSub(BuilderInterface $query, array $where): string
     {
-        return $this->wrap($where['column']) . ' not in (' . $this->compileSelect($where['query']) . ')';
+        return $this->wrap($where['column']).' not in ('.$this->compileSelect($where['query']).')';
     }
 
     protected function whereNotIn(BuilderInterface $query, array $where): string
     {
-        if (!empty($where['values'])) {
-            return $this->wrap($where['column']) . ' not in (' . $this->parameterize($where['values']) . ')';
+        if (! empty($where['values'])) {
+            return $this->wrap($where['column']).' not in ('.$this->parameterize($where['values']).')';
         }
 
         return '1 = 1';
@@ -280,24 +283,24 @@ abstract class Grammar implements GrammarInterface
 
     protected function whereNull(BuilderInterface $query, array $where): string
     {
-        return $this->wrap($where['column']) . ' is null';
+        return $this->wrap($where['column']).' is null';
     }
 
     protected function whereNotNull(BuilderInterface $query, array $where): string
     {
-        return $this->wrap($where['column']) . ' is not null';
+        return $this->wrap($where['column']).' is not null';
     }
 
     protected function whereBetween(BuilderInterface $query, array $where): string
     {
         $between = $where['not'] ?? false ? 'not between' : 'between';
 
-        return $this->wrap($where['column']) . ' ' . $between . ' ? and ?';
+        return $this->wrap($where['column']).' '.$between.' ? and ?';
     }
 
     protected function whereNotBetween(BuilderInterface $query, array $where): string
     {
-        return $this->wrap($where['column']) . ' not between ? and ?';
+        return $this->wrap($where['column']).' not between ? and ?';
     }
 
     protected function whereRaw(BuilderInterface $query, array $where): string
@@ -307,31 +310,31 @@ abstract class Grammar implements GrammarInterface
 
     protected function whereExists(BuilderInterface $query, array $where): string
     {
-        return 'exists (' . $this->compileSelect($where['query']) . ')';
+        return 'exists ('.$this->compileSelect($where['query']).')';
     }
 
     protected function whereNotExists(BuilderInterface $query, array $where): string
     {
-        return 'not exists (' . $this->compileSelect($where['query']) . ')';
+        return 'not exists ('.$this->compileSelect($where['query']).')';
     }
 
     protected function whereNested(BuilderInterface $query, array $where): string
     {
         $offset = $query === $where['query'] ? 6 : 0;
 
-        return '(' . substr($this->compileWheres($where['query']), $offset) . ')';
+        return '('.substr($this->compileWheres($where['query']), $offset).')';
     }
 
     protected function whereSub(BuilderInterface $query, array $where): string
     {
         $select = $this->compileSelect($where['query']);
 
-        return $this->wrap($where['column']) . ' ' . $where['operator'] . " ($select)";
+        return $this->wrap($where['column']).' '.$where['operator']." ($select)";
     }
 
     protected function whereColumn(BuilderInterface $query, array $where): string
     {
-        return $this->wrap($where['first']) . ' ' . $where['operator'] . ' ' . $this->wrap($where['second']);
+        return $this->wrap($where['first']).' '.$where['operator'].' '.$this->wrap($where['second']);
     }
 
     public function parameter($value): string
@@ -352,13 +355,13 @@ abstract class Grammar implements GrammarInterface
             return "insert into {$table} default values";
         }
 
-        if (!is_array(reset($values))) {
+        if (! is_array(reset($values))) {
             $values = [$values];
         }
 
         $columns = $this->columnize(array_keys(reset($values)));
         $parameters = collect($values)->map(function ($record) {
-            return '(' . $this->parameterize($record) . ')';
+            return '('.$this->parameterize($record).')';
         })->implode(', ');
 
         return "insert into {$table} ({$columns}) values {$parameters}";
@@ -369,7 +372,7 @@ abstract class Grammar implements GrammarInterface
         return implode(', ', array_map([$this, 'parameter'], $values));
     }
 
-    public function compileInsertGetId(BuilderInterface $query, array $values, string $sequence = null): string
+    public function compileInsertGetId(BuilderInterface $query, array $values, ?string $sequence = null): string
     {
         return $this->compileInsert($query, $values);
     }
@@ -384,7 +387,7 @@ abstract class Grammar implements GrammarInterface
         $table = $this->wrapTable($query->from);
 
         $columns = collect($values)->map(function ($value, $key) {
-            return $this->wrap($key) . ' = ' . $this->parameter($value);
+            return $this->wrap($key).' = '.$this->parameter($value);
         })->implode(', ');
 
         $wheres = $this->compileWheres($query);
@@ -403,7 +406,7 @@ abstract class Grammar implements GrammarInterface
 
     public function compileTruncate(BuilderInterface $query): array
     {
-        return ['truncate table ' . $this->wrapTable($query->from) => []];
+        return ['truncate table '.$this->wrapTable($query->from) => []];
     }
 
     public function compileExists(BuilderInterface $query): string
@@ -430,7 +433,7 @@ abstract class Grammar implements GrammarInterface
     {
         $segments = preg_split('/\s+as\s+/i', $value);
 
-        return $this->wrap($segments[0]) . ' as ' . $this->wrapValue($segments[1]);
+        return $this->wrap($segments[0]).' as '.$this->wrapValue($segments[1]);
     }
 
     protected function wrapSegments(array $segments): string
@@ -445,7 +448,7 @@ abstract class Grammar implements GrammarInterface
     protected function wrapValue(string $value): string
     {
         if ($value !== '*') {
-            return '"' . str_replace('"', '""', $value) . '"';
+            return '"'.str_replace('"', '""', $value).'"';
         }
 
         return $value;
@@ -458,8 +461,8 @@ abstract class Grammar implements GrammarInterface
 
     public function wrapTable($table): string
     {
-        if (!$this->isExpression($table)) {
-            return $this->wrap($this->tablePrefix . $table);
+        if (! $this->isExpression($table)) {
+            return $this->wrap($this->tablePrefix.$table);
         }
 
         return $this->getValue($table);
@@ -498,19 +501,19 @@ abstract class Grammar implements GrammarInterface
 
     public function compileSavepoint(string $name): string
     {
-        return 'SAVEPOINT ' . $name;
+        return 'SAVEPOINT '.$name;
     }
 
     public function compileSavepointRollBack(string $name): string
     {
-        return 'ROLLBACK TO SAVEPOINT ' . $name;
+        return 'ROLLBACK TO SAVEPOINT '.$name;
     }
 
     protected function compileDateBasedWhere(string $type, BuilderInterface $query, array $where): string
     {
         $value = $this->parameter($where['value']);
 
-        return $this->wrap($where['column']) . ' ' . $where['operator'] . ' ' . $value;
+        return $this->wrap($where['column']).' '.$where['operator'].' '.$value;
     }
 
     public function getDateFormat(): string

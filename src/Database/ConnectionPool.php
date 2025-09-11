@@ -9,13 +9,21 @@ use Bob\Exceptions\ConnectionException;
 class ConnectionPool
 {
     protected array $connections = [];
+
     protected array $inUse = [];
+
     protected array $available = [];
+
     protected array $config = [];
+
     protected int $maxConnections = 10;
+
     protected int $minConnections = 1;
+
     protected int $connectionTimeout = 30;
+
     protected int $idleTimeout = 600;
+
     protected bool $enabled = true;
 
     public function __construct(array $config, int $maxConnections = 10, int $minConnections = 1)
@@ -23,7 +31,7 @@ class ConnectionPool
         $this->config = $config;
         $this->maxConnections = max(1, $maxConnections);
         $this->minConnections = max(1, min($minConnections, $this->maxConnections));
-        
+
         // Initialize minimum connections
         $this->initializePool();
     }
@@ -49,7 +57,7 @@ class ConnectionPool
 
     public function acquire(): Connection
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return $this->createConnection();
         }
 
@@ -57,10 +65,11 @@ class ConnectionPool
         $this->cleanupIdleConnections();
 
         // Try to get an available connection
-        if (!empty($this->available)) {
+        if (! empty($this->available)) {
             $id = array_shift($this->available);
             $this->inUse[$id] = true;
             $this->connections[$id]['lastUsed'] = time();
+
             return $this->connections[$id]['connection'];
         }
 
@@ -74,16 +83,18 @@ class ConnectionPool
                 'lastUsed' => time(),
             ];
             $this->inUse[$id] = true;
+
             return $connection;
         }
 
         // Wait for a connection to become available
         $start = time();
         while (time() - $start < $this->connectionTimeout) {
-            if (!empty($this->available)) {
+            if (! empty($this->available)) {
                 $id = array_shift($this->available);
                 $this->inUse[$id] = true;
                 $this->connections[$id]['lastUsed'] = time();
+
                 return $this->connections[$id]['connection'];
             }
             usleep(100000); // Sleep for 100ms
@@ -97,12 +108,12 @@ class ConnectionPool
 
     public function release(Connection $connection): void
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return;
         }
 
         $id = spl_object_hash($connection);
-        
+
         if (isset($this->inUse[$id])) {
             unset($this->inUse[$id]);
             $this->available[] = $id;
@@ -135,7 +146,7 @@ class ConnectionPool
         foreach ($this->connections as $item) {
             $item['connection']->disconnect();
         }
-        
+
         $this->connections = [];
         $this->available = [];
         $this->inUse = [];

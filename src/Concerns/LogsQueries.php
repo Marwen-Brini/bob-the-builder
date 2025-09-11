@@ -2,10 +2,9 @@
 
 namespace Bob\Concerns;
 
-use Psr\Log\LoggerInterface;
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
 use Bob\Logging\QueryLogger;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
 /**
  * Trait for classes that need query logging capabilities
@@ -30,7 +29,7 @@ trait LogsQueries
     public function setLogger(LoggerInterface $logger): void
     {
         $this->logger = $logger;
-        
+
         // If we have a query logger, update its logger too
         if ($this->queryLogger) {
             $this->queryLogger->setLogger($logger);
@@ -42,7 +41,7 @@ trait LogsQueries
      */
     public function getQueryLogger(): QueryLogger
     {
-        if (!$this->queryLogger) {
+        if (! $this->queryLogger) {
             $this->queryLogger = new QueryLogger($this->logger ?? null);
             $this->queryLogger->setEnabled($this->loggingEnabled);
         }
@@ -56,7 +55,7 @@ trait LogsQueries
     public function setQueryLogger(QueryLogger $queryLogger): void
     {
         $this->queryLogger = $queryLogger;
-        
+
         // If we have a PSR-3 logger, share it with the query logger
         if (isset($this->logger)) {
             $queryLogger->setLogger($this->logger);

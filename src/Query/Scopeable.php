@@ -32,10 +32,6 @@ trait Scopeable
 
     /**
      * Register a global scope that applies to all queries.
-     *
-     * @param string $name
-     * @param Closure $callback
-     * @return void
      */
     public static function globalScope(string $name, Closure $callback): void
     {
@@ -44,10 +40,6 @@ trait Scopeable
 
     /**
      * Register a local scope that can be applied on demand.
-     *
-     * @param string $name
-     * @param Closure $callback
-     * @return void
      */
     public static function scope(string $name, Closure $callback): void
     {
@@ -57,8 +49,7 @@ trait Scopeable
     /**
      * Apply a scope to the query.
      *
-     * @param string $scope
-     * @param mixed ...$parameters
+     * @param  mixed  ...$parameters
      * @return $this
      */
     public function withScope(string $scope, ...$parameters): static
@@ -76,12 +67,12 @@ trait Scopeable
     /**
      * Remove a global scope from this query.
      *
-     * @param string $scope
      * @return $this
      */
     public function withoutGlobalScope(string $scope): static
     {
         $this->appliedScopes[] = "!{$scope}";
+
         return $this;
     }
 
@@ -95,6 +86,7 @@ trait Scopeable
         foreach (array_keys(static::$globalScopes) as $scope) {
             $this->appliedScopes[] = "!{$scope}";
         }
+
         return $this;
     }
 
@@ -120,9 +112,6 @@ trait Scopeable
 
     /**
      * Check if a scope exists.
-     *
-     * @param string $name
-     * @return bool
      */
     public static function hasScope(string $name): bool
     {
@@ -131,9 +120,6 @@ trait Scopeable
 
     /**
      * Remove a scope.
-     *
-     * @param string $name
-     * @return void
      */
     public static function removeScope(string $name): void
     {
@@ -142,8 +128,6 @@ trait Scopeable
 
     /**
      * Clear all scopes.
-     *
-     * @return void
      */
     public static function clearScopes(): void
     {
@@ -153,8 +137,6 @@ trait Scopeable
 
     /**
      * Get all registered scopes.
-     *
-     * @return array
      */
     public static function getScopes(): array
     {

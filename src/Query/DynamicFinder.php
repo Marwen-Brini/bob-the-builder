@@ -2,8 +2,6 @@
 
 namespace Bob\Query;
 
-use BadMethodCallException;
-
 /**
  * Trait to add dynamic finder methods to the Builder
  * Allows methods like findBySlug(), whereByStatus(), etc.
@@ -20,9 +18,8 @@ trait DynamicFinder
     /**
      * Register a custom finder pattern.
      *
-     * @param string $pattern Regular expression pattern
-     * @param callable $handler Handler function
-     * @return void
+     * @param  string  $pattern  Regular expression pattern
+     * @param  callable  $handler  Handler function
      */
     public static function registerFinder(string $pattern, callable $handler): void
     {
@@ -32,53 +29,61 @@ trait DynamicFinder
     /**
      * Handle dynamic finder methods.
      *
-     * @param string $method
-     * @param array $parameters
      * @return mixed
      */
     protected function handleDynamicFinder(string $method, array $parameters)
     {
         // Default patterns for common finders
         $defaultPatterns = [
-            '/^findBy(.+)$/' => function($matches, $params) {
+            '/^findBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null)->first();
             },
-            '/^findAllBy(.+)$/' => function($matches, $params) {
+            '/^findAllBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null)->get();
             },
-            '/^whereBy(.+)$/' => function($matches, $params) {
+            '/^whereBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null);
             },
-            '/^orWhereBy(.+)$/' => function($matches, $params) {
+            '/^orWhereBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->orWhere($column, '=', $params[0] ?? null);
             },
-            '/^firstWhere(.+)$/' => function($matches, $params) {
+            '/^firstWhere(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null)->first();
             },
-            '/^countBy(.+)$/' => function($matches, $params) {
+            '/^countBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null)->count();
             },
-            '/^existsBy(.+)$/' => function($matches, $params) {
+            '/^existsBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null)->exists();
             },
-            '/^deleteBy(.+)$/' => function($matches, $params) {
+            '/^deleteBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->where($column, '=', $params[0] ?? null)->delete();
             },
-            '/^orderBy(.+)(Asc|Desc)$/' => function($matches, $params) {
+            '/^orderBy(.+)(Asc|Desc)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
                 $direction = strtolower($matches[2]);
+
                 return $this->orderBy($column, $direction);
             },
-            '/^groupBy(.+)$/' => function($matches, $params) {
+            '/^groupBy(.+)$/' => function ($matches, $params) {
                 $column = $this->camelToSnake($matches[1]);
+
                 return $this->groupBy($column);
             },
         ];
@@ -89,6 +94,7 @@ trait DynamicFinder
                 if ($handler instanceof \Closure) {
                     $handler = $handler->bindTo($this, static::class);
                 }
+
                 return $handler($matches, $parameters);
             }
         }
@@ -99,6 +105,7 @@ trait DynamicFinder
                 if ($handler instanceof \Closure) {
                     $handler = $handler->bindTo($this, static::class);
                 }
+
                 return $handler($matches, $parameters);
             }
         }
@@ -108,9 +115,6 @@ trait DynamicFinder
 
     /**
      * Convert camelCase to snake_case.
-     *
-     * @param string $value
-     * @return string
      */
     protected function camelToSnake(string $value): string
     {
@@ -119,8 +123,6 @@ trait DynamicFinder
 
     /**
      * Clear all custom finder patterns.
-     *
-     * @return void
      */
     public static function clearFinders(): void
     {
@@ -129,8 +131,6 @@ trait DynamicFinder
 
     /**
      * Get all registered finder patterns.
-     *
-     * @return array
      */
     public static function getFinderPatterns(): array
     {

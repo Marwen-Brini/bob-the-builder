@@ -2,12 +2,12 @@
 
 namespace Bob\Logging;
 
-use Psr\Log\LoggerInterface;
 use Bob\Database\Connection;
+use Psr\Log\LoggerInterface;
 
 /**
  * Static facade for global logging control
- * 
+ *
  * Usage:
  *   Log::enable();                    // Enable logging globally
  *   Log::disable();                   // Disable logging globally
@@ -53,12 +53,12 @@ class Log
     public static function enable(): void
     {
         self::$globalEnabled = true;
-        
+
         // Enable logging for all registered connections
         foreach (self::$connections as $connection) {
             $connection->enableQueryLog();
         }
-        
+
         // Update global query logger if exists
         if (self::$globalQueryLogger) {
             self::$globalQueryLogger->setEnabled(true);
@@ -71,12 +71,12 @@ class Log
     public static function disable(): void
     {
         self::$globalEnabled = false;
-        
+
         // Disable logging for all registered connections
         foreach (self::$connections as $connection) {
             $connection->disableQueryLog();
         }
-        
+
         // Update global query logger if exists
         if (self::$globalQueryLogger) {
             self::$globalQueryLogger->setEnabled(false);
@@ -97,14 +97,14 @@ class Log
     public static function setLogger(LoggerInterface $logger): void
     {
         self::$globalLogger = $logger;
-        
+
         // Update global query logger
-        if (!self::$globalQueryLogger) {
+        if (! self::$globalQueryLogger) {
             self::$globalQueryLogger = new QueryLogger($logger);
         } else {
             self::$globalQueryLogger->setLogger($logger);
         }
-        
+
         // Update all registered connections
         foreach (self::$connections as $connection) {
             $connection->setLogger($logger);
@@ -124,16 +124,16 @@ class Log
      */
     public static function getQueryLogger(): QueryLogger
     {
-        if (!self::$globalQueryLogger) {
+        if (! self::$globalQueryLogger) {
             self::$globalQueryLogger = new QueryLogger(self::$globalLogger);
             self::$globalQueryLogger->setEnabled(self::$globalEnabled);
-            
+
             // Apply configuration
             self::$globalQueryLogger->setLogBindings(self::$config['log_bindings']);
             self::$globalQueryLogger->setLogTime(self::$config['log_time']);
             self::$globalQueryLogger->setSlowQueryThreshold(self::$config['slow_query_threshold']);
         }
-        
+
         return self::$globalQueryLogger;
     }
 
@@ -145,16 +145,16 @@ class Log
         // Add to registered connections
         $key = spl_object_hash($connection);
         self::$connections[$key] = $connection;
-        
+
         // Apply current global settings
         if (self::$globalEnabled) {
             $connection->enableQueryLog();
         }
-        
+
         if (self::$globalLogger) {
             $connection->setLogger(self::$globalLogger);
         }
-        
+
         // Share the global query logger
         $connection->setQueryLogger(self::getQueryLogger());
     }
@@ -174,10 +174,10 @@ class Log
     public static function enableFor(Connection $connection): void
     {
         $connection->enableQueryLog();
-        
+
         // Register if not already registered
         $key = spl_object_hash($connection);
-        if (!isset(self::$connections[$key])) {
+        if (! isset(self::$connections[$key])) {
             self::registerConnection($connection);
         }
     }
@@ -200,13 +200,13 @@ class Log
         if (self::$globalQueryLogger) {
             return self::$globalQueryLogger->getQueryLog();
         }
-        
+
         // Otherwise collect from all registered connections
         $allQueries = [];
         foreach (self::$connections as $connection) {
             $allQueries = array_merge($allQueries, $connection->getQueryLog());
         }
-        
+
         return $allQueries;
     }
 
@@ -219,7 +219,7 @@ class Log
         if (self::$globalQueryLogger) {
             self::$globalQueryLogger->clearQueryLog();
         }
-        
+
         // Clear all registered connections
         foreach (self::$connections as $connection) {
             $connection->clearQueryLog();
@@ -239,20 +239,20 @@ class Log
             'queries_by_type' => [],
             'connections' => count(self::$connections),
         ];
-        
+
         // Collect from global query logger
         if (self::$globalQueryLogger) {
             $globalStats = self::$globalQueryLogger->getStatistics();
             $stats = self::mergeStatistics($stats, $globalStats);
         }
-        
+
         // Calculate averages
         if ($stats['total_queries'] > 0) {
-            $stats['average_time'] = round($stats['total_time'] / $stats['total_queries'], 2) . 'ms';
+            $stats['average_time'] = round($stats['total_time'] / $stats['total_queries'], 2).'ms';
         }
-        
-        $stats['total_time'] = $stats['total_time'] . 'ms';
-        
+
+        $stats['total_time'] = $stats['total_time'].'ms';
+
         return $stats;
     }
 
@@ -262,7 +262,7 @@ class Log
     public static function configure(array $config): void
     {
         self::$config = array_merge(self::$config, $config);
-        
+
         // Apply to global query logger if exists
         if (self::$globalQueryLogger) {
             if (isset($config['log_bindings'])) {
@@ -330,26 +330,26 @@ class Log
     protected static function mergeStatistics(array $stats1, array $stats2): array
     {
         $merged = $stats1;
-        
+
         $merged['total_queries'] += $stats2['total_queries'] ?? 0;
-        
+
         // Handle time values (remove 'ms' suffix if present)
         $time1 = is_string($stats1['total_time']) ? (float) str_replace('ms', '', $stats1['total_time']) : $stats1['total_time'];
         $time2 = is_string($stats2['total_time']) ? (float) str_replace('ms', '', $stats2['total_time']) : $stats2['total_time'];
         $merged['total_time'] = $time1 + $time2;
-        
+
         $merged['slow_queries'] += $stats2['slow_queries'] ?? 0;
-        
+
         // Merge query types
         if (isset($stats2['queries_by_type'])) {
             foreach ($stats2['queries_by_type'] as $type => $count) {
-                if (!isset($merged['queries_by_type'][$type])) {
+                if (! isset($merged['queries_by_type'][$type])) {
                     $merged['queries_by_type'][$type] = 0;
                 }
                 $merged['queries_by_type'][$type] += $count;
             }
         }
-        
+
         return $merged;
     }
 }

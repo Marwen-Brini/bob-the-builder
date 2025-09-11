@@ -2,6 +2,7 @@
 
 namespace Bob\Query;
 
+use BadMethodCallException;
 use Bob\Contracts\BuilderInterface;
 use Bob\Contracts\ConnectionInterface;
 use Bob\Contracts\ExpressionInterface;
@@ -9,33 +10,49 @@ use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
 use Bob\Database\Expression;
 use Closure;
-use BadMethodCallException;
 
 class Builder implements BuilderInterface
 {
-    use Macroable, Scopeable, DynamicFinder;
-    
+    use DynamicFinder, Macroable, Scopeable;
+
     public ConnectionInterface $connection;
+
     public GrammarInterface $grammar;
+
     public ProcessorInterface $processor;
-    
+
     public $aggregate;
+
     public $columns;
+
     public $distinct = false;
+
     public $from;
+
     public $joins;
+
     public $wheres = [];
+
     public $groups;
+
     public $havings;
+
     public $orders;
+
     public $limit;
+
     public $offset;
+
     public $unions;
+
     public $unionLimit;
+
     public $unionOffset;
+
     public $unionOrders;
+
     public $lock;
-    
+
     protected array $bindings = [
         'select' => [],
         'from' => [],
@@ -45,7 +62,7 @@ class Builder implements BuilderInterface
         'order' => [],
         'union' => [],
     ];
-    
+
     protected array $operators = [
         '=', '<', '>', '<=', '>=', '<>', '!=', '<=>',
         'like', 'like binary', 'not like', 'ilike',
@@ -65,30 +82,30 @@ class Builder implements BuilderInterface
     public function select($columns = ['*']): self
     {
         $this->columns = is_array($columns) ? $columns : func_get_args();
-        
+
         return $this;
     }
 
     public function addSelect($column): self
     {
         $column = is_array($column) ? $column : func_get_args();
-        
+
         $this->columns = array_merge((array) $this->columns, $column);
-        
+
         return $this;
     }
 
     public function distinct(): self
     {
         $this->distinct = true;
-        
+
         return $this;
     }
 
     public function from($table, $as = null): self
     {
         $this->from = $as ? "{$table} as {$as}" : $table;
-        
+
         return $this;
     }
 
@@ -122,7 +139,7 @@ class Builder implements BuilderInterface
         $type = 'Basic';
         $this->wheres[] = compact('type', 'column', 'operator', 'value', 'boolean');
 
-        if (!$value instanceof ExpressionInterface) {
+        if (! $value instanceof ExpressionInterface) {
             $this->addBinding($value, 'where');
         }
 
@@ -156,12 +173,12 @@ class Builder implements BuilderInterface
     protected function invalidOperatorAndValue($operator, $value): bool
     {
         return is_null($value) && in_array($operator, $this->operators) &&
-               !in_array($operator, ['=', '<>', '!=']);
+               ! in_array($operator, ['=', '<>', '!=']);
     }
 
     protected function invalidOperator($operator): bool
     {
-        return !in_array(strtolower($operator), $this->operators, true);
+        return ! in_array(strtolower($operator), $this->operators, true);
     }
 
     protected function whereNested(Closure $callback, string $boolean = 'and'): self
@@ -216,11 +233,12 @@ class Builder implements BuilderInterface
             $type = $not ? 'NotInSub' : 'InSub';
             $this->wheres[] = ['type' => $type, 'column' => $column, 'query' => $values, 'boolean' => $boolean];
             $this->addBinding($values->getBindings()['where'] ?? [], 'where');
+
             return $this;
         }
 
         $this->wheres[] = compact('type', 'column', 'values', 'boolean');
-        
+
         if (is_array($values)) {
             $this->addBinding($values, 'where');
         }
@@ -371,7 +389,7 @@ class Builder implements BuilderInterface
 
         $this->havings[] = compact('type', 'column', 'operator', 'value', 'boolean');
 
-        if (!$value instanceof ExpressionInterface) {
+        if (! $value instanceof ExpressionInterface) {
             $this->addBinding($value, 'having');
         }
 
@@ -548,7 +566,7 @@ class Builder implements BuilderInterface
 
     public function doesntExist(): bool
     {
-        return !$this->exists();
+        return ! $this->exists();
     }
 
     public function chunk($count, callable $callback): bool
@@ -618,7 +636,7 @@ class Builder implements BuilderInterface
             ->setAggregate($function, $columns)
             ->get($columns);
 
-        if (!$results) {
+        if (! $results) {
             return;
         }
 
@@ -665,7 +683,7 @@ class Builder implements BuilderInterface
             return true;
         }
 
-        if (!is_array(reset($values))) {
+        if (! is_array(reset($values))) {
             $values = [$values];
         }
 
@@ -695,7 +713,7 @@ class Builder implements BuilderInterface
             return 0;
         }
 
-        if (!is_array(reset($values))) {
+        if (! is_array(reset($values))) {
             $values = [$values];
         }
 
@@ -721,7 +739,7 @@ class Builder implements BuilderInterface
 
     public function updateOrInsert(array $attributes, array $values = []): bool
     {
-        if (!$this->where($attributes)->exists()) {
+        if (! $this->where($attributes)->exists()) {
             return $this->insert(array_merge($attributes, $values));
         }
 
@@ -752,7 +770,7 @@ class Builder implements BuilderInterface
 
     public function delete($id = null): int
     {
-        if (!is_null($id)) {
+        if (! is_null($id)) {
             $this->where('id', '=', $id);
         }
 
@@ -796,7 +814,7 @@ class Builder implements BuilderInterface
 
     protected function addBinding($value, string $type = 'where'): self
     {
-        if (!array_key_exists($type, $this->bindings)) {
+        if (! array_key_exists($type, $this->bindings)) {
             throw new \InvalidArgumentException("Invalid binding type: {$type}.");
         }
 
@@ -812,7 +830,7 @@ class Builder implements BuilderInterface
     protected function cleanBindings(array $bindings): array
     {
         return array_values(array_filter($bindings, function ($binding) {
-            return !$binding instanceof ExpressionInterface;
+            return ! $binding instanceof ExpressionInterface;
         }));
     }
 
@@ -834,9 +852,8 @@ class Builder implements BuilderInterface
     /**
      * Handle dynamic method calls.
      *
-     * @param string $method
-     * @param array $parameters
      * @return mixed
+     *
      * @throws BadMethodCallException
      */
     public function __call(string $method, array $parameters)
@@ -858,6 +875,7 @@ class Builder implements BuilderInterface
             if ($macro instanceof Closure) {
                 $macro = $macro->bindTo($this, static::class);
             }
+
             return $macro(...$parameters);
         }
 
@@ -871,13 +889,12 @@ class Builder implements BuilderInterface
 
     /**
      * Create a new query instance with global scopes applied.
-     *
-     * @return self
      */
     public function withGlobalScopes(): self
     {
         $query = clone $this;
         $query->applyGlobalScopes();
+
         return $query;
     }
 }
@@ -885,11 +902,11 @@ class Builder implements BuilderInterface
 function array_flatten(array $array): array
 {
     $result = [];
-    
+
     array_walk_recursive($array, function ($value) use (&$result) {
         $result[] = $value;
     });
-    
+
     return $result;
 }
 
@@ -924,12 +941,13 @@ class Collection
 class JoinClause extends Builder
 {
     public string $type;
+
     public string $table;
 
     public function __construct(Builder $parentQuery, string $type, string $table)
     {
         parent::__construct($parentQuery->connection);
-        
+
         $this->type = $type;
         $this->table = $table;
     }

@@ -7,8 +7,11 @@ namespace Bob\Cache;
 class QueryCache
 {
     protected array $cache = [];
+
     protected int $maxItems = 1000;
+
     protected int $ttl = 3600; // 1 hour default
+
     protected bool $enabled = true;
 
     public function __construct(int $maxItems = 1000, int $ttl = 3600)
@@ -19,14 +22,15 @@ class QueryCache
 
     public function get(string $key): mixed
     {
-        if (!$this->enabled || !isset($this->cache[$key])) {
+        if (! $this->enabled || ! isset($this->cache[$key])) {
             return null;
         }
 
         $item = $this->cache[$key];
-        
+
         if ($item['expires'] < time()) {
             unset($this->cache[$key]);
+
             return null;
         }
 
@@ -35,7 +39,7 @@ class QueryCache
 
     public function put(string $key, mixed $value, ?int $ttl = null): void
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return;
         }
 
@@ -99,6 +103,6 @@ class QueryCache
 
     public function generateKey(string $query, array $bindings = []): string
     {
-        return md5($query . serialize($bindings));
+        return md5($query.serialize($bindings));
     }
 }

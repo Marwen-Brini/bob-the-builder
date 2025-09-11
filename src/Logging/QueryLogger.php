@@ -4,7 +4,6 @@ namespace Bob\Logging;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use Bob\Query\Builder;
 
 /**
  * Query logger that implements PSR-3 LoggerInterface
@@ -108,7 +107,7 @@ class QueryLogger implements LoggerInterface
      */
     public function logQuery(string $query, array $bindings = [], ?float $time = null): void
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return;
         }
 
@@ -116,12 +115,12 @@ class QueryLogger implements LoggerInterface
             'query' => $query,
         ];
 
-        if ($this->logBindings && !empty($bindings)) {
+        if ($this->logBindings && ! empty($bindings)) {
             $context['bindings'] = $bindings;
         }
 
         if ($this->logTime && $time !== null) {
-            $context['time'] = round($time, 2) . 'ms';
+            $context['time'] = round($time, 2).'ms';
         }
 
         // Determine log level based on execution time
@@ -136,7 +135,7 @@ class QueryLogger implements LoggerInterface
             $message = $time !== null && $time > $this->slowQueryThreshold
                 ? 'Slow query detected'
                 : 'Query executed';
-            
+
             $this->log($level, $message, $context);
         } else {
             // Store in memory if no logger is provided
@@ -149,7 +148,7 @@ class QueryLogger implements LoggerInterface
      */
     public function logQueryError(string $query, array $bindings, \Exception $exception): void
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return;
         }
 
@@ -168,7 +167,7 @@ class QueryLogger implements LoggerInterface
      */
     public function logTransaction(string $event, ?string $savepoint = null): void
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return;
         }
 
@@ -177,7 +176,7 @@ class QueryLogger implements LoggerInterface
             $context['savepoint'] = $savepoint;
         }
 
-        $this->info('Transaction ' . $event, $context);
+        $this->info('Transaction '.$event, $context);
     }
 
     /**
@@ -185,15 +184,15 @@ class QueryLogger implements LoggerInterface
      */
     public function logConnection(string $event, array $config = []): void
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return;
         }
 
         // Remove sensitive information
         $safeConfig = $config;
         unset($safeConfig['password']);
-        
-        $this->info('Database connection ' . $event, [
+
+        $this->info('Database connection '.$event, [
             'event' => $event,
             'config' => $safeConfig,
         ]);
@@ -246,7 +245,7 @@ class QueryLogger implements LoggerInterface
             if (isset($query['time'])) {
                 $time = (float) str_replace('ms', '', $query['time']);
                 $stats['total_time'] += $time;
-                
+
                 if ($time > $this->slowQueryThreshold) {
                     $stats['slow_queries']++;
                 }
@@ -254,7 +253,7 @@ class QueryLogger implements LoggerInterface
 
             // Count query types
             $type = $this->getQueryType($query['query']);
-            if (!isset($stats['queries_by_type'][$type])) {
+            if (! isset($stats['queries_by_type'][$type])) {
                 $stats['queries_by_type'][$type] = 0;
             }
             $stats['queries_by_type'][$type]++;
@@ -264,7 +263,7 @@ class QueryLogger implements LoggerInterface
             $stats['average_time'] = round($stats['total_time'] / $stats['total_queries'], 2);
         }
 
-        $stats['total_time'] = round($stats['total_time'], 2) . 'ms';
+        $stats['total_time'] = round($stats['total_time'], 2).'ms';
         $stats['average_time'] .= 'ms';
 
         return $stats;
@@ -276,7 +275,7 @@ class QueryLogger implements LoggerInterface
     protected function getQueryType(string $query): string
     {
         $query = strtoupper(trim($query));
-        
+
         if (strpos($query, 'SELECT') === 0) {
             return 'SELECT';
         } elseif (strpos($query, 'INSERT') === 0) {
@@ -292,7 +291,7 @@ class QueryLogger implements LoggerInterface
         } elseif (strpos($query, 'ALTER') === 0) {
             return 'ALTER';
         }
-        
+
         return 'OTHER';
     }
 

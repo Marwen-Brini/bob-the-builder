@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-use Bob\Contracts\ConnectionInterface;
 use Bob\Contracts\BuilderInterface;
+use Bob\Contracts\ConnectionInterface;
+use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
-use Bob\Contracts\ExpressionInterface;
 
 it('implements ConnectionInterface', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect($connection)->toBeInstanceOf(ConnectionInterface::class);
 });
 
 it('has PDO management methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'getPdo'))->toBeTrue();
     expect(method_exists($connection, 'getName'))->toBeTrue();
     expect(method_exists($connection, 'getDatabaseName'))->toBeTrue();
@@ -26,7 +26,7 @@ it('has PDO management methods', function () {
 
 it('has grammar and processor methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'getQueryGrammar'))->toBeTrue();
     expect(method_exists($connection, 'setQueryGrammar'))->toBeTrue();
     expect(method_exists($connection, 'getPostProcessor'))->toBeTrue();
@@ -35,14 +35,14 @@ it('has grammar and processor methods', function () {
 
 it('has table prefix methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'getTablePrefix'))->toBeTrue();
     expect(method_exists($connection, 'setTablePrefix'))->toBeTrue();
 });
 
 it('has query execution methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'select'))->toBeTrue();
     expect(method_exists($connection, 'insert'))->toBeTrue();
     expect(method_exists($connection, 'update'))->toBeTrue();
@@ -54,7 +54,7 @@ it('has query execution methods', function () {
 
 it('has transaction methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'transaction'))->toBeTrue();
     expect(method_exists($connection, 'beginTransaction'))->toBeTrue();
     expect(method_exists($connection, 'commit'))->toBeTrue();
@@ -64,7 +64,7 @@ it('has transaction methods', function () {
 
 it('has query logging methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'logQuery'))->toBeTrue();
     expect(method_exists($connection, 'enableQueryLog'))->toBeTrue();
     expect(method_exists($connection, 'disableQueryLog'))->toBeTrue();
@@ -75,13 +75,13 @@ it('has query logging methods', function () {
 
 it('has pretend method for dry run', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'pretend'))->toBeTrue();
 });
 
 it('has table and raw methods', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     expect(method_exists($connection, 'table'))->toBeTrue();
     expect(method_exists($connection, 'raw'))->toBeTrue();
 });
@@ -93,7 +93,7 @@ it('returns correct types', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
     $builder = Mockery::mock(BuilderInterface::class);
     $expression = Mockery::mock(ExpressionInterface::class);
-    
+
     $connection->shouldReceive('getPdo')->andReturn($pdo);
     $connection->shouldReceive('getName')->andReturn('default');
     $connection->shouldReceive('getQueryGrammar')->andReturn($grammar);
@@ -113,7 +113,7 @@ it('returns correct types', function () {
     $connection->shouldReceive('raw')->andReturn($expression);
     $connection->shouldReceive('prepareBindings')->andReturn([]);
     $connection->shouldReceive('pretend')->andReturn([]);
-    
+
     expect($connection->getPdo())->toBeInstanceOf(PDO::class);
     expect($connection->getName())->toBeString();
     expect($connection->getQueryGrammar())->toBeInstanceOf(GrammarInterface::class);
@@ -132,19 +132,19 @@ it('returns correct types', function () {
     expect($connection->table('users'))->toBeInstanceOf(BuilderInterface::class);
     expect($connection->raw('COUNT(*)'))->toBeInstanceOf(ExpressionInterface::class);
     expect($connection->prepareBindings([1, 'test']))->toBeArray();
-    expect($connection->pretend(function() {}))->toBeArray();
+    expect($connection->pretend(function () {}))->toBeArray();
 });
 
 it('transaction accepts closure and attempts', function () {
     $connection = Mockery::mock(ConnectionInterface::class);
-    
+
     $connection->shouldReceive('transaction')
         ->with(Mockery::type(Closure::class), 1)
         ->andReturn('result');
-    
-    $result = $connection->transaction(function() {
+
+    $result = $connection->transaction(function () {
         return 'result';
     }, 1);
-    
+
     expect($result)->toBe('result');
 });

@@ -22,7 +22,7 @@ class SQLiteGrammar extends Grammar
     {
         return [
             'delete from sqlite_sequence where name = ?' => [$query->from],
-            'delete from ' . $this->wrapTable($query->from) => [],
+            'delete from '.$this->wrapTable($query->from) => [],
         ];
     }
 
@@ -33,7 +33,7 @@ class SQLiteGrammar extends Grammar
 
     protected function wrapUnion(string $sql): string
     {
-        return 'select * from (' . $sql . ')';
+        return 'select * from ('.$sql.')';
     }
 
     public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, array $update): string
@@ -55,11 +55,11 @@ class SQLiteGrammar extends Grammar
         $value = $this->parameter($where['value']);
 
         return match ($type) {
-            'Day' => 'strftime(\'%d\', ' . $this->wrap($where['column']) . ') ' . $where['operator'] . ' cast(' . $value . ' as text)',
-            'Month' => 'strftime(\'%m\', ' . $this->wrap($where['column']) . ') ' . $where['operator'] . ' cast(' . $value . ' as text)',
-            'Year' => 'strftime(\'%Y\', ' . $this->wrap($where['column']) . ') ' . $where['operator'] . ' cast(' . $value . ' as text)',
-            'Date' => 'date(' . $this->wrap($where['column']) . ') ' . $where['operator'] . ' ' . $value,
-            'Time' => 'time(' . $this->wrap($where['column']) . ') ' . $where['operator'] . ' ' . $value,
+            'Day' => 'strftime(\'%d\', '.$this->wrap($where['column']).') '.$where['operator'].' cast('.$value.' as text)',
+            'Month' => 'strftime(\'%m\', '.$this->wrap($where['column']).') '.$where['operator'].' cast('.$value.' as text)',
+            'Year' => 'strftime(\'%Y\', '.$this->wrap($where['column']).') '.$where['operator'].' cast('.$value.' as text)',
+            'Date' => 'date('.$this->wrap($where['column']).') '.$where['operator'].' '.$value,
+            'Time' => 'time('.$this->wrap($where['column']).') '.$where['operator'].' '.$value,
             default => parent::compileDateBasedWhere($type, $query, $where),
         };
     }
@@ -68,7 +68,7 @@ class SQLiteGrammar extends Grammar
     {
         [$field, $path] = $this->wrapJsonFieldAndPath($column);
 
-        return 'json_array_length(' . $field . $path . ') ' . $operator . ' ' . $value;
+        return 'json_array_length('.$field.$path.') '.$operator.' '.$value;
     }
 
     protected function wrapJsonFieldAndPath(string $column): array
@@ -76,18 +76,18 @@ class SQLiteGrammar extends Grammar
         $parts = explode('->', $column, 2);
 
         $field = $this->wrap($parts[0]);
-        $path = count($parts) > 1 ? ', ' . $this->wrapJsonPath($parts[1]) : '';
+        $path = count($parts) > 1 ? ', '.$this->wrapJsonPath($parts[1]) : '';
 
         return [$field, $path];
     }
 
     protected function wrapJsonPath(string $value): string
     {
-        return '\'$.' . str_replace('->', '.', $value) . '\'';
+        return '\'$.'.str_replace('->', '.', $value).'\'';
     }
 
     public function compileRandom(string $seed = ''): string
     {
-        return $seed ? 'abs(random() / ' . $seed . ')' : 'random()';
+        return $seed ? 'abs(random() / '.$seed.')' : 'random()';
     }
 }

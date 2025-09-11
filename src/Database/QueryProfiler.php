@@ -7,9 +7,13 @@ namespace Bob\Database;
 class QueryProfiler
 {
     protected array $profiles = [];
+
     protected bool $enabled = false;
+
     protected int $slowQueryThreshold = 1000; // milliseconds
+
     protected array $slowQueries = [];
+
     protected array $statistics = [
         'total_queries' => 0,
         'total_time' => 0,
@@ -21,12 +25,12 @@ class QueryProfiler
 
     public function start(string $query, array $bindings = []): string
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return '';
         }
 
         $id = uniqid('query_', true);
-        
+
         $this->profiles[$id] = [
             'query' => $query,
             'bindings' => $bindings,
@@ -40,7 +44,7 @@ class QueryProfiler
 
     public function end(string $id): void
     {
-        if (!$this->enabled || !isset($this->profiles[$id])) {
+        if (! $this->enabled || ! isset($this->profiles[$id])) {
             return;
         }
 
@@ -53,10 +57,10 @@ class QueryProfiler
         // Update statistics
         $this->statistics['total_queries']++;
         $this->statistics['total_time'] += $profile['duration'];
-        
+
         $type = $profile['type'];
-        if (isset($this->statistics[$type . '_count'])) {
-            $this->statistics[$type . '_count']++;
+        if (isset($this->statistics[$type.'_count'])) {
+            $this->statistics[$type.'_count']++;
         }
 
         // Track slow queries
@@ -73,7 +77,7 @@ class QueryProfiler
     protected function getQueryType(string $query): string
     {
         $query = strtolower(trim($query));
-        
+
         if (str_starts_with($query, 'select')) {
             return 'select';
         } elseif (str_starts_with($query, 'insert')) {
@@ -83,7 +87,7 @@ class QueryProfiler
         } elseif (str_starts_with($query, 'delete')) {
             return 'delete';
         }
-        
+
         return 'other';
     }
 
@@ -115,13 +119,13 @@ class QueryProfiler
     public function getStatistics(): array
     {
         $stats = $this->statistics;
-        
+
         if ($stats['total_queries'] > 0) {
             $stats['average_time'] = $stats['total_time'] / $stats['total_queries'];
         } else {
             $stats['average_time'] = 0;
         }
-        
+
         return $stats;
     }
 
@@ -147,7 +151,7 @@ class QueryProfiler
     public function getReport(): array
     {
         $stats = $this->getStatistics();
-        
+
         return [
             'enabled' => $this->enabled,
             'total_queries' => $stats['total_queries'],
@@ -168,8 +172,8 @@ class QueryProfiler
     public function getSlowestQueries(int $limit = 10): array
     {
         $queries = $this->slowQueries;
-        usort($queries, fn($a, $b) => $b['duration'] <=> $a['duration']);
-        
+        usort($queries, fn ($a, $b) => $b['duration'] <=> $a['duration']);
+
         return array_slice($queries, 0, $limit);
     }
 }

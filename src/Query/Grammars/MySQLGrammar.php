@@ -17,7 +17,7 @@ class MySQLGrammar extends Grammar
     protected function wrapValue(string $value): string
     {
         if ($value !== '*') {
-            return '`' . str_replace('`', '``', $value) . '`';
+            return '`'.str_replace('`', '``', $value).'`';
         }
 
         return $value;
@@ -32,7 +32,7 @@ class MySQLGrammar extends Grammar
     {
         [$field, $path] = $this->wrapJsonFieldAndPath($column);
 
-        return 'json_length(' . $field . $path . ') ' . $operator . ' ' . $value;
+        return 'json_length('.$field.$path.') '.$operator.' '.$value;
     }
 
     protected function wrapJsonFieldAndPath(string $column): array
@@ -40,14 +40,14 @@ class MySQLGrammar extends Grammar
         $parts = explode('->', $column, 2);
 
         $field = $this->wrap($parts[0]);
-        $path = count($parts) > 1 ? ', ' . $this->wrapJsonPath($parts[1]) : '';
+        $path = count($parts) > 1 ? ', '.$this->wrapJsonPath($parts[1]) : '';
 
         return [$field, $path];
     }
 
     protected function wrapJsonPath(string $value): string
     {
-        return '\'$.' . str_replace('->', '.', $value) . '\'';
+        return '\'$.'.str_replace('->', '.', $value).'\'';
     }
 
     public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, array $update): string
@@ -57,15 +57,15 @@ class MySQLGrammar extends Grammar
         $sql .= ' on duplicate key update ';
 
         $columns = collect($update)->map(function ($value, $key) {
-            return $this->wrap($key) . ' = values(' . $this->wrap($key) . ')';
+            return $this->wrap($key).' = values('.$this->wrap($key).')';
         })->implode(', ');
 
-        return $sql . $columns;
+        return $sql.$columns;
     }
 
     public function compileLock(BuilderInterface $query, $value): string
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return $value ? ' for update' : ' lock in share mode';
         }
 
@@ -74,6 +74,6 @@ class MySQLGrammar extends Grammar
 
     public function compileRandom(string $seed = ''): string
     {
-        return 'RAND(' . $seed . ')';
+        return 'RAND('.$seed.')';
     }
 }

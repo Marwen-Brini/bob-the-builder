@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use Bob\Contracts\ProcessorInterface;
 use Bob\Contracts\BuilderInterface;
+use Bob\Contracts\ProcessorInterface;
 
 it('implements ProcessorInterface', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
-    
+
     expect($processor)->toBeInstanceOf(ProcessorInterface::class);
 });
 
 it('has process methods', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
-    
+
     expect(method_exists($processor, 'processSelect'))->toBeTrue();
     expect(method_exists($processor, 'processInsertGetId'))->toBeTrue();
     expect(method_exists($processor, 'processColumnListing'))->toBeTrue();
@@ -23,13 +23,13 @@ it('has process methods', function () {
 it('processSelect accepts builder and results', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
     $builder = Mockery::mock(BuilderInterface::class);
-    
+
     $processor->shouldReceive('processSelect')
         ->with(Mockery::type(BuilderInterface::class), Mockery::type('array'))
         ->andReturn([['id' => 1, 'name' => 'John']]);
-    
+
     $result = $processor->processSelect($builder, [['id' => 1, 'name' => 'John']]);
-    
+
     expect($result)->toBeArray();
     expect($result[0])->toHaveKey('id');
     expect($result[0])->toHaveKey('name');
@@ -38,7 +38,7 @@ it('processSelect accepts builder and results', function () {
 it('processInsertGetId returns integer or string', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
     $builder = Mockery::mock(BuilderInterface::class);
-    
+
     $processor->shouldReceive('processInsertGetId')
         ->with(
             Mockery::type(BuilderInterface::class),
@@ -47,30 +47,30 @@ it('processInsertGetId returns integer or string', function () {
             Mockery::type('string')
         )
         ->andReturn(1);
-    
+
     $result = $processor->processInsertGetId(
         $builder,
         'INSERT INTO users VALUES (?)',
         ['John'],
         'id'
     );
-    
+
     expect($result)->toBeInt();
 });
 
 it('processColumnListing returns array', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
-    
+
     $processor->shouldReceive('processColumnListing')
         ->with(Mockery::type('array'))
         ->andReturn(['id', 'name', 'email']);
-    
+
     $result = $processor->processColumnListing([
         ['column_name' => 'id'],
         ['column_name' => 'name'],
-        ['column_name' => 'email']
+        ['column_name' => 'email'],
     ]);
-    
+
     expect($result)->toBeArray();
     expect($result)->toContain('id');
     expect($result)->toContain('name');
@@ -79,21 +79,21 @@ it('processColumnListing returns array', function () {
 
 it('processColumnTypeListing returns array', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
-    
+
     $processor->shouldReceive('processColumnTypeListing')
         ->with(Mockery::type('array'))
         ->andReturn([
             'id' => 'integer',
             'name' => 'string',
-            'email' => 'string'
+            'email' => 'string',
         ]);
-    
+
     $result = $processor->processColumnTypeListing([
         ['column_name' => 'id', 'data_type' => 'int'],
         ['column_name' => 'name', 'data_type' => 'varchar'],
-        ['column_name' => 'email', 'data_type' => 'varchar']
+        ['column_name' => 'email', 'data_type' => 'varchar'],
     ]);
-    
+
     expect($result)->toBeArray();
     expect($result)->toHaveKey('id');
     expect($result)->toHaveKey('name');
@@ -103,7 +103,7 @@ it('processColumnTypeListing returns array', function () {
 it('processInsertGetId handles null sequence', function () {
     $processor = Mockery::mock(ProcessorInterface::class);
     $builder = Mockery::mock(BuilderInterface::class);
-    
+
     $processor->shouldReceive('processInsertGetId')
         ->with(
             Mockery::type(BuilderInterface::class),
@@ -112,13 +112,13 @@ it('processInsertGetId handles null sequence', function () {
             null
         )
         ->andReturn(1);
-    
+
     $result = $processor->processInsertGetId(
         $builder,
         'INSERT INTO users VALUES (?)',
         ['John'],
         null
     );
-    
+
     expect($result)->toBe(1);
 });

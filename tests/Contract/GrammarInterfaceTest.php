@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\BuilderInterface;
+use Bob\Contracts\GrammarInterface;
 
 it('implements GrammarInterface', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
-    
+
     expect($grammar)->toBeInstanceOf(GrammarInterface::class);
 });
 
 it('has compile methods', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
-    
+
     expect(method_exists($grammar, 'compileSelect'))->toBeTrue();
     expect(method_exists($grammar, 'compileInsert'))->toBeTrue();
     expect(method_exists($grammar, 'compileInsertGetId'))->toBeTrue();
@@ -26,7 +26,7 @@ it('has compile methods', function () {
 
 it('has wrap methods', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
-    
+
     expect(method_exists($grammar, 'wrap'))->toBeTrue();
     expect(method_exists($grammar, 'wrapTable'))->toBeTrue();
     expect(method_exists($grammar, 'wrapArray'))->toBeTrue();
@@ -34,7 +34,7 @@ it('has wrap methods', function () {
 
 it('has utility methods', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
-    
+
     expect(method_exists($grammar, 'getDateFormat'))->toBeTrue();
     expect(method_exists($grammar, 'getTablePrefix'))->toBeTrue();
     expect(method_exists($grammar, 'setTablePrefix'))->toBeTrue();
@@ -45,7 +45,7 @@ it('has utility methods', function () {
 
 it('has feature support methods', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
-    
+
     expect(method_exists($grammar, 'supportsReturning'))->toBeTrue();
     expect(method_exists($grammar, 'supportsJsonOperations'))->toBeTrue();
     expect(method_exists($grammar, 'getOperators'))->toBeTrue();
@@ -54,7 +54,7 @@ it('has feature support methods', function () {
 it('returns correct types', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
     $builder = Mockery::mock(BuilderInterface::class);
-    
+
     $grammar->shouldReceive('compileSelect')->andReturn('SELECT * FROM users');
     $grammar->shouldReceive('compileInsert')->andReturn('INSERT INTO users VALUES (?)');
     $grammar->shouldReceive('compileInsertGetId')->andReturn('INSERT INTO users VALUES (?)');
@@ -74,7 +74,7 @@ it('returns correct types', function () {
     $grammar->shouldReceive('supportsReturning')->andReturn(false);
     $grammar->shouldReceive('supportsJsonOperations')->andReturn(true);
     $grammar->shouldReceive('getOperators')->andReturn(['=', '!=', '<', '>', '<=', '>=']);
-    
+
     expect($grammar->compileSelect($builder))->toBeString();
     expect($grammar->compileInsert($builder, []))->toBeString();
     expect($grammar->compileInsertGetId($builder, [], 'id'))->toBeString();
@@ -99,18 +99,18 @@ it('returns correct types', function () {
 it('compile methods accept BuilderInterface', function () {
     $grammar = Mockery::mock(GrammarInterface::class);
     $builder = Mockery::mock(BuilderInterface::class);
-    
+
     $grammar->shouldReceive('compileSelect')
         ->with(Mockery::type(BuilderInterface::class))
         ->andReturn('SELECT * FROM users');
-    
+
     $grammar->shouldReceive('compileInsert')
         ->with(Mockery::type(BuilderInterface::class), Mockery::type('array'))
         ->andReturn('INSERT INTO users VALUES (?)');
-    
+
     $result = $grammar->compileSelect($builder);
     expect($result)->toBeString();
-    
+
     $result = $grammar->compileInsert($builder, ['name' => 'John']);
     expect($result)->toBeString();
 });

@@ -1,12 +1,13 @@
 <?php
+
 /**
  * Extension System Demonstration
- * 
+ *
  * This example shows how to use Bob Query Builder's extension system
  * including macros, scopes, and dynamic finders.
  */
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Bob\Database\Connection;
 use Bob\Query\Builder;
@@ -42,15 +43,15 @@ echo "=== Bob Query Builder Extension System Demo ===\n\n";
 
 // 1. MACROS - Add custom methods globally
 echo "1. Macros - Adding Custom Methods\n";
-echo str_repeat('-', 40) . "\n";
+echo str_repeat('-', 40)."\n";
 
 // Register a macro for published posts
-Builder::macro('published', function() {
+Builder::macro('published', function () {
     return $this->where('status', '=', 'published');
 });
 
 // Register a macro for posts by a specific author
-Builder::macro('byAuthor', function($authorId) {
+Builder::macro('byAuthor', function ($authorId) {
     return $this->where('author_id', '=', $authorId);
 });
 
@@ -59,7 +60,7 @@ $publishedPosts = $connection->table('posts')
     ->published()
     ->get();
 
-echo "Published posts: " . count($publishedPosts) . "\n";
+echo 'Published posts: '.count($publishedPosts)."\n";
 foreach ($publishedPosts as $post) {
     echo "  - {$post['title']}\n";
 }
@@ -68,23 +69,24 @@ $author1Posts = $connection->table('posts')
     ->byAuthor(1)
     ->get();
 
-echo "\nPosts by Author 1: " . count($author1Posts) . "\n";
+echo "\nPosts by Author 1: ".count($author1Posts)."\n";
 foreach ($author1Posts as $post) {
     echo "  - {$post['title']} ({$post['status']})\n";
 }
 
 // 2. SCOPES - Reusable query patterns
 echo "\n2. Scopes - Reusable Query Patterns\n";
-echo str_repeat('-', 40) . "\n";
+echo str_repeat('-', 40)."\n";
 
 // Register a local scope for recent posts
-Builder::scope('recent', function($days = 30) {
+Builder::scope('recent', function ($days = 30) {
     $date = date('Y-m-d', strtotime("-{$days} days"));
+
     return $this->where('created_at', '>=', $date);
 });
 
 // Register a scope for ordering
-Builder::scope('latest', function() {
+Builder::scope('latest', function () {
     return $this->orderBy('created_at', 'desc');
 });
 
@@ -101,24 +103,25 @@ foreach ($recentPosts as $post) {
 
 // 3. DYNAMIC FINDERS - Intuitive finder methods
 echo "\n3. Dynamic Finders - Intuitive Methods\n";
-echo str_repeat('-', 40) . "\n";
+echo str_repeat('-', 40)."\n";
 
 // Built-in dynamic finders work automatically
 $post = $connection->table('posts')->findBySlug('getting-started');
 echo "Found by slug: {$post['title']}\n";
 
 $drafts = $connection->table('posts')->findAllByStatus('draft');
-echo "Draft posts: " . count($drafts) . "\n";
+echo 'Draft posts: '.count($drafts)."\n";
 
 $hasPublished = $connection->table('posts')->existsByStatus('published');
-echo "Has published posts: " . ($hasPublished ? 'Yes' : 'No') . "\n";
+echo 'Has published posts: '.($hasPublished ? 'Yes' : 'No')."\n";
 
 $publishedCount = $connection->table('posts')->countByStatus('published');
 echo "Published count: {$publishedCount}\n";
 
 // Register custom finder pattern
-Builder::registerFinder('/^findLatest(\d+)$/', function($matches, $params) {
+Builder::registerFinder('/^findLatest(\d+)$/', function ($matches, $params) {
     $limit = (int) $matches[1];
+
     return $this->orderBy('created_at', 'desc')->limit($limit)->get();
 });
 
@@ -130,7 +133,7 @@ foreach ($latestThree as $post) {
 
 // 4. COMBINING EXTENSIONS - Chain everything together
 echo "\n4. Combining Extensions\n";
-echo str_repeat('-', 40) . "\n";
+echo str_repeat('-', 40)."\n";
 
 // Chain macros, scopes, and finders
 $results = $connection->table('posts')
@@ -147,10 +150,10 @@ foreach ($results as $post) {
 
 // 5. GLOBAL SCOPES - Apply to all queries
 echo "\n5. Global Scopes\n";
-echo str_repeat('-', 40) . "\n";
+echo str_repeat('-', 40)."\n";
 
 // Register a global scope
-Builder::globalScope('onlyPublished', function() {
+Builder::globalScope('onlyPublished', function () {
     return $this->where('status', '=', 'published');
 });
 
@@ -159,7 +162,7 @@ $allWithGlobal = $connection->table('posts')
     ->withGlobalScopes()
     ->get();
 
-echo "With global scope (only published): " . count($allWithGlobal) . "\n";
+echo 'With global scope (only published): '.count($allWithGlobal)."\n";
 
 // You can remove global scopes when needed
 $allWithoutGlobal = $connection->table('posts')
@@ -167,7 +170,7 @@ $allWithoutGlobal = $connection->table('posts')
     ->withGlobalScopes()
     ->get();
 
-echo "Without global scope (all posts): " . count($allWithoutGlobal) . "\n";
+echo 'Without global scope (all posts): '.count($allWithoutGlobal)."\n";
 
 // Clean up for next run
 Builder::clearMacros();
