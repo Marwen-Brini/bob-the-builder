@@ -7,6 +7,7 @@ use Bob\Contracts\ConnectionInterface;
 use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
+use Bob\Database\Expression;
 use Closure;
 use BadMethodCallException;
 
