@@ -5,6 +5,7 @@ namespace Bob\Query;
 use Bob\Contracts\BuilderInterface;
 use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
+use function Bob\Query\collect;
 
 abstract class Grammar implements GrammarInterface
 {
@@ -14,21 +15,13 @@ abstract class Grammar implements GrammarInterface
 
     public function compileSelect(BuilderInterface $query): string
     {
-        if ($query->unions && $query->aggregate) {
+        if ($query->getUnions() && $query->getAggregate()) {
             return $this->compileUnionAggregate($query);
-        }
-
-        $original = $query->columns;
-
-        if (is_null($query->columns)) {
-            $query->columns = ['*'];
         }
 
         $sql = trim($this->concatenate(
             $this->compileComponents($query)
         ));
-
-        $query->columns = $original;
 
         return $sql;
     }
@@ -38,9 +31,19 @@ abstract class Grammar implements GrammarInterface
         $sql = [];
 
         foreach ($this->selectComponents as $component) {
-            if (! is_null($query->$component)) {
-                $method = 'compile'.ucfirst($component);
-                $sql[$component] = $this->$method($query, $query->$component);
+            $getter = 'get'.ucfirst($component);
+            if (method_exists($query, $getter)) {
+                $value = $query->$getter();
+                
+                // Special handling for columns - default to ['*'] if null
+                if ($component === 'columns' && is_null($value)) {
+                    $value = ['*'];
+                }
+                
+                if (! is_null($value) && (! is_array($value) || ! empty($value))) {
+                    $method = 'compile'.ucfirst($component);
+                    $sql[$component] = $this->$method($query, $value);
+                }
             }
         }
 
@@ -73,7 +76,7 @@ abstract class Grammar implements GrammarInterface
     {
         $column = $this->columnize($aggregate['columns']);
 
-        if ($query->distinct && $column !== '*') {
+        if ($query->getDistinct() && $column !== '*') {
             $column = 'distinct '.$column;
         }
 
@@ -82,11 +85,11 @@ abstract class Grammar implements GrammarInterface
 
     protected function compileColumns(BuilderInterface $query, array $columns): string
     {
-        if (! is_null($query->aggregate)) {
+        if (! is_null($query->getAggregate())) {
             return '';
         }
 
-        $select = $query->distinct ? 'select distinct ' : 'select ';
+        $select = $query->getDistinct() ? 'select distinct ' : 'select ';
 
         return $select.$this->columnize($columns);
     }
@@ -195,20 +198,20 @@ abstract class Grammar implements GrammarInterface
     {
         $sql = '';
 
-        foreach ($query->unions as $union) {
+        foreach ($query->getUnions() as $union) {
             $sql .= $this->compileUnion($union);
         }
 
-        if (! empty($query->unionOrders)) {
-            $sql .= ' '.$this->compileOrders($query, $query->unionOrders);
+        if (! empty($query->getUnionOrders())) {
+            $sql .= ' '.$this->compileOrders($query, $query->getUnionOrders());
         }
 
-        if (isset($query->unionLimit)) {
-            $sql .= ' '.$this->compileLimit($query, $query->unionLimit);
+        if (! is_null($query->getUnionLimit())) {
+            $sql .= ' '.$this->compileLimit($query, $query->getUnionLimit());
         }
 
-        if (isset($query->unionOffset)) {
-            $sql .= ' '.$this->compileOffset($query, $query->unionOffset);
+        if (! is_null($query->getUnionOffset())) {
+            $sql .= ' '.$this->compileOffset($query, $query->getUnionOffset());
         }
 
         return ltrim($sql);
@@ -406,7 +409,7 @@ abstract class Grammar implements GrammarInterface
 
     public function compileTruncate(BuilderInterface $query): array
     {
-        return ['truncate table '.$this->wrapTable($query->from) => []];
+        return ['truncate table '.$this->wrapTable($query->getFrom()) => []];
     }
 
     public function compileExists(BuilderInterface $query): string

@@ -97,6 +97,14 @@ abstract class Model
     }
 
     /**
+     * Get the primary key name for the model
+     */
+    public function getPrimaryKey(): string
+    {
+        return $this->primaryKey;
+    }
+
+    /**
      * Simple pluralization (can be overridden for complex cases)
      */
     protected function pluralize(string $singular): string

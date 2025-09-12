@@ -4,6 +4,7 @@ namespace Bob\Query\Grammars;
 
 use Bob\Contracts\BuilderInterface;
 use Bob\Query\Grammar;
+use function Bob\Query\collect;
 
 class MySQLGrammar extends Grammar
 {

@@ -848,6 +848,87 @@ class Builder implements BuilderInterface
     {
         return clone $this;
     }
+    
+    // Getter methods for interface compliance
+    public function getAggregate(): ?array
+    {
+        return $this->aggregate;
+    }
+    
+    public function getColumns(): ?array
+    {
+        return $this->columns;
+    }
+    
+    public function getDistinct(): bool
+    {
+        return $this->distinct;
+    }
+    
+    public function getFrom(): ?string
+    {
+        return $this->from;
+    }
+    
+    public function getJoins(): ?array
+    {
+        return $this->joins;
+    }
+    
+    public function getWheres(): array
+    {
+        return $this->wheres;
+    }
+    
+    public function getGroups(): ?array
+    {
+        return $this->groups;
+    }
+    
+    public function getHavings(): ?array
+    {
+        return $this->havings;
+    }
+    
+    public function getOrders(): ?array
+    {
+        return $this->orders;
+    }
+    
+    public function getLimit(): ?int
+    {
+        return $this->limit;
+    }
+    
+    public function getOffset(): ?int
+    {
+        return $this->offset;
+    }
+    
+    public function getUnions(): ?array
+    {
+        return $this->unions;
+    }
+    
+    public function getUnionLimit(): ?int
+    {
+        return $this->unionLimit;
+    }
+    
+    public function getUnionOffset(): ?int
+    {
+        return $this->unionOffset;
+    }
+    
+    public function getUnionOrders(): ?array
+    {
+        return $this->unionOrders;
+    }
+    
+    public function getLock()
+    {
+        return $this->lock;
+    }
 
     /**
      * Handle dynamic method calls.

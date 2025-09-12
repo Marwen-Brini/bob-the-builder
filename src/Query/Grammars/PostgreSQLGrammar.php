@@ -4,6 +4,7 @@ namespace Bob\Query\Grammars;
 
 use Bob\Contracts\BuilderInterface;
 use Bob\Query\Grammar;
+use function Bob\Query\collect;
 
 class PostgreSQLGrammar extends Grammar
 {
@@ -33,8 +34,8 @@ class PostgreSQLGrammar extends Grammar
 
         $sql .= ' on conflict ('.$this->columnize($uniqueBy).') do update set ';
 
-        $columns = collect($update)->map(function ($value, $key) {
-            return $this->wrap($key).' = excluded.'.$this->wrap($key);
+        $columns = collect($update)->map(function ($column) {
+            return $this->wrap($column).' = excluded.'.$this->wrap($column);
         })->implode(', ');
 
         return $sql.$columns;
@@ -65,7 +66,7 @@ class PostgreSQLGrammar extends Grammar
 
     protected function compileJsonLength(string $column, string $operator, string $value): string
     {
-        [$field, $path] = $this->wrapJsonFieldAndPath($column);
+        [$field, $path] = $this->wrapJsonFieldAndPathUnescaped($column);
 
         return 'jsonb_array_length('.$field.$path.') '.$operator.' '.$value;
     }
@@ -78,7 +79,24 @@ class PostgreSQLGrammar extends Grammar
 
         if (count($parts) > 1) {
             $path = '->'.collect(explode('->', $parts[1]))->map(function ($part) {
-                return '\''.$part.'\'';
+                return '\\\''.$part.'\\\'';
+            })->implode('->');
+        } else {
+            $path = '';
+        }
+
+        return [$field, $path];
+    }
+
+    protected function wrapJsonFieldAndPathUnescaped(string $column): array
+    {
+        $parts = explode('->', $column, 2);
+
+        $field = $this->wrap($parts[0]);
+
+        if (count($parts) > 1) {
+            $path = '->'.collect(explode('->', $parts[1]))->map(function ($part) {
+                return "'".$part."'";
             })->implode('->');
         } else {
             $path = '';
@@ -94,12 +112,12 @@ class PostgreSQLGrammar extends Grammar
 
     public function compileTruncate(BuilderInterface $query): array
     {
-        return ['truncate '.$this->wrapTable($query->from).' restart identity cascade' => []];
+        return ['truncate '.$this->wrapTable($query->getFrom()).' restart identity cascade' => []];
     }
 
     public function compileJsonContains(string $column, string $value): string
     {
-        [$field, $path] = $this->wrapJsonFieldAndPath($column);
+        [$field, $path] = $this->wrapJsonFieldAndPathUnescaped($column);
 
         return $field.$path.' @> '.$value;
     }
@@ -109,7 +127,7 @@ class PostgreSQLGrammar extends Grammar
         $segments = explode('->', $column);
 
         $field = $this->wrap(array_shift($segments));
-        $path = count($segments) ? '->'.$this->wrapJsonPath(implode('->', $segments)) : '';
+        $path = count($segments) ? '->'.collect($segments)->map(fn($segment) => "'".$segment."'")->implode('->') : '';
 
         return $field.$path.' is not null';
     }

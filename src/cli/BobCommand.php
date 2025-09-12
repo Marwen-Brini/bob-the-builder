@@ -87,9 +87,14 @@ class BobCommand
             $this->success('Connection successful!');
 
             // Show database version
-            $version = $connection->selectOne('SELECT VERSION() as version');
-            if ($version) {
-                $this->info('Database version: '.($version->version ?? 'Unknown'));
+            try {
+                $version = $connection->selectOne('SELECT VERSION() as version');
+                if ($version) {
+                    $this->info('Database version: '.($version['version'] ?? 'Unknown'));
+                }
+            } catch (Exception $e) {
+                // Some databases (like SQLite) don't support VERSION()
+                // Continue without showing version
             }
 
             // Show available tables
@@ -134,10 +139,10 @@ class BobCommand
             $grammar = $this->createGrammar($driver);
             $processor = new Processor;
             $connection = $this->createMockConnection($grammar, $processor);
-            $builder = new Builder($connection, $grammar, $processor);
+            $builder = new Builder($connection);
 
-            // Parse the query string
-            $this->parseAndBuildQuery($builder, $queryString);
+            // Parse the query string using new DSL parser
+            $this->parseDSL($queryString, $builder);
 
             // Get the SQL
             $sql = $builder->toSql();
@@ -166,7 +171,7 @@ class BobCommand
         }
     }
 
-    protected function showHelp(): void
+    protected function showHelp(): int
     {
         $this->output("Bob Query Builder CLI\n");
         $this->output("Usage: bob <command> [options]\n");
@@ -191,6 +196,8 @@ class BobCommand
         $this->output('  Examples:');
         $this->output('    bob build mysql "select:* from:users where:active,1"');
         $this->output('    bob build sqlite "select:name,email from:users limit:10"');
+        
+        return 0;
     }
 
     protected function showVersion(): int
@@ -373,17 +380,17 @@ class BobCommand
             case 'mysql':
                 $results = $connection->select('SHOW TABLES');
 
-                return array_map(fn ($row) => array_values((array) $row)[0], $results);
+                return array_map(fn ($row) => array_values($row)[0], $results);
 
             case 'pgsql':
                 $results = $connection->select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
 
-                return array_map(fn ($row) => $row->tablename, $results);
+                return array_map(fn ($row) => $row['tablename'], $results);
 
             case 'sqlite':
                 $results = $connection->select("SELECT name FROM sqlite_master WHERE type='table'");
 
-                return array_map(fn ($row) => $row->name, $results);
+                return array_map(fn ($row) => $row['name'], $results);
 
             default:
                 return [];
@@ -426,5 +433,137 @@ class BobCommand
     protected function error(string $message): void
     {
         echo "\033[0;31m".$message."\033[0m".PHP_EOL;
+    }
+
+    protected function parseDSL(string $queryString, Builder $builder): void
+    {
+        $parts = preg_split('/\s+/', trim($queryString));
+        $i = 0;
+
+        while ($i < count($parts)) {
+            $part = strtolower($parts[$i]);
+
+            switch ($part) {
+                case 'select':
+                    $i++;
+                    if ($i < count($parts) && strtolower($parts[$i]) !== 'from') {
+                        $columns = [];
+                        while ($i < count($parts) && strtolower($parts[$i]) !== 'from') {
+                            $columns[] = trim($parts[$i], ',');
+                            $i++;
+                        }
+                        $builder->select($columns);
+                    } else {
+                        $builder->select(['*']);
+                    }
+                    break;
+
+                case 'from':
+                    $i++;
+                    if ($i < count($parts)) {
+                        $builder->from($parts[$i]);
+                        $i++;
+                    }
+                    break;
+
+                case 'where':
+                    $i++;
+                    if ($i + 2 < count($parts)) {
+                        $column = $parts[$i];
+                        $operator = $parts[$i + 1];
+                        $value = $parts[$i + 2];
+                        $builder->where($column, $operator, $value);
+                        $i += 3;
+                    }
+                    break;
+
+                case 'join':
+                    $i++;
+                    if ($i < count($parts)) {
+                        $table = $parts[$i];
+                        $i++;
+                        // Skip 'on' keyword
+                        if ($i < count($parts) && strtolower($parts[$i]) === 'on') {
+                            $i++;
+                            if ($i + 2 < count($parts)) {
+                                $first = $parts[$i];
+                                $operator = $parts[$i + 1];
+                                $second = $parts[$i + 2];
+                                $builder->join($table, $first, $operator, $second);
+                                $i += 3;
+                            }
+                        }
+                    }
+                    break;
+
+                case 'order':
+                    if ($i + 1 < count($parts) && strtolower($parts[$i + 1]) === 'by') {
+                        $i += 2;
+                        if ($i < count($parts)) {
+                            $column = $parts[$i];
+                            $direction = 'asc';
+                            if ($i + 1 < count($parts) && in_array(strtolower($parts[$i + 1]), ['asc', 'desc'])) {
+                                $direction = strtolower($parts[$i + 1]);
+                                $i++;
+                            }
+                            $builder->orderBy($column, $direction);
+                            $i++;
+                        }
+                    } else {
+                        $i++;
+                    }
+                    break;
+
+                case 'group':
+                    if ($i + 1 < count($parts) && strtolower($parts[$i + 1]) === 'by') {
+                        $i += 2;
+                        if ($i < count($parts)) {
+                            $builder->groupBy($parts[$i]);
+                            $i++;
+                        }
+                    } else {
+                        $i++;
+                    }
+                    break;
+
+                case 'limit':
+                    $i++;
+                    if ($i < count($parts)) {
+                        $builder->limit((int) $parts[$i]);
+                        $i++;
+                    }
+                    break;
+
+                case 'count':
+                    // Check if there's a column specified or default to *
+                    $i++;
+                    if ($i < count($parts) && strtolower($parts[$i]) === 'from') {
+                        // Count all records from table
+                        $builder->count();
+                    } else {
+                        // Count specific column
+                        $column = ($i < count($parts)) ? $parts[$i] : '*';
+                        $builder->count($column);
+                        if ($i < count($parts)) $i++;
+                    }
+                    break;
+
+                case 'sum':
+                case 'avg':
+                case 'min':
+                case 'max':
+                    $i++;
+                    if ($i < count($parts)) {
+                        $column = trim($parts[$i], '()');
+                        $builder->{$part}($column);
+                        $i++;
+                    }
+                    break;
+
+                default:
+                    $i++;
+                    break;
+            }
+        }
     }
 }

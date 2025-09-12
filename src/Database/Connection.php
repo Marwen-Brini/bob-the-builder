@@ -326,7 +326,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
                 return true;
             }
 
-            return (bool) $this->getPdo()->exec($query);
+            return $this->getPdo()->exec($query) !== false;
         });
     }
 

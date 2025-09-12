@@ -71,6 +71,22 @@ class QueryLogger implements LoggerInterface
     }
 
     /**
+     * Enable query logging
+     */
+    public function enable(): void
+    {
+        $this->enabled = true;
+    }
+
+    /**
+     * Disable query logging
+     */
+    public function disable(): void
+    {
+        $this->enabled = false;
+    }
+
+    /**
      * Check if logging is enabled
      */
     public function isEnabled(): bool
@@ -130,16 +146,16 @@ class QueryLogger implements LoggerInterface
             $context['slow_query'] = true;
         }
 
-        // Log to PSR-3 logger if available
+        // Always store in internal query log
+        $this->addToQueryLog($context);
+
+        // Also log to PSR-3 logger if available
         if ($this->logger) {
             $message = $time !== null && $time > $this->slowQueryThreshold
                 ? 'Slow query detected'
                 : 'Query executed';
 
             $this->log($level, $message, $context);
-        } else {
-            // Store in memory if no logger is provided
-            $this->addToQueryLog($context);
         }
     }
 
@@ -176,6 +192,14 @@ class QueryLogger implements LoggerInterface
             $context['savepoint'] = $savepoint;
         }
 
+        // Store in internal query log
+        $this->addToQueryLog([
+            'type' => 'transaction',
+            'event' => $event,
+            'savepoint' => $savepoint,
+        ]);
+
+        // Also log to PSR logger
         $this->info('Transaction '.$event, $context);
     }
 
@@ -192,6 +216,14 @@ class QueryLogger implements LoggerInterface
         $safeConfig = $config;
         unset($safeConfig['password']);
 
+        // Store in internal query log
+        $this->addToQueryLog([
+            'type' => 'connection',
+            'event' => $event,
+            'config' => $safeConfig,
+        ]);
+
+        // Also log to PSR logger
         $this->info('Database connection '.$event, [
             'event' => $event,
             'config' => $safeConfig,
@@ -252,11 +284,13 @@ class QueryLogger implements LoggerInterface
             }
 
             // Count query types
-            $type = $this->getQueryType($query['query']);
-            if (! isset($stats['queries_by_type'][$type])) {
-                $stats['queries_by_type'][$type] = 0;
+            if (isset($query['query']) && $query['query'] !== null) {
+                $type = $this->getQueryType($query['query']);
+                if (! isset($stats['queries_by_type'][$type])) {
+                    $stats['queries_by_type'][$type] = 0;
+                }
+                $stats['queries_by_type'][$type]++;
             }
-            $stats['queries_by_type'][$type]++;
         }
 
         if ($stats['total_queries'] > 0) {

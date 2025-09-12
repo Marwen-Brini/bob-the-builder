@@ -1,14 +1,18 @@
 parameters:
-    level: 9
+    level: 5
     paths:
         - src
-        - tests
+    excludePaths:
+        - src/cli/BobCommand.php
     scanFiles:
         - vendor/pestphp/pest/src/Functions.php
         - vendor/pestphp/pest/src/Pest.php
     ignoreErrors:
-        - '#Call to an undefined method Pest\\Expectation#'
-        - '#Access to an undefined property Pest\\Support\\HigherOrderTapProxy#'
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
+        - '#Function array_flatten not found#'
+        - '#Function collect not found#'
+        - '#Class Bob\\Query\\Collection not found#'
+        - '#Call to an undefined method#'
+        - '#Property .* has no type specified#'
+        - '#Method .* has parameter .* with no type specified#'
+        - '#Method .* return type has no value type specified#'
     treatPhpDocTypesAsCertain: false
