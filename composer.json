@@ -20,11 +20,11 @@
         "psr/log": "^3.0"
     },
     "require-dev": {
-        "infection/infection": "^0.29",
-        "laravel/pint": "^1.24",
+        "infection/infection": "^0.27|^0.28|^0.29",
+        "laravel/pint": "^1.13",
         "mockery/mockery": "^1.6",
-        "pestphp/pest": "^3.0",
-        "phpstan/phpstan": "^2.0"
+        "pestphp/pest": "^2.0|^3.0",
+        "phpstan/phpstan": "^1.10|^2.0"
     },
     "autoload": {
         "psr-4": {
