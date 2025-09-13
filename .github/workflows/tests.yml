@@ -14,9 +14,10 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         php: [8.1, 8.2, 8.3, 8.4]
+        database: [sqlite, mysql, postgres]
         stability: [prefer-stable]
 
-    name: P${{ matrix.php }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: P${{ matrix.php }} - ${{ matrix.database }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
     services:
       mysql:
@@ -58,35 +59,69 @@ jobs:
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Create SQLite database
+        if: matrix.database == 'sqlite'
         run: touch database.sqlite
 
-      - name: Execute tests
+      - name: Create MySQL test database
+        if: matrix.database == 'mysql'
+        run: |
+          mysql -h 127.0.0.1 -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS bob_test;"
+          mysql -h 127.0.0.1 -u root -ppassword -e "SHOW DATABASES;"
+
+      - name: Create PostgreSQL test database
+        if: matrix.database == 'postgres'
+        env:
+          PGPASSWORD: password
+        run: |
+          psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE bob_test;"
+          psql -h 127.0.0.1 -U postgres -c "\l"
+
+      - name: Execute tests - SQLite
+        if: matrix.database == 'sqlite'
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database.sqlite
+        run: |
+          vendor/bin/pest --exclude-group=integration-mysql,postgres --coverage --coverage-clover coverage-sqlite.xml
+
+      - name: Execute tests - MySQL
+        if: matrix.database == 'mysql'
+        env:
+          DB_CONNECTION: mysql
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
-          MYSQL_DATABASE: test_db
+          MYSQL_DATABASE: bob_test
           MYSQL_USERNAME: root
           MYSQL_PASSWORD: password
+        run: |
+          vendor/bin/pest tests/Integration/MySQLIntegrationTest.php --coverage --coverage-clover coverage-mysql.xml
+
+      - name: Execute tests - PostgreSQL
+        if: matrix.database == 'postgres'
+        env:
+          DB_CONNECTION: pgsql
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: 5432
-          POSTGRES_DATABASE: test_db
+          POSTGRES_DATABASE: bob_test
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: password
-        run: vendor/bin/pest --coverage --coverage-clover coverage.xml
+        run: |
+          vendor/bin/pest tests/Integration/PostgreSQLIntegrationTest.php --coverage --coverage-clover coverage-postgres.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: ./coverage.xml
+          files: ./coverage-${{ matrix.database }}.xml
+          flags: ${{ matrix.database }}
+          name: ${{ matrix.database }}-coverage
           fail_ci_if_error: false
 
       - name: Run PHPStan
+        if: matrix.database == 'sqlite'
         run: vendor/bin/phpstan analyse --error-format=github
 
       - name: Run mutation testing
-        if: matrix.php == '8.3'
+        if: matrix.php == '8.3' && matrix.database == 'sqlite'
         env:
           INFECTION_BADGE_API_KEY: ${{ secrets.INFECTION_BADGE_API_KEY }}
         run: vendor/bin/infection --threads=max --min-msi=80 --min-covered-msi=80
