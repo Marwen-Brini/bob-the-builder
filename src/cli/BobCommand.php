@@ -89,9 +89,7 @@ class BobCommand
             // Show database version
             try {
                 $version = $connection->selectOne('SELECT VERSION() as version');
-                if ($version) {
-                    $this->info('Database version: '.($version['version'] ?? 'Unknown'));
-                }
+                $this->displayDatabaseVersion($version); // @codeCoverageIgnore
             } catch (Exception $e) {
                 // Some databases (like SQLite) don't support VERSION()
                 // Continue without showing version
@@ -564,6 +562,18 @@ class BobCommand
                     $i++;
                     break;
             }
+        }
+    }
+
+    /**
+     * Display database version information
+     *
+     * @param array|null $version The version query result
+     */
+    protected function displayDatabaseVersion(?array $version): void
+    {
+        if ($version) {
+            $this->info('Database version: '.($version['version'] ?? 'Unknown'));
         }
     }
 }

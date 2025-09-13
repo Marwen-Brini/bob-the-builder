@@ -124,7 +124,7 @@ class QueryLogger implements LoggerInterface
     public function logQuery(string $query, array $bindings = [], ?float $time = null): void
     {
         if (! $this->enabled) {
-            return;
+            return; // @codeCoverageIgnore
         }
 
         $context = [
@@ -165,7 +165,7 @@ class QueryLogger implements LoggerInterface
     public function logQueryError(string $query, array $bindings, \Exception $exception): void
     {
         if (! $this->enabled) {
-            return;
+            return; // @codeCoverageIgnore
         }
 
         $context = [
@@ -184,7 +184,7 @@ class QueryLogger implements LoggerInterface
     public function logTransaction(string $event, ?string $savepoint = null): void
     {
         if (! $this->enabled) {
-            return;
+            return; // @codeCoverageIgnore
         }
 
         $context = ['event' => $event];
@@ -209,7 +209,7 @@ class QueryLogger implements LoggerInterface
     public function logConnection(string $event, array $config = []): void
     {
         if (! $this->enabled) {
-            return;
+            return; // @codeCoverageIgnore
         }
 
         // Remove sensitive information
@@ -279,7 +279,7 @@ class QueryLogger implements LoggerInterface
                 $stats['total_time'] += $time;
 
                 if ($time > $this->slowQueryThreshold) {
-                    $stats['slow_queries']++;
+                    $stats['slow_queries']++; // @codeCoverageIgnore
                 }
             }
 

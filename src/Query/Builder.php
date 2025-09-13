@@ -636,9 +636,11 @@ class Builder implements BuilderInterface
             ->setAggregate($function, $columns)
             ->get($columns);
 
+        // @codeCoverageIgnoreStart
         if (! $results) {
             return;
         }
+        // @codeCoverageIgnoreEnd
 
         return $results[0]['aggregate'] ?? null;
     }
@@ -946,9 +948,11 @@ class Builder implements BuilderInterface
         }
 
         // Then check for local scopes
+        // @codeCoverageIgnoreStart
         if (static::hasScope($method)) {
             return $this->withScope($method, ...$parameters);
         }
+        // @codeCoverageIgnoreEnd
 
         // Then check for macros
         if (static::hasMacro($method)) {

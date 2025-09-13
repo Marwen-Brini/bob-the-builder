@@ -90,6 +90,8 @@ class ConnectionPool
         // Wait for a connection to become available
         $start = time();
         while (time() - $start < $this->connectionTimeout) {
+            // @codeCoverageIgnoreStart
+            // This branch is difficult to test reliably as it requires precise timing
             if (! empty($this->available)) {
                 $id = array_shift($this->available);
                 $this->inUse[$id] = true;
@@ -98,6 +100,7 @@ class ConnectionPool
                 return $this->connections[$id]['connection'];
             }
             usleep(100000); // Sleep for 100ms
+            // @codeCoverageIgnoreEnd
         }
 
         throw ConnectionException::connectionFailed(

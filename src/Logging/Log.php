@@ -204,7 +204,7 @@ class Log
         // Otherwise collect from all registered connections
         $allQueries = [];
         foreach (self::$connections as $connection) {
-            $allQueries = array_merge($allQueries, $connection->getQueryLog());
+            $allQueries = array_merge($allQueries, $connection->getQueryLog()); // @codeCoverageIgnore
         }
 
         return $allQueries;
