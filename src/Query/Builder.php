@@ -1057,9 +1057,13 @@ class Builder implements BuilderInterface
 
     protected function cleanBindings(array $bindings): array
     {
-        return array_values(array_filter($bindings, function ($binding) {
-            return ! $binding instanceof ExpressionInterface;
-        }));
+        $cleaned = [];
+        foreach ($bindings as $binding) {
+            if (! $binding instanceof ExpressionInterface) {
+                $cleaned[] = $binding;
+            }
+        }
+        return $cleaned;
     }
 
     public function getConnection(): ConnectionInterface

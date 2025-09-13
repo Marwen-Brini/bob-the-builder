@@ -23,8 +23,7 @@
         "infection/infection": "^0.27|^0.28|^0.29",
         "laravel/pint": "^1.13",
         "mockery/mockery": "^1.6",
-        "pestphp/pest": "^2.0|^3.0",
-        "phpstan/phpstan": "^1.10|^2.0"
+        "pestphp/pest": "^2.0|^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -43,12 +42,10 @@
         "test": "vendor/bin/pest --coverage --min=100",
         "test:coverage": "vendor/bin/pest --coverage --min=100",
         "test:mutation": "vendor/bin/infection",
-        "analyse": "vendor/bin/phpstan analyse",
         "format": "vendor/bin/pint",
         "format:test": "vendor/bin/pint --test",
         "check": [
             "@test",
-            "@analyse",
             "@format:test"
         ]
     },

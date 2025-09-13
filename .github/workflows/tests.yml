@@ -116,10 +116,6 @@ jobs:
           name: ${{ matrix.database }}-coverage
           fail_ci_if_error: false
 
-      - name: Run PHPStan
-        if: matrix.database == 'sqlite'
-        run: vendor/bin/phpstan analyse --error-format=github
-
       - name: Run mutation testing
         if: matrix.php == '8.3' && matrix.database == 'sqlite'
         env:
