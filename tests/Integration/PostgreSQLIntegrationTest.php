@@ -87,6 +87,7 @@ test('it can update data', function () {
     $builder->insert([
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
+        'active' => true,
     ]);
 
     // Update data
@@ -108,9 +109,9 @@ test('it can delete data', function () {
 
     // Insert test data
     $builder->insert([
-        ['name' => 'User 1', 'email' => 'user1@example.com'],
-        ['name' => 'User 2', 'email' => 'user2@example.com'],
-        ['name' => 'User 3', 'email' => 'user3@example.com'],
+        ['name' => 'User 1', 'email' => 'user1@example.com', 'active' => true],
+        ['name' => 'User 2', 'email' => 'user2@example.com', 'active' => true],
+        ['name' => 'User 3', 'email' => 'user3@example.com', 'active' => true],
     ]);
 
     // Delete specific record
@@ -129,10 +130,10 @@ test('it can use where clauses', function () {
 
     // Insert test data
     $builder->insert([
-        ['name' => 'Alice', 'email' => 'alice@example.com', 'score' => 50],
-        ['name' => 'Bob', 'email' => 'bob@example.com', 'score' => 75],
-        ['name' => 'Charlie', 'email' => 'charlie@example.com', 'score' => 100],
-        ['name' => 'David', 'email' => 'david@example.com', 'score' => 125],
+        ['name' => 'Alice', 'email' => 'alice@example.com', 'score' => 50, 'active' => true],
+        ['name' => 'Bob', 'email' => 'bob@example.com', 'score' => 75, 'active' => true],
+        ['name' => 'Charlie', 'email' => 'charlie@example.com', 'score' => 100, 'active' => true],
+        ['name' => 'David', 'email' => 'david@example.com', 'score' => 125, 'active' => true],
     ]);
 
     // Test various where clauses
@@ -153,11 +154,11 @@ test('it can use aggregate functions', function () {
 
     // Insert test data
     $builder->insert([
-        ['name' => 'User 1', 'email' => 'user1@example.com', 'score' => 10],
-        ['name' => 'User 2', 'email' => 'user2@example.com', 'score' => 20],
-        ['name' => 'User 3', 'email' => 'user3@example.com', 'score' => 30],
-        ['name' => 'User 4', 'email' => 'user4@example.com', 'score' => 40],
-        ['name' => 'User 5', 'email' => 'user5@example.com', 'score' => 50],
+        ['name' => 'User 1', 'email' => 'user1@example.com', 'score' => 10, 'active' => true],
+        ['name' => 'User 2', 'email' => 'user2@example.com', 'score' => 20, 'active' => true],
+        ['name' => 'User 3', 'email' => 'user3@example.com', 'score' => 30, 'active' => true],
+        ['name' => 'User 4', 'email' => 'user4@example.com', 'score' => 40, 'active' => true],
+        ['name' => 'User 5', 'email' => 'user5@example.com', 'score' => 50, 'active' => true],
     ]);
 
     expect($builder->count())->toBe(5);
@@ -183,11 +184,13 @@ test('it can use joins', function () {
         $userId1 = $this->connection->table('test_users')->insertGetId([
             'name' => 'Author 1',
             'email' => 'author1@example.com',
+            'active' => true,
         ]);
 
         $userId2 = $this->connection->table('test_users')->insertGetId([
             'name' => 'Author 2',
             'email' => 'author2@example.com',
+            'active' => true,
         ]);
 
         // Insert posts
@@ -217,7 +220,7 @@ test('it can handle transactions', function () {
 
     // Test successful transaction
     $this->connection->transaction(function () use ($builder) {
-        $builder->insert(['name' => 'Transaction User', 'email' => 'trans@example.com']);
+        $builder->insert(['name' => 'Transaction User', 'email' => 'trans@example.com', 'active' => true]);
     });
 
     expect($builder->where('email', 'trans@example.com')->exists())->toBeTrue();
@@ -225,7 +228,7 @@ test('it can handle transactions', function () {
     // Test rolled back transaction
     try {
         $this->connection->transaction(function () use ($builder) {
-            $builder->insert(['name' => 'Will Rollback', 'email' => 'rollback@example.com']);
+            $builder->insert(['name' => 'Will Rollback', 'email' => 'rollback@example.com', 'active' => true]);
             throw new Exception('Force rollback');
         });
     } catch (Exception $e) {
@@ -242,6 +245,7 @@ test('it handles PostgreSQL specific features', function () {
     $id = $builder->insertGetId([
         'name' => 'Test User',
         'email' => 'test@example.com',
+        'active' => true,
     ]);
 
     expect($id)->toBeGreaterThan(0);
