@@ -198,8 +198,8 @@ describe('table listing methods', function () {
         $connection->shouldReceive('select')
             ->with('SHOW TABLES')
             ->andReturn([
-                ['Tables_in_test' => 'users'],
-                ['Tables_in_test' => 'posts']
+                (object)['Tables_in_test' => 'users'],
+                (object)['Tables_in_test' => 'posts']
             ]);
         
         $method = new ReflectionMethod($this->command, 'getTableList');
@@ -215,8 +215,8 @@ describe('table listing methods', function () {
         $connection->shouldReceive('select')
             ->with("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
             ->andReturn([
-                ['tablename' => 'users'],
-                ['tablename' => 'posts']
+                (object)['tablename' => 'users'],
+                (object)['tablename' => 'posts']
             ]);
         
         $method = new ReflectionMethod($this->command, 'getTableList');
@@ -232,8 +232,8 @@ describe('table listing methods', function () {
         $connection->shouldReceive('select')
             ->with("SELECT name FROM sqlite_master WHERE type='table'")
             ->andReturn([
-                ['name' => 'users'],
-                ['name' => 'posts']
+                (object)['name' => 'users'],
+                (object)['name' => 'posts']
             ]);
         
         $method = new ReflectionMethod($this->command, 'getTableList');

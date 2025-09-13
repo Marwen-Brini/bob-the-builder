@@ -32,18 +32,18 @@ it('displays database version when VERSION() works', function () {
                         parent::__construct($config);
                     }
                     
-                    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?array {
+                    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?object {
                         if (strpos($query, 'VERSION()') !== false) {
-                            // Return a valid version array
-                            return ['version' => 'SQLite 3.39.0'];
+                            // Return a valid version object
+                            return (object)['version' => 'SQLite 3.39.0'];
                         }
                         return parent::selectOne($query, $bindings, $useReadPdo);
                     }
-                    
+
                     public function select(string $query, array $bindings = [], bool $useReadPdo = true): array {
                         if (strpos($query, "sqlite_master") !== false) {
                             return [
-                                ['name' => 'test_table']
+                                (object)['name' => 'test_table']
                             ];
                         }
                         return parent::select($query, $bindings, $useReadPdo);
@@ -58,7 +58,7 @@ it('displays database version when VERSION() works', function () {
                 try {
                     $version = $connection->selectOne('SELECT VERSION() as version');
                     if ($version) {
-                        $this->info('Database version: '.($version['version'] ?? 'Unknown'));
+                        $this->info('Database version: '.($version->version ?? 'Unknown'));
                     }
                 } catch (Exception $e) {
                     // Some databases (like SQLite) don't support VERSION()

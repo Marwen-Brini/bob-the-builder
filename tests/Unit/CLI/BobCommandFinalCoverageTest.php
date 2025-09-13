@@ -56,9 +56,9 @@ it('tests MySQL connection mock with version and tables', function () {
                         };
                     }
                     
-                    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?array {
+                    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?object {
                         if (strpos($query, 'VERSION()') !== false) {
-                            return ['version' => 'MySQL 8.0.30'];
+                            return (object)['version' => 'MySQL 8.0.30'];
                         }
                         return null;
                     }
@@ -66,8 +66,8 @@ it('tests MySQL connection mock with version and tables', function () {
                     public function select(string $query, array $bindings = [], bool $useReadPdo = true): array {
                         if (strpos($query, 'SHOW TABLES') !== false) {
                             return [
-                                ['Tables_in_test' => 'users'],
-                                ['Tables_in_test' => 'posts']
+                                (object)['Tables_in_test' => 'users'],
+                                (object)['Tables_in_test' => 'posts']
                             ];
                         }
                         return [];
@@ -81,7 +81,7 @@ it('tests MySQL connection mock with version and tables', function () {
                 // This is the code from lines 90-104 we need to cover
                 $version = $connection->selectOne('SELECT VERSION() as version');
                 if ($version) {
-                    $this->info('Database version: '.($version['version'] ?? 'Unknown'));
+                    $this->info('Database version: '.($version->version ?? 'Unknown'));
                 }
                 
                 $tables = $this->getTableList($connection, $driver);

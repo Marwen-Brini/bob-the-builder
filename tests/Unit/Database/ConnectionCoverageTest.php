@@ -300,7 +300,7 @@ describe('Transaction retries', function () {
         
         // Verify data was inserted
         $count = $connection->selectOne('SELECT COUNT(*) as count FROM test');
-        expect($count['count'])->toBe(1);
+        expect($count->count)->toBe(1);
     });
     
     it('throws exception after max attempts', function () {

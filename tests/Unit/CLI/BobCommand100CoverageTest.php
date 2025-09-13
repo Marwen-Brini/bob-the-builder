@@ -27,10 +27,10 @@ it('covers version display lines 92-93 specifically', function () {
     $outputMethod->setAccessible(true);
     
     // Test line 93 directly - this is what we need to cover
-    $version = ['version' => 'MySQL 8.0.30'];
+    $version = (object)['version' => 'MySQL 8.0.30'];
     if ($version) {
         ob_start();
-        $outputMethod->invoke($command, 'Database version: '.($version['version'] ?? 'Unknown'));
+        $outputMethod->invoke($command, 'Database version: '.($version->version ?? 'Unknown'));
         $output = ob_get_clean();
         expect($output)->toContain('Database version: MySQL 8.0.30');
     }
@@ -52,13 +52,13 @@ it('tests MySQL connection with actual VERSION() query result', function () {
     $mockConnection->shouldReceive('selectOne')
         ->with('SELECT VERSION() as version')
         ->once()
-        ->andReturn(['version' => '8.0.33']); // Line 92 will be true, line 93 will use 'version' key
+        ->andReturn((object)['version' => '8.0.33']); // Line 92 will be true, line 93 will use 'version' key
 
     $mockConnection->shouldReceive('select')
         ->once()
         ->andReturn([
-            ['table_name' => 'users'],
-            ['table_name' => 'posts']
+            (object)['table_name' => 'users'],
+            (object)['table_name' => 'posts']
         ]);
 
     // Override Connection creation in the command
@@ -83,7 +83,7 @@ it('tests MySQL connection with actual VERSION() query result', function () {
         try {
             $version = $connection->selectOne('SELECT VERSION() as version');
             if ($version) {  // Line 92
-                $this->info('Database version: '.($version['version'] ?? 'Unknown')); // Line 93
+                $this->info('Database version: '.($version->version ?? 'Unknown')); // Line 93
             }
         } catch (Exception $e) {
             // Continue
@@ -126,29 +126,29 @@ it('covers displayDatabaseVersion with null version', function () {
     expect($output)->toBe(''); // Should output nothing for null
 });
 
-it('covers displayDatabaseVersion with version array containing version key', function () {
+it('covers displayDatabaseVersion with version object containing version key', function () {
     $command = new BobCommand();
     $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('displayDatabaseVersion');
     $method->setAccessible(true);
 
-    // Test with version array containing 'version' key
+    // Test with version object containing 'version' key
     ob_start();
-    $method->invoke($command, ['version' => '8.0.33']);
+    $method->invoke($command, (object)['version' => '8.0.33']);
     $output = ob_get_clean();
 
     expect($output)->toContain('Database version: 8.0.33');
 });
 
-it('covers displayDatabaseVersion with version array missing version key', function () {
+it('covers displayDatabaseVersion with version object missing version key', function () {
     $command = new BobCommand();
     $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('displayDatabaseVersion');
     $method->setAccessible(true);
 
-    // Test with version array missing 'version' key (null coalescing)
+    // Test with version object missing 'version' key (null coalescing)
     ob_start();
-    $method->invoke($command, ['other_key' => 'value']);
+    $method->invoke($command, (object)['other_key' => 'value']);
     $output = ob_get_clean();
 
     expect($output)->toContain('Database version: Unknown');

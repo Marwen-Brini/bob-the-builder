@@ -53,7 +53,7 @@ describe('Builder coverage improvement', function () {
             ->get();
             
         expect($results)->toHaveCount(1);
-        expect($results[0]['name'])->toBe('John');
+        expect($results[0]->name)->toBe('John');
     });
     
     // Lines 127-128: Invalid operator handling
@@ -275,7 +275,7 @@ describe('Builder coverage improvement', function () {
         $result = $this->connection->table('users')->find(1);
         
         expect($result)->not->toBeNull();
-        expect((int)$result['id'])->toBe(1);
+        expect((int)$result->id)->toBe(1);
     });
     
     it('supports value method', function () {
@@ -395,7 +395,7 @@ describe('Builder coverage improvement', function () {
         
         // Check if updated
         $user = $this->connection->table('users')->where('name', 'John')->first();
-        expect((int)$user['age'])->toBe(26);
+        expect((int)$user->age)->toBe(26);
     });
     
     it('supports updateOrInsert when record does not exist', function () {
@@ -428,7 +428,7 @@ describe('Builder coverage improvement', function () {
         
         // Verify increment
         $user = $this->connection->table('users')->where('name', 'John')->first();
-        expect((int)$user['age'])->toBe(30);
+        expect((int)$user->age)->toBe(30);
     });
     
     it('supports decrement method', function () {
@@ -440,7 +440,7 @@ describe('Builder coverage improvement', function () {
         
         // Verify decrement
         $user = $this->connection->table('users')->where('name', 'Jane')->first();
-        expect((int)$user['age'])->toBe(28);
+        expect((int)$user->age)->toBe(28);
     });
     
     // Line 774: delete with ID

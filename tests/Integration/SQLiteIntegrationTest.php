@@ -45,9 +45,9 @@ it('can insert and select data', function () {
     $users = $builder->get();
 
     expect($users)->toHaveCount(1);
-    expect($users[0]['name'])->toBe('John Doe');
-    expect($users[0]['email'])->toBe('john@example.com');
-    expect($users[0]['age'])->toBe(30);
+    expect($users[0]->name)->toBe('John Doe');
+    expect($users[0]->email)->toBe('john@example.com');
+    expect($users[0]->age)->toBe(30);
 });
 
 it('can update data', function () {
@@ -64,7 +64,7 @@ it('can update data', function () {
     expect($affected)->toBe(1);
 
     $user = $builder->first();
-    expect($user['age'])->toBe(31);
+    expect($user->age)->toBe(31);
 });
 
 it('can delete data', function () {
@@ -82,7 +82,7 @@ it('can delete data', function () {
     // Get a fresh builder instance for the next query
     $users = $this->connection->table('users')->get();
     expect($users)->toHaveCount(1);
-    expect($users[0]['name'])->toBe('Jane Doe');
+    expect($users[0]->name)->toBe('Jane Doe');
 });
 
 it('can use where clauses', function () {
@@ -148,8 +148,8 @@ it('can use joins', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    expect($results[0]['name'])->toBe('John Doe');
-    expect($results[0]['title'])->toBeIn(['First Post', 'Second Post']);
+    expect($results[0]->name)->toBe('John Doe');
+    expect($results[0]->title)->toBeIn(['First Post', 'Second Post']);
 
     $this->connection->statement('DROP TABLE posts');
 });

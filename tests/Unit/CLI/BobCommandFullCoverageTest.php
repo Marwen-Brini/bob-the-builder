@@ -14,18 +14,18 @@ it('shows database version and table list output', function () {
                 $connection = Mockery::mock(Connection::class);
                 $connection->shouldReceive('getPdo')->andReturn(Mockery::mock(PDO::class));
                 
-                // Mock version query - return a version array
+                // Mock version query - return a version object
                 $connection->shouldReceive('selectOne')
                     ->with('SELECT VERSION() as version')
-                    ->andReturn(['version' => 'MySQL 8.0.30']);
+                    ->andReturn((object)['version' => 'MySQL 8.0.30']);
                 
                 // Mock table listing based on driver
                 if ($driver === 'mysql') {
                     $connection->shouldReceive('select')
                         ->with('SHOW TABLES')
                         ->andReturn([
-                            ['Tables_in_test' => 'users'],
-                            ['Tables_in_test' => 'posts']
+                            (object)['Tables_in_test' => 'users'],
+                            (object)['Tables_in_test' => 'posts']
                         ]);
                 }
                 
@@ -34,7 +34,7 @@ it('shows database version and table list output', function () {
                 // Test the version display code (lines 91-93)
                 $version = $connection->selectOne('SELECT VERSION() as version');
                 if ($version) {
-                    $this->info('Database version: '.($version['version'] ?? 'Unknown'));
+                    $this->info('Database version: '.($version->version ?? 'Unknown'));
                 }
                 
                 // Test the table listing code (lines 96-104)
@@ -130,10 +130,10 @@ it('displays version Unknown when version property is missing', function () {
                 $connection = Mockery::mock(Connection::class);
                 $connection->shouldReceive('getPdo')->andReturn(Mockery::mock(PDO::class));
                 
-                // Return array without version key
+                // Return object without version key
                 $connection->shouldReceive('selectOne')
                     ->with('SELECT VERSION() as version')
-                    ->andReturn(['other_key' => 'value']); // Array without 'version' key
+                    ->andReturn((object)['other_key' => 'value']); // Object without 'version' key
                 
                 $connection->shouldReceive('select')->andReturn([]);
                 
@@ -142,7 +142,7 @@ it('displays version Unknown when version property is missing', function () {
                 // Test the version display code with missing property
                 $version = $connection->selectOne('SELECT VERSION() as version');
                 if ($version) {
-                    $this->info('Database version: '.($version['version'] ?? 'Unknown'));
+                    $this->info('Database version: '.($version->version ?? 'Unknown'));
                 }
                 
                 // Test the table listing code

@@ -21,7 +21,13 @@ test('processes select results', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(2);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->id)->toBe(1);
+    expect($processed[0]->name)->toBe('John');
+    expect($processed[1])->toBeInstanceOf(stdClass::class);
+    expect($processed[1]->id)->toBe(2);
+    expect($processed[1]->name)->toBe('Jane');
 });
 
 test('processes empty select results', function () {
@@ -87,7 +93,9 @@ test('processes single column select results', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(1);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->count)->toBe(10);
 });
 
 test('processes aggregate results', function () {
@@ -100,7 +108,9 @@ test('processes aggregate results', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(1);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->aggregate)->toBe(42);
 });
 
 test('handles null values in results', function () {
@@ -114,7 +124,15 @@ test('handles null values in results', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(2);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->id)->toBe(1);
+    expect($processed[0]->name)->toBe('John');
+    expect($processed[0]->email)->toBeNull();
+    expect($processed[1])->toBeInstanceOf(stdClass::class);
+    expect($processed[1]->id)->toBe(2);
+    expect($processed[1]->name)->toBe('Jane');
+    expect($processed[1]->email)->toBe('jane@example.com');
 });
 
 test('handles mixed data types in results', function () {
@@ -134,7 +152,14 @@ test('handles mixed data types in results', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(1);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->id)->toBe(1);
+    expect($processed[0]->name)->toBe('Product');
+    expect($processed[0]->price)->toBe(19.99);
+    expect($processed[0]->in_stock)->toBeTrue();
+    expect($processed[0]->tags)->toBe('["electronics", "gadgets"]');
+    expect($processed[0]->metadata)->toBeNull();
 });
 
 test('processes results with special characters', function () {
@@ -148,7 +173,11 @@ test('processes results with special characters', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(2);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->content)->toBe('This is a "quoted" text with \'apostrophes\'');
+    expect($processed[1])->toBeInstanceOf(stdClass::class);
+    expect($processed[1]->content)->toBe('Line 1\nLine 2\rLine 3');
 });
 
 test('processes large result sets efficiently', function () {
@@ -168,8 +197,14 @@ test('processes large result sets efficiently', function () {
     );
 
     expect($processed)->toHaveCount(1000);
-    expect($processed[0])->toBe(['id' => 1, 'name' => 'User 1', 'email' => 'user1@example.com']);
-    expect($processed[999])->toBe(['id' => 1000, 'name' => 'User 1000', 'email' => 'user1000@example.com']);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->id)->toBe(1);
+    expect($processed[0]->name)->toBe('User 1');
+    expect($processed[0]->email)->toBe('user1@example.com');
+    expect($processed[999])->toBeInstanceOf(stdClass::class);
+    expect($processed[999]->id)->toBe(1000);
+    expect($processed[999]->name)->toBe('User 1000');
+    expect($processed[999]->email)->toBe('user1000@example.com');
 });
 
 test('processes columns with various naming conventions', function () {
@@ -197,7 +232,9 @@ test('handles database specific return values', function () {
         $mysqlResults
     );
 
-    expect($processed)->toBe($mysqlResults);
+    expect($processed)->toHaveCount(1);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->{'COUNT(*)'})->toBe(10);
 
     // PostgreSQL style
     $pgResults = [
@@ -209,7 +246,9 @@ test('handles database specific return values', function () {
         $pgResults
     );
 
-    expect($processed)->toBe($pgResults);
+    expect($processed)->toHaveCount(1);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->count)->toBe('10');
 });
 
 test('preserves data types from database', function () {
@@ -228,11 +267,11 @@ test('preserves data types from database', function () {
         $results
     );
 
-    expect($processed[0]['int_col'])->toBeInt();
-    expect($processed[0]['float_col'])->toBeFloat();
-    expect($processed[0]['string_col'])->toBeString();
-    expect($processed[0]['bool_col'])->toBeBool();
-    expect($processed[0]['null_col'])->toBeNull();
+    expect($processed[0]->int_col)->toBeInt();
+    expect($processed[0]->float_col)->toBeFloat();
+    expect($processed[0]->string_col)->toBeString();
+    expect($processed[0]->bool_col)->toBeBool();
+    expect($processed[0]->null_col)->toBeNull();
 });
 
 test('processes nested arrays if present', function () {
@@ -248,7 +287,10 @@ test('processes nested arrays if present', function () {
         $results
     );
 
-    expect($processed)->toBe($results);
+    expect($processed)->toHaveCount(1);
+    expect($processed[0])->toBeInstanceOf(stdClass::class);
+    expect($processed[0]->id)->toBe(1);
+    expect($processed[0]->data)->toBe(['nested' => 'value']);
 });
 
 afterEach(function () {

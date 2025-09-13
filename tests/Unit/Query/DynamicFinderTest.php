@@ -36,16 +36,16 @@ it('handles orWhereBy dynamic finder', function () {
         ->get();
     
     expect($users)->toHaveCount(2);
-    expect($users[0]['name'])->toBe('John Doe');
-    expect($users[1]['name'])->toBe('Jane Smith');
+    expect($users[0]->name)->toBe('John Doe');
+    expect($users[1]->name)->toBe('Jane Smith');
 });
 
 it('handles firstWhere dynamic finder', function () {
     $user = $this->connection->table('users')
         ->firstWhereEmail('jane@example.com');
     
-    expect($user['name'])->toBe('Jane Smith');
-    expect($user['status'])->toBe('inactive');
+    expect($user->name)->toBe('Jane Smith');
+    expect($user->status)->toBe('inactive');
 });
 
 it('handles countBy dynamic finder', function () {
@@ -85,7 +85,7 @@ it('handles deleteBy dynamic finder', function () {
     // Verify only active users remain
     $users = $this->connection->table('users')->get();
     foreach ($users as $user) {
-        expect($user['status'])->toBe('active');
+        expect($user->status)->toBe('active');
     }
 });
 
@@ -95,18 +95,18 @@ it('handles orderBy with Asc/Desc dynamic finder', function () {
         ->orderByNameAsc()
         ->get();
     
-    expect($users[0]['name'])->toBe('Bob Wilson');
-    expect($users[1]['name'])->toBe('Jane Smith');
-    expect($users[2]['name'])->toBe('John Doe');
+    expect($users[0]->name)->toBe('Bob Wilson');
+    expect($users[1]->name)->toBe('Jane Smith');
+    expect($users[2]->name)->toBe('John Doe');
     
     // Order by created_at descending
     $users = $this->connection->table('users')
         ->orderByCreatedAtDesc()
         ->get();
     
-    expect($users[0]['created_at'])->toBe('2024-03-01');
-    expect($users[1]['created_at'])->toBe('2024-02-01');
-    expect($users[2]['created_at'])->toBe('2024-01-01');
+    expect($users[0]->created_at)->toBe('2024-03-01');
+    expect($users[1]->created_at)->toBe('2024-02-01');
+    expect($users[2]->created_at)->toBe('2024-01-01');
 });
 
 it('handles groupBy dynamic finder', function () {
@@ -125,7 +125,7 @@ it('handles groupBy dynamic finder', function () {
     
     $counts = [];
     foreach ($statusCounts as $row) {
-        $counts[$row['status']] = $row['count'];
+        $counts[$row->status] = $row->count;
     }
     
     expect($counts['active'])->toBe(3);
@@ -137,8 +137,8 @@ it('handles findAllBy dynamic finder', function () {
         ->findAllByStatus('active');
     
     expect($activeUsers)->toHaveCount(2);
-    expect($activeUsers[0]['name'])->toBe('John Doe');
-    expect($activeUsers[1]['name'])->toBe('Bob Wilson');
+    expect($activeUsers[0]->name)->toBe('John Doe');
+    expect($activeUsers[1]->name)->toBe('Bob Wilson');
 });
 
 it('returns null for unmatched dynamic finder', function () {

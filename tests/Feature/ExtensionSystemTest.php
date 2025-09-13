@@ -57,8 +57,8 @@ test('can register and use macros', function () {
         ->get();
 
     expect($activeUsers)->toHaveCount(2);
-    expect($activeUsers[0]['name'])->toBe('John Doe');
-    expect($activeUsers[1]['name'])->toBe('Bob Wilson');
+    expect($activeUsers[0]->name)->toBe('John Doe');
+    expect($activeUsers[1]->name)->toBe('Bob Wilson');
 });
 
 test('can register multiple macros at once', function () {
@@ -85,14 +85,14 @@ test('can register multiple macros at once', function () {
         ->get();
 
     expect($inactiveUsers)->toHaveCount(1);
-    expect($inactiveUsers[0]['name'])->toBe('Jane Smith');
+    expect($inactiveUsers[0]->name)->toBe('Jane Smith');
 
     // Test whereEmail with parameter
     $user = $this->connection->table('users')
         ->whereEmail('bob@example.com')
         ->first();
 
-    expect($user['name'])->toBe('Bob Wilson');
+    expect($user->name)->toBe('Bob Wilson');
 });
 
 test('can remove macros', function () {
@@ -141,13 +141,13 @@ test('can use parameterized scopes', function () {
         ->get();
 
     expect($users)->toHaveCount(1);
-    expect($users[0]['name'])->toBe('Bob Wilson');
+    expect($users[0]->name)->toBe('Bob Wilson');
 });
 
 test('can use built-in dynamic finders', function () {
     // Test findBy
     $user = $this->connection->table('users')->findByEmail('john@example.com');
-    expect($user['name'])->toBe('John Doe');
+    expect($user->name)->toBe('John Doe');
 
     // Test findAllBy
     $activeUsers = $this->connection->table('users')->findAllByStatus('active');
@@ -157,7 +157,7 @@ test('can use built-in dynamic finders', function () {
     $query = $this->connection->table('users')->whereByStatus('inactive');
     $users = $query->get();
     expect($users)->toHaveCount(1);
-    expect($users[0]['name'])->toBe('Jane Smith');
+    expect($users[0]->name)->toBe('Jane Smith');
 
     // Test countBy
     $count = $this->connection->table('users')->countByStatus('active');
@@ -189,11 +189,11 @@ test('converts camelCase to snake_case in finders', function () {
 
     // Use camelCase in finder, should convert to snake_case
     $post = $this->connection->table('posts')->findByPostStatus('published');
-    expect($post['post_title'])->toBe('First Post');
+    expect($post->post_title)->toBe('First Post');
 
     $posts = $this->connection->table('posts')->whereByPostStatus('draft')->get();
     expect($posts)->toHaveCount(1);
-    expect($posts[0]['post_title'])->toBe('Second Post');
+    expect($posts[0]->post_title)->toBe('Second Post');
 });
 
 test('can register custom finder patterns', function () {
@@ -215,10 +215,10 @@ test('can register custom finder patterns', function () {
 
     // Test custom finders
     $user = $this->connection->table('users')->getBySlug('jane-smith');
-    expect($user['name'])->toBe('Jane Smith');
+    expect($user->name)->toBe('Jane Smith');
 
     $activeUser = $this->connection->table('users')->findActiveByName('Bob Wilson');
-    expect($activeUser['email'])->toBe('bob@example.com');
+    expect($activeUser->email)->toBe('bob@example.com');
 });
 
 test('can chain multiple extensions', function () {
@@ -247,7 +247,7 @@ test('can chain multiple extensions', function () {
         ->get();
 
     expect($users)->toHaveCount(1);
-    expect($users[0]['name'])->toBe('Bob Wilson');
+    expect($users[0]->name)->toBe('Bob Wilson');
 });
 
 test('throws exception for undefined methods', function () {
@@ -294,8 +294,8 @@ test('can use global scopes', function () {
 
     // Should only get active users
     expect($users)->toHaveCount(2);
-    expect($users[0]['status'])->toBe('active');
-    expect($users[1]['status'])->toBe('active');
+    expect($users[0]->status)->toBe('active');
+    expect($users[1]->status)->toBe('active');
 
     // Query without global scopes
     $allUsers = $this->connection->table('users')->get();

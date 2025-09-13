@@ -30,11 +30,16 @@ describe('Processor class', function () {
             ['id' => 1, 'name' => 'John'],
             ['id' => 2, 'name' => 'Jane']
         ];
-        
+
         $processed = $this->processor->processSelect($this->builder, $results);
-        
-        expect($processed)->toBe($results);
+
         expect($processed)->toHaveCount(2);
+        expect($processed[0])->toBeInstanceOf(stdClass::class);
+        expect($processed[0]->id)->toBe(1);
+        expect($processed[0]->name)->toBe('John');
+        expect($processed[1])->toBeInstanceOf(stdClass::class);
+        expect($processed[1]->id)->toBe(2);
+        expect($processed[1]->name)->toBe('Jane');
     });
     
     it('processes empty select results', function () {
