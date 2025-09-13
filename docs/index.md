@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Bob Query Builder
+  name: Bob Query Builder v1.0.0
   text: Powerful PHP Database Queries
   tagline: A Laravel-like query builder that's fast, flexible, and framework-agnostic
   image:

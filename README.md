@@ -4,8 +4,9 @@ A highly optimized, standalone PHP query builder with Laravel-like fluent syntax
 
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://www.php.net)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-301%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
+[![Tests](https://img.shields.io/badge/tests-789%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder)
+[![Documentation](https://img.shields.io/badge/docs-vitepress-purple)](https://marwen-brini.github.io/bob-the-builder/)
 
 ## Why Bob Query Builder?
 
@@ -14,7 +15,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - ✅ **Framework Agnostic** - Use it with Laravel, Symfony, WordPress, or vanilla PHP
 - ✅ **Zero Lock-in** - No framework dependencies, just pure PHP and PDO
 - ✅ **Modern PHP** - Built for PHP 8.1+ with full type safety
-- ✅ **Production Ready** - 301 tests, 100% passing, battle-tested
+- ✅ **Production Ready** - 789 tests, 100% passing, battle-tested
 - ✅ **High Performance** - <10ms query building overhead, handles 50k+ rows efficiently
 
 ## Features
@@ -23,7 +24,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 🔧 **Database Agnostic** - Support for MySQL, PostgreSQL, SQLite via PDO
 - 🎯 **Zero Dependencies** - Only requires PHP and PDO
 - ⚡ **High Performance** - Query caching, prepared statements, 1M+ rows/second streaming
-- 🧪 **Fully Tested** - 301 tests with Pest, 100% passing rate
+- 🧪 **Fully Tested** - 789 tests with Pest, 100% passing rate
 - 🔒 **Secure** - Automatic SQL injection prevention via parameter binding
 - 📦 **Modular** - Easy integration with ANY PHP project
 - 🔄 **Transaction Support** - Including savepoints for nested transactions
@@ -529,6 +530,20 @@ $container->singleton(Connection::class, function () {
 });
 ```
 
+## 📚 Documentation
+
+Full documentation is available at **[https://marwen-brini.github.io/bob-the-builder/](https://marwen-brini.github.io/bob-the-builder/)**
+
+The documentation includes:
+- Getting Started Guide
+- Complete API Reference
+- Database-specific Features
+- Performance Optimization Tips
+- WordPress Integration Guide
+- CLI Tool Usage
+- Migration from Other Query Builders
+- Troubleshooting Guide
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
@@ -573,7 +588,7 @@ For bugs and feature requests, please use the [GitHub issues](https://github.com
 - [x] Slow query detection
 - [x] Memory-efficient streaming (cursor/chunk)
 - [x] CLI tools for testing and query building
-- [x] Comprehensive test suite (301 tests)
+- [x] Comprehensive test suite (789 tests)
 - [x] Performance benchmarks
 
 ### Planned Features

@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Bob Query Builder',
   description: 'A powerful, Laravel-like PHP query builder for modern applications',
+  base: '/bob-the-builder/',
 
   themeConfig: {
     nav: [
