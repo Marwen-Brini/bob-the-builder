@@ -839,7 +839,8 @@ class Builder implements BuilderInterface
     {
         $sql = $this->grammar->compileInsertGetId($this, $values, $sequence);
 
-        $values = $this->cleanBindings($values);
+        // Convert associative array to indexed array of values only
+        $values = $this->cleanBindings(array_values($values));
 
         return $this->processor->processInsertGetId($this, $sql, $values, $sequence);
     }

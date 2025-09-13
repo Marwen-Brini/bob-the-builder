@@ -35,7 +35,7 @@ beforeEach(function () {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ');
-});
+})->group('mysql', 'integration');
 
 afterEach(function () {
     // Drop tables in correct order to avoid foreign key constraints
@@ -44,7 +44,7 @@ afterEach(function () {
     $this->connection->statement('DROP TABLE IF EXISTS users');
     $this->connection->statement('SET FOREIGN_KEY_CHECKS = 1');
     $this->connection->disconnect();
-});
+})->group('mysql', 'integration');
 
 it('can insert and select data', function () {
     $builder = $this->connection->table('users');
@@ -61,7 +61,7 @@ it('can insert and select data', function () {
     expect($users[0]->name)->toBe('John Doe');
     expect($users[0]->email)->toBe('john@example.com');
     expect($users[0]->age)->toBe(30);
-});
+})->group('mysql', 'integration');
 
 it('can update data', function () {
     $builder = $this->connection->table('users');
@@ -78,7 +78,7 @@ it('can update data', function () {
 
     $user = $builder->first();
     expect($user->age)->toBe(31);
-});
+})->group('mysql', 'integration');
 
 it('can delete data', function () {
     $builder = $this->connection->table('users');
@@ -95,7 +95,7 @@ it('can delete data', function () {
     $users = $this->connection->table('users')->get();
     expect($users)->toHaveCount(1);
     expect($users[0]->name)->toBe('Jane Doe');
-});
+})->group('mysql', 'integration');
 
 it('can use where clauses', function () {
     $this->connection->table('users')->insert([
@@ -112,7 +112,7 @@ it('can use where clauses', function () {
 
     $users = $this->connection->table('users')->whereIn('name', ['John Doe', 'Jane Doe'])->get();
     expect($users)->toHaveCount(2);
-});
+})->group('mysql', 'integration');
 
 it('can use aggregate functions', function () {
     $builder = $this->connection->table('users');
@@ -128,7 +128,7 @@ it('can use aggregate functions', function () {
     expect((float) $builder->avg('age'))->toBe(30.0);
     expect((int) $builder->min('age'))->toBe(25);
     expect((int) $builder->max('age'))->toBe(35);
-});
+})->group('mysql', 'integration');
 
 it('can use joins', function () {
     $this->connection->statement('DROP TABLE IF EXISTS posts');
@@ -164,7 +164,7 @@ it('can use joins', function () {
     expect($results[0]->title)->toBeIn(['First Post', 'Second Post']);
 
     $this->connection->statement('DROP TABLE posts');
-});
+})->group('mysql', 'integration');
 
 it('can handle transactions', function () {
     $builder = $this->connection->table('users');
@@ -194,4 +194,4 @@ it('can handle transactions', function () {
     $this->connection->commit();
 
     expect($builder->count())->toBe(1);
-});
+})->group('mysql', 'integration');

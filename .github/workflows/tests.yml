@@ -82,7 +82,7 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: database.sqlite
         run: |
-          vendor/bin/pest --exclude-group=integration-mysql,postgres --coverage --coverage-clover coverage-sqlite.xml
+          vendor/bin/pest --exclude-group=mysql,postgres --coverage --coverage-clover coverage-sqlite.xml
 
       - name: Execute tests - MySQL
         if: matrix.database == 'mysql'
@@ -94,7 +94,7 @@ jobs:
           MYSQL_USERNAME: root
           MYSQL_PASSWORD: password
         run: |
-          vendor/bin/pest tests/Integration/MySQLIntegrationTest.php --coverage --coverage-clover coverage-mysql.xml
+          vendor/bin/pest --exclude-group=postgres --coverage --coverage-clover coverage-mysql.xml
 
       - name: Execute tests - PostgreSQL
         if: matrix.database == 'postgres'
@@ -106,7 +106,7 @@ jobs:
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: password
         run: |
-          vendor/bin/pest tests/Integration/PostgreSQLIntegrationTest.php --coverage --coverage-clover coverage-postgres.xml
+          vendor/bin/pest --exclude-group=mysql --coverage --coverage-clover coverage-postgres.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
