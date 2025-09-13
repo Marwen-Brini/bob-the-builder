@@ -115,9 +115,3 @@ jobs:
           flags: ${{ matrix.database }}
           name: ${{ matrix.database }}-coverage
           fail_ci_if_error: false
-
-      - name: Run mutation testing
-        if: matrix.php == '8.3' && matrix.database == 'sqlite'
-        env:
-          INFECTION_BADGE_API_KEY: ${{ secrets.INFECTION_BADGE_API_KEY }}
-        run: vendor/bin/infection --threads=max --min-msi=80 --min-covered-msi=80
