@@ -117,8 +117,8 @@ test('it can delete data', function () {
     $deleted = $builder->where('email', 'user2@example.com')->delete();
     expect($deleted)->toBe(1);
 
-    // Verify deletion
-    $remaining = $builder->get();
+    // Verify deletion - use fresh builder
+    $remaining = $this->connection->table('test_users')->get();
     expect($remaining)->toHaveCount(2);
     expect($remaining[0]->email)->toBe('user1@example.com');
     expect($remaining[1]->email)->toBe('user3@example.com');
@@ -139,10 +139,12 @@ test('it can use where clauses', function () {
     $highScorers = $builder->where('score', '>=', 75)->get();
     expect($highScorers)->toHaveCount(3);
 
-    $specific = $builder->whereIn('name', ['Alice', 'Charlie'])->get();
+    // Use fresh builder for new query
+    $specific = $this->connection->table('test_users')->whereIn('name', ['Alice', 'Charlie'])->get();
     expect($specific)->toHaveCount(2);
 
-    $between = $builder->whereBetween('score', [60, 110])->get();
+    // Use fresh builder for new query
+    $between = $this->connection->table('test_users')->whereBetween('score', [60, 110])->get();
     expect($between)->toHaveCount(2);
 })->group('postgres', 'integration');
 
@@ -258,6 +260,7 @@ test('it handles PostgreSQL specific features', function () {
     $builder->insert([
         'name' => 'CaseSensitive',
         'email' => 'case@example.com',
+        'active' => true,  // Explicitly set to avoid empty string issue
     ]);
 
     $results = $builder->whereRaw('name ILIKE ?', ['%sensitive%'])->get();
