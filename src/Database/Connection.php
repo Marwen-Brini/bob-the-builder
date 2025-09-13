@@ -369,7 +369,13 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             if ($value instanceof \DateTimeInterface) {
                 $bindings[$key] = $value->format($this->queryGrammar->getDateFormat());
             } elseif (is_bool($value)) {
-                $bindings[$key] = (int) $value;
+                // PostgreSQL accepts boolean values directly, others need int
+                if ($this->config['driver'] === 'pgsql') {
+                    // Keep boolean as-is for PostgreSQL
+                    $bindings[$key] = $value;
+                } else {
+                    $bindings[$key] = (int) $value;
+                }
             }
         }
 

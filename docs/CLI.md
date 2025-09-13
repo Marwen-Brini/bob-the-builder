@@ -9,8 +9,8 @@ The Bob Query Builder CLI provides command-line tools for testing database conne
 The CLI is automatically available after installing the bob-the-builder package:
 
 ```bash
-composer require bob/query-builder
-chmod +x vendor/bob/query-builder/bin/bob
+composer require marwen-brini/bob-the-builder
+chmod +x vendor/bin/bob
 ```
 
 ## Available Commands
@@ -192,7 +192,7 @@ The CLI can be used in CI/CD pipelines for database connectivity tests:
 
 Make sure the bin/bob file is executable:
 ```bash
-chmod +x vendor/bob/query-builder/bin/bob
+chmod +x vendor/bin/bob
 ```
 
 ### Autoloader not found

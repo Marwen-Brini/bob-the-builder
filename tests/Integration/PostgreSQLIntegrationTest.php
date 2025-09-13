@@ -74,10 +74,10 @@ test('it can insert and select data', function () {
     $users = $builder->where('name', 'John Doe')->get();
 
     expect($users)->toHaveCount(1);
-    expect($users[0]['name'])->toBe('John Doe');
-    expect($users[0]['email'])->toBe('john@example.com');
-    expect($users[0]['active'])->toBeTrue();
-    expect($users[0]['score'])->toBe(100);
+    expect($users[0]->name)->toBe('John Doe');
+    expect($users[0]->email)->toBe('john@example.com');
+    expect($users[0]->active)->toBeTrue();
+    expect($users[0]->score)->toBe(100);
 })->group('postgres', 'integration');
 
 test('it can update data', function () {
@@ -99,8 +99,8 @@ test('it can update data', function () {
 
     // Verify update
     $user = $builder->where('email', 'jane@example.com')->first();
-    expect($user['name'])->toBe('Jane Smith');
-    expect($user['score'])->toBe(200);
+    expect($user->name)->toBe('Jane Smith');
+    expect($user->score)->toBe(200);
 })->group('postgres', 'integration');
 
 test('it can delete data', function () {
@@ -120,8 +120,8 @@ test('it can delete data', function () {
     // Verify deletion
     $remaining = $builder->get();
     expect($remaining)->toHaveCount(2);
-    expect($remaining[0]['email'])->toBe('user1@example.com');
-    expect($remaining[1]['email'])->toBe('user3@example.com');
+    expect($remaining[0]->email)->toBe('user1@example.com');
+    expect($remaining[1]->email)->toBe('user3@example.com');
 })->group('postgres', 'integration');
 
 test('it can use where clauses', function () {
@@ -160,7 +160,7 @@ test('it can use aggregate functions', function () {
 
     expect($builder->count())->toBe(5);
     expect($builder->sum('score'))->toBe(150);
-    expect($builder->avg('score'))->toBe(30.0);
+    expect((float)$builder->avg('score'))->toBe(30.0);
     expect($builder->min('score'))->toBe(10);
     expect($builder->max('score'))->toBe(50);
 })->group('postgres', 'integration');
@@ -203,8 +203,8 @@ test('it can use joins', function () {
             ->get();
 
         expect($results)->toHaveCount(3);
-        expect($results[0]['name'])->toBe('Author 1');
-        expect($results[0]['title'])->toBe('Post 1 by Author 1');
+        expect($results[0]->name)->toBe('Author 1');
+        expect($results[0]->title)->toBe('Post 1 by Author 1');
     } finally {
         $this->connection->unprepared('DROP TABLE IF EXISTS test_posts CASCADE');
     }
@@ -248,11 +248,11 @@ test('it handles PostgreSQL specific features', function () {
     $builder->insert([
         'name' => 'Boolean Test',
         'email' => 'bool@example.com',
-        'active' => false,
+        'active' => false,  // PostgreSQL requires proper boolean
     ]);
 
     $user = $builder->where('email', 'bool@example.com')->first();
-    expect($user['active'])->toBeFalse();
+    expect($user->active)->toBeFalse();
 
     // Test ILIKE (case-insensitive LIKE)
     $builder->insert([

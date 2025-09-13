@@ -142,3 +142,149 @@ it('disconnects and nullifies PDO connections on reconnect', function () {
     $pdo2 = $pdoProperty->getValue($connection);
     expect($pdo2)->toBeInstanceOf(PDO::class);
 });
+
+it('prepares bindings correctly for PostgreSQL with booleans', function () {
+    $connection = new Connection([
+        'driver' => 'pgsql',
+        'host' => 'localhost',
+        'database' => 'test_db',
+        'username' => 'user',
+        'password' => 'pass',
+    ]);
+
+    // Test with boolean values
+    $bindings = [
+        'name' => 'John',
+        'active' => true,
+        'admin' => false,
+        'score' => 100,
+    ];
+
+    $prepared = $connection->prepareBindings($bindings);
+
+    // PostgreSQL should keep booleans as-is
+    expect($prepared['name'])->toBe('John');
+    expect($prepared['active'])->toBe(true);
+    expect($prepared['active'])->toBeTrue();
+    expect($prepared['admin'])->toBe(false);
+    expect($prepared['admin'])->toBeFalse();
+    expect($prepared['score'])->toBe(100);
+});
+
+it('prepares bindings correctly for MySQL with booleans', function () {
+    $connection = new Connection([
+        'driver' => 'mysql',
+        'host' => 'localhost',
+        'database' => 'test_db',
+        'username' => 'user',
+        'password' => 'pass',
+    ]);
+
+    // Test with boolean values
+    $bindings = [
+        'name' => 'John',
+        'active' => true,
+        'admin' => false,
+        'score' => 100,
+    ];
+
+    $prepared = $connection->prepareBindings($bindings);
+
+    // MySQL should convert booleans to integers
+    expect($prepared['name'])->toBe('John');
+    expect($prepared['active'])->toBe(1);
+    expect($prepared['admin'])->toBe(0);
+    expect($prepared['score'])->toBe(100);
+});
+
+it('prepares bindings correctly for SQLite with booleans', function () {
+    $connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+    ]);
+
+    // Test with boolean values
+    $bindings = [
+        'name' => 'John',
+        'active' => true,
+        'admin' => false,
+        'score' => 100,
+    ];
+
+    $prepared = $connection->prepareBindings($bindings);
+
+    // SQLite should convert booleans to integers
+    expect($prepared['name'])->toBe('John');
+    expect($prepared['active'])->toBe(1);
+    expect($prepared['admin'])->toBe(0);
+    expect($prepared['score'])->toBe(100);
+});
+
+it('prepares bindings with DateTime objects', function () {
+    $connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+    ]);
+
+    $date = new DateTime('2024-01-15 10:30:00');
+
+    $bindings = [
+        'created_at' => $date,
+        'name' => 'John',
+    ];
+
+    $prepared = $connection->prepareBindings($bindings);
+
+    // DateTime should be formatted as string
+    expect($prepared['created_at'])->toBe('2024-01-15 10:30:00');
+    expect($prepared['name'])->toBe('John');
+});
+
+it('prepares mixed bindings correctly', function () {
+    // Test PostgreSQL with mixed types
+    $pgConnection = new Connection([
+        'driver' => 'pgsql',
+        'host' => 'localhost',
+        'database' => 'test_db',
+        'username' => 'user',
+        'password' => 'pass',
+    ]);
+
+    $date = new DateTime('2024-01-15 10:30:00');
+
+    $bindings = [
+        'id' => 1,
+        'name' => 'John',
+        'active' => true,
+        'score' => 95.5,
+        'created_at' => $date,
+        'deleted' => false,
+        'metadata' => null,
+    ];
+
+    $prepared = $pgConnection->prepareBindings($bindings);
+
+    // Verify all types are handled correctly for PostgreSQL
+    expect($prepared['id'])->toBe(1);
+    expect($prepared['name'])->toBe('John');
+    expect($prepared['active'])->toBe(true); // Boolean kept as-is for PostgreSQL
+    expect($prepared['score'])->toBe(95.5);
+    expect($prepared['created_at'])->toBe('2024-01-15 10:30:00');
+    expect($prepared['deleted'])->toBe(false); // Boolean kept as-is for PostgreSQL
+    expect($prepared['metadata'])->toBeNull();
+
+    // Test MySQL with same data
+    $mysqlConnection = new Connection([
+        'driver' => 'mysql',
+        'host' => 'localhost',
+        'database' => 'test_db',
+        'username' => 'user',
+        'password' => 'pass',
+    ]);
+
+    $prepared = $mysqlConnection->prepareBindings($bindings);
+
+    // Verify booleans are converted to int for MySQL
+    expect($prepared['active'])->toBe(1);
+    expect($prepared['deleted'])->toBe(0);
+});
