@@ -89,7 +89,7 @@ it('handles multiple postgres aliases in match statement', function () {
     // We can't actually connect to postgres in tests, but we can verify
     // the DSN is built correctly by catching the connection exception
     $drivers = ['pgsql', 'postgres', 'postgresql'];
-    
+
     foreach ($drivers as $driver) {
         $connection = new Connection([
             'driver' => $driver,
@@ -99,14 +99,19 @@ it('handles multiple postgres aliases in match statement', function () {
             'username' => 'test_user',
             'password' => 'test_pass',
         ]);
-        
+
         // Try to get PDO which will trigger DSN creation
         try {
             $connection->getPdo();
         } catch (\PDOException $e) {
-            // Expected - we don't have a postgres server
-            // But this ensures the DSN was built (covering line 111)
-            expect($e->getMessage())->toContain('could not find driver');
+            // Expected - either driver not found or connection failed
+            // Both are acceptable as they prove the DSN was built
+            $message = $e->getMessage();
+            expect(
+                str_contains($message, 'could not find driver') ||
+                str_contains($message, 'password authentication failed') ||
+                str_contains($message, 'connection to server')
+            )->toBeTrue();
         }
     }
 });

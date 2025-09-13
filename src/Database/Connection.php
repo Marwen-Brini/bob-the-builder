@@ -334,6 +334,9 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     {
         $start = microtime(true);
 
+        // Prepare bindings before execution
+        $bindings = $this->prepareBindings($bindings);
+
         // Start profiling
         $profileId = '';
         if ($this->profiler && $this->profiler->isEnabled()) {
