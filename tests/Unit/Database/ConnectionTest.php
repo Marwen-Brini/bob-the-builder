@@ -162,12 +162,10 @@ it('prepares bindings correctly for PostgreSQL with booleans', function () {
 
     $prepared = $connection->prepareBindings($bindings);
 
-    // PostgreSQL should keep booleans as-is
+    // PostgreSQL should convert booleans to strings
     expect($prepared['name'])->toBe('John');
-    expect($prepared['active'])->toBe(true);
-    expect($prepared['active'])->toBeTrue();
-    expect($prepared['admin'])->toBe(false);
-    expect($prepared['admin'])->toBeFalse();
+    expect($prepared['active'])->toBe('true');
+    expect($prepared['admin'])->toBe('false');
     expect($prepared['score'])->toBe(100);
 });
 
@@ -267,10 +265,10 @@ it('prepares mixed bindings correctly', function () {
     // Verify all types are handled correctly for PostgreSQL
     expect($prepared['id'])->toBe(1);
     expect($prepared['name'])->toBe('John');
-    expect($prepared['active'])->toBe(true); // Boolean kept as-is for PostgreSQL
+    expect($prepared['active'])->toBe('true'); // Boolean converted to string for PostgreSQL
     expect($prepared['score'])->toBe(95.5);
     expect($prepared['created_at'])->toBe('2024-01-15 10:30:00');
-    expect($prepared['deleted'])->toBe(false); // Boolean kept as-is for PostgreSQL
+    expect($prepared['deleted'])->toBe('false'); // Boolean converted to string for PostgreSQL
     expect($prepared['metadata'])->toBeNull();
 
     // Test MySQL with same data

@@ -262,18 +262,38 @@ describe('Binding preparation', function () {
         expect($prepared['updated_at'])->toBe('2024-01-15 10:30:00');
     });
     
-    it('converts boolean values to integers', function () {
+    it('converts boolean values to integers for non-PostgreSQL', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        
+
         $bindings = [
             'active' => true,
             'deleted' => false
         ];
-        
+
         $prepared = $connection->prepareBindings($bindings);
-        
+
         expect($prepared['active'])->toBe(1);
         expect($prepared['deleted'])->toBe(0);
+    });
+
+    it('converts boolean values to strings for PostgreSQL', function () {
+        $connection = new Connection([
+            'driver' => 'pgsql',
+            'host' => 'localhost',
+            'database' => 'test',
+            'username' => 'user',
+            'password' => 'pass',
+        ]);
+
+        $bindings = [
+            'active' => true,
+            'deleted' => false
+        ];
+
+        $prepared = $connection->prepareBindings($bindings);
+
+        expect($prepared['active'])->toBe('true');
+        expect($prepared['deleted'])->toBe('false');
     });
 });
 
