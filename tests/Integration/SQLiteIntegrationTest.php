@@ -10,11 +10,14 @@ beforeEach(function () {
         $this->markTestSkipped('PDO SQLite extension is not available.');
     }
 
-    $this->connection = new Connection([
+    // Use environment variables (for CI/CD)
+    $dbConfig = [
         'driver' => 'sqlite',
-        'database' => ':memory:',
+        'database' => $_ENV['SQLITE_DATABASE'] ?? ':memory:',
         'prefix' => '',
-    ]);
+    ];
+
+    $this->connection = new Connection($dbConfig);
 
     // Create test table
     $this->connection->statement('DROP TABLE IF EXISTS users');

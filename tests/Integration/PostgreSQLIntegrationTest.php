@@ -9,28 +9,18 @@ beforeEach(function () {
         $this->markTestSkipped('PDO PostgreSQL extension is not available.');
     }
 
-    // Check for local config file first (gitignored)
-    $configFile = __DIR__.'/../config/database.php';
-    if (file_exists($configFile)) {
-        $config = require $configFile;
-        $dbConfig = $config['postgres'] ?? null;
-        if (!$dbConfig) {
-            $this->markTestSkipped('PostgreSQL configuration not found in config file.');
-        }
-    } else {
-        // Use environment variables (for CI/CD)
-        $dbConfig = [
-            'driver' => 'pgsql',
-            'host' => $_ENV['POSTGRES_HOST'] ?? getenv('POSTGRES_HOST') ?: '127.0.0.1',
-            'port' => $_ENV['POSTGRES_PORT'] ?? getenv('POSTGRES_PORT') ?: 5432,
-            'database' => $_ENV['POSTGRES_DATABASE'] ?? getenv('POSTGRES_DATABASE') ?: 'bob_test',
-            'username' => $_ENV['POSTGRES_USERNAME'] ?? getenv('POSTGRES_USERNAME') ?: 'postgres',
-            'password' => $_ENV['POSTGRES_PASSWORD'] ?? getenv('POSTGRES_PASSWORD') ?: 'password',
-            'charset' => 'utf8',
-            'prefix' => '',
-            'schema' => 'public',
-        ];
-    }
+    // Use environment variables (for CI/CD)
+    $dbConfig = [
+        'driver' => 'pgsql',
+        'host' => $_ENV['POSTGRES_HOST'] ?? '127.0.0.1',
+        'port' => $_ENV['POSTGRES_PORT'] ?? 5432,
+        'database' => $_ENV['POSTGRES_DATABASE'] ?? 'bob_test',
+        'username' => $_ENV['POSTGRES_USERNAME'] ?? 'postgres',
+        'password' => $_ENV['POSTGRES_PASSWORD'] ?? 'password',  // CI uses 'password'
+        'charset' => 'utf8',
+        'prefix' => '',
+        'schema' => 'public',
+    ];
 
     try {
         $this->connection = new Connection($dbConfig);

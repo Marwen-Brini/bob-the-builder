@@ -118,7 +118,7 @@ This project uses Semantic Versioning:
 1. Update composer dependencies:
 ```bash
 composer remove quantum/orm
-composer require bob/query-builder
+composer require marwen-brini/bob-the-builder
 ```
 
 2. Update namespace imports:
@@ -169,7 +169,7 @@ Non-breaking improvements:
 For help with upgrades or migration, please see:
 - [Migration Guide](MIGRATION.md)
 - [API Documentation](API.md)
-- [GitHub Issues](https://github.com/bob/query-builder/issues)
+- [GitHub Issues](https://github.com/Marwen-Brini/bob-the-builder/issues)
 
 ## Contributors
 
@@ -179,7 +179,7 @@ Thanks to all contributors who have helped make Bob Query Builder better:
 - Documentation improvements
 - Bug reports and fixes
 
-[Unreleased]: https://github.com/bob/query-builder/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/bob/query-builder/releases/tag/v1.0.0
-[0.9.0-beta]: https://github.com/bob/query-builder/releases/tag/v0.9.0-beta
-[0.1.0-alpha]: https://github.com/bob/query-builder/releases/tag/v0.1.0-alpha
+[Unreleased]: https://github.com/Marwen-Brini/bob-the-builder/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Marwen-Brini/bob-the-builder/releases/tag/v1.0.0
+[0.9.0-beta]: https://github.com/Marwen-Brini/bob-the-builder/releases/tag/v0.9.0-beta
+[0.1.0-alpha]: https://github.com/Marwen-Brini/bob-the-builder/releases/tag/v0.1.0-alpha

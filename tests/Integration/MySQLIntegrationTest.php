@@ -9,25 +9,18 @@ beforeEach(function () {
         $this->markTestSkipped('PDO MySQL extension is not available.');
     }
 
-    // Check for local config file first (gitignored)
-    $configFile = __DIR__.'/../config/database.php';
-    if (file_exists($configFile)) {
-        $config = require $configFile;
-        $dbConfig = $config['mysql'];
-    } else {
-        // Use environment variables (for CI/CD)
-        $dbConfig = [
-            'driver' => 'mysql',
-            'host' => $_ENV['MYSQL_HOST'] ?? '127.0.0.1',
-            'port' => $_ENV['MYSQL_PORT'] ?? 3306,
-            'database' => $_ENV['MYSQL_DATABASE'] ?? 'test_db',
-            'username' => $_ENV['MYSQL_USERNAME'] ?? 'root',
-            'password' => $_ENV['MYSQL_PASSWORD'] ?? 'password',
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-        ];
-    }
+    // Use environment variables (for CI/CD)
+    $dbConfig = [
+        'driver' => 'mysql',
+        'host' => $_ENV['MYSQL_HOST'] ?? '127.0.0.1',
+        'port' => $_ENV['MYSQL_PORT'] ?? 3306,
+        'database' => $_ENV['MYSQL_DATABASE'] ?? 'bob_test',
+        'username' => $_ENV['MYSQL_USERNAME'] ?? 'root',
+        'password' => $_ENV['MYSQL_PASSWORD'] ?? 'password',  // CI uses 'password'
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+        'prefix' => '',
+    ];
 
     $this->connection = new Connection($dbConfig);
 

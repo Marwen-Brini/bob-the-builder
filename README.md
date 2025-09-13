@@ -41,7 +41,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 Install via Composer:
 
 ```bash
-composer require bob/query-builder
+composer require marwen-brini/bob-the-builder
 ```
 
 ## Quick Start
