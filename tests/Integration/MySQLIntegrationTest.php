@@ -35,7 +35,7 @@ beforeEach(function () {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ');
-})->group('mysql', 'integration');
+});
 
 afterEach(function () {
     // Drop tables in correct order to avoid foreign key constraints
@@ -44,7 +44,7 @@ afterEach(function () {
     $this->connection->statement('DROP TABLE IF EXISTS users');
     $this->connection->statement('SET FOREIGN_KEY_CHECKS = 1');
     $this->connection->disconnect();
-})->group('mysql', 'integration');
+});
 
 it('can insert and select data', function () {
     $builder = $this->connection->table('users');
