@@ -267,6 +267,9 @@ test('it handles PostgreSQL specific features', function () {
         'active' => true,  // Explicitly set to avoid empty string issue
     ]);
 
-    $results = $builder->whereRaw('name ILIKE ?', ['%sensitive%'])->get();
+    // Use fresh builder for the query
+    $results = $this->connection->table('test_users')
+        ->whereRaw('name ILIKE ?', ['%sensitive%'])
+        ->get();
     expect($results)->toHaveCount(1);
 })->group('postgres', 'integration');
