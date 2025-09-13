@@ -5,30 +5,41 @@ All notable changes to Bob Query Builder will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2025-01-13
 
 ### Added
 - Extension system with Macroable, Scopeable, and DynamicFinder traits
 - Base Model class for ActiveRecord pattern implementation
-- VitePress documentation system
-- Comprehensive extension documentation and examples
-- Database migration guide for Quantum ORM users
-- Performance benchmarking suite
-- Query result caching mechanism
-- Schema builder functionality
+- CLI tool (`bin/bob`) for testing connections and building queries
+- PSR-3 logger support with global Log facade
+- Query profiling and slow query detection
+- Connection pooling for performance optimization
+- Query result caching with TTL support
+- Comprehensive exception system (QueryException, ConnectionException, GrammarException)
+- Full PostgreSQL boolean handling support
+- Database-specific grammar implementations for MySQL, PostgreSQL, and SQLite
 
 ### Changed
-- Optimized prepared statement caching algorithm
-- Converted all tests from PHPUnit annotations to Pest functional syntax
-- Improved test data ranges for date-based scopes
+- All query methods now return objects (stdClass) instead of arrays for consistency
+- Improved prepared statement caching with LRU eviction
+- Enhanced transaction support with savepoints
+- Updated to support PHP 8.1 through 8.4
+- Removed PHPStan from development dependencies
+- Removed Infection mutation testing tool (incompatible with Pest functional tests)
 
 ### Fixed
-- Memory leak in cursor iteration for large result sets
-- Test failures in chain multiple extensions test (date range issue)
-- Test failures in global scope removal test (order of operations)
-- Deprecated @test annotations warning in PHPUnit 12
+- PostgreSQL boolean binding issues (now properly converts to 'true'/'false' strings)
+- Builder whereIn with empty array handling
+- Query bindings not preserving false boolean values
+- MySQL integration tests using environment variables correctly
+- Object property access in all tests (was using array access)
+- GitHub Actions workflow to run all tests for proper coverage
 
-## [1.0.0] - 2025-09-07
+### Security
+- Password filtering in connection logs
+- Automatic binding sanitization for all query types
+
+## [0.9.0] - 2024-12-07
 
 ### Added
 - Initial release designed to enhance Quantum ORM but built as a standalone package for ANY PHP project
