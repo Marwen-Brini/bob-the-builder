@@ -90,4 +90,29 @@ class SQLiteGrammar extends Grammar
     {
         return $seed ? 'abs(random() / '.$seed.')' : 'random()';
     }
+
+    protected function whereDate(BuilderInterface $query, array $where): string
+    {
+        return 'date('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
+    protected function whereTime(BuilderInterface $query, array $where): string
+    {
+        return 'time('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
+    protected function whereDay(BuilderInterface $query, array $where): string
+    {
+        return 'cast(strftime(\'%d\', '.$this->wrap($where['column']).') as integer) '.$where['operator'].' ?';
+    }
+
+    protected function whereMonth(BuilderInterface $query, array $where): string
+    {
+        return 'cast(strftime(\'%m\', '.$this->wrap($where['column']).') as integer) '.$where['operator'].' ?';
+    }
+
+    protected function whereYear(BuilderInterface $query, array $where): string
+    {
+        return 'cast(strftime(\'%Y\', '.$this->wrap($where['column']).') as integer) '.$where['operator'].' ?';
+    }
 }

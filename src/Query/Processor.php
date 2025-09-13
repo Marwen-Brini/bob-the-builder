@@ -9,7 +9,13 @@ class Processor implements ProcessorInterface
 {
     public function processSelect(BuilderInterface $query, array $results): array
     {
-        return $results;
+        // Convert associative arrays to stdClass objects for better API
+        return array_map(function ($item) {
+            if (is_array($item)) {
+                return (object) $item;
+            }
+            return $item;
+        }, $results);
     }
 
     public function processInsertGetId(BuilderInterface $query, string $sql, array $values, ?string $sequence = null)

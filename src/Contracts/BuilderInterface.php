@@ -108,9 +108,9 @@ interface BuilderInterface
 
     public function get($columns = ['*']): array;
 
-    public function first($columns = ['*']): ?array;
+    public function first($columns = ['*']);
 
-    public function find($id, $columns = ['*']): ?array;
+    public function find($id, $columns = ['*']);
 
     public function value($column);
 

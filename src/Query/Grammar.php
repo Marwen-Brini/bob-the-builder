@@ -328,16 +328,68 @@ abstract class Grammar implements GrammarInterface
         return '('.substr($this->compileWheres($where['query']), $offset).')';
     }
 
+    protected function whereColumn(BuilderInterface $query, array $where): string
+    {
+        return $this->wrap($where['first']).' '.$where['operator'].' '.$this->wrap($where['second']);
+    }
+
+    protected function whereJsonContains(BuilderInterface $query, array $where): string
+    {
+        $column = $this->wrap($where['column']);
+        $not = isset($where['not']) && $where['not'] ? 'not ' : '';
+
+        return 'json_contains('.$column.', ?, \'$\')';
+    }
+
+    protected function whereJsonNotContains(BuilderInterface $query, array $where): string
+    {
+        return 'not json_contains('.$this->wrap($where['column']).', ?, \'$\')';
+    }
+
+    protected function whereJsonLength(BuilderInterface $query, array $where): string
+    {
+        $column = $this->wrap($where['column']);
+
+        return 'json_length('.$column.') '.$where['operator'].' ?';
+    }
+
+    protected function whereFulltext(BuilderInterface $query, array $where): string
+    {
+        $columns = array_map([$this, 'wrap'], $where['columns']);
+
+        return 'match ('.implode(',', $columns).') against (? in boolean mode)';
+    }
+
+    protected function whereDate(BuilderInterface $query, array $where): string
+    {
+        return 'date('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
+    protected function whereTime(BuilderInterface $query, array $where): string
+    {
+        return 'time('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
+    protected function whereDay(BuilderInterface $query, array $where): string
+    {
+        return 'day('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
+    protected function whereMonth(BuilderInterface $query, array $where): string
+    {
+        return 'month('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
+    protected function whereYear(BuilderInterface $query, array $where): string
+    {
+        return 'year('.$this->wrap($where['column']).') '.$where['operator'].' ?';
+    }
+
     protected function whereSub(BuilderInterface $query, array $where): string
     {
         $select = $this->compileSelect($where['query']);
 
         return $this->wrap($where['column']).' '.$where['operator']." ($select)";
-    }
-
-    protected function whereColumn(BuilderInterface $query, array $where): string
-    {
-        return $this->wrap($where['first']).' '.$where['operator'].' '.$this->wrap($where['second']);
     }
 
     public function parameter($value): string

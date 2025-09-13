@@ -253,7 +253,7 @@ class Builder implements BuilderInterface
         $callback($query);
 
         $this->wheres[] = compact('type', 'column', 'query', 'boolean');
-        $this->addBinding($query->getBindings()['where'], 'where');
+        $this->addBinding($query->getBindings(), 'where');
 
         return $this;
     }
@@ -328,6 +328,137 @@ class Builder implements BuilderInterface
         $this->addBinding((array) $bindings, 'where');
 
         return $this;
+    }
+
+    public function orWhereRaw($sql, $bindings = []): self
+    {
+        return $this->whereRaw($sql, $bindings, 'or');
+    }
+
+    public function whereDate($column, $operator, $value = null, $boolean = 'and'): self
+    {
+        [$value, $operator] = $this->prepareValueAndOperator(
+            $value, $operator, func_num_args() === 2
+        );
+
+        $this->wheres[] = [
+            'type' => 'Date',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function whereTime($column, $operator, $value = null, $boolean = 'and'): self
+    {
+        [$value, $operator] = $this->prepareValueAndOperator(
+            $value, $operator, func_num_args() === 2
+        );
+
+        $this->wheres[] = [
+            'type' => 'Time',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function whereDay($column, $operator, $value = null, $boolean = 'and'): self
+    {
+        [$value, $operator] = $this->prepareValueAndOperator(
+            $value, $operator, func_num_args() === 2
+        );
+
+        $this->wheres[] = [
+            'type' => 'Day',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function whereMonth($column, $operator, $value = null, $boolean = 'and'): self
+    {
+        [$value, $operator] = $this->prepareValueAndOperator(
+            $value, $operator, func_num_args() === 2
+        );
+
+        $this->wheres[] = [
+            'type' => 'Month',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function whereYear($column, $operator, $value = null, $boolean = 'and'): self
+    {
+        [$value, $operator] = $this->prepareValueAndOperator(
+            $value, $operator, func_num_args() === 2
+        );
+
+        $this->wheres[] = [
+            'type' => 'Year',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function whereColumn($first, $operator = null, $second = null, $boolean = 'and'): self
+    {
+        if (is_array($first)) {
+            foreach ($first as $conditions) {
+                $this->whereColumn(...$conditions);
+            }
+            return $this;
+        }
+
+        // If only two arguments were passed, the second is the column name
+        if (is_null($second)) {
+            $second = $operator;
+            $operator = '=';
+        }
+
+        $this->wheres[] = [
+            'type' => 'Column',
+            'first' => $first,
+            'operator' => $operator,
+            'second' => $second,
+            'boolean' => $boolean,
+        ];
+
+        return $this;
+    }
+
+    public function orWhereColumn($first, $operator = null, $second = null): self
+    {
+        return $this->whereColumn($first, $operator, $second, 'or');
     }
 
     public function join($table, $first, $operator = null, $second = null, $type = 'inner', $where = false): self
@@ -508,12 +639,13 @@ class Builder implements BuilderInterface
         );
     }
 
-    public function first($columns = ['*']): ?array
+    public function first($columns = ['*'])
     {
-        return $this->limit(1)->get($columns)[0] ?? null;
+        $results = $this->limit(1)->get($columns);
+        return $results[0] ?? null;
     }
 
-    public function find($id, $columns = ['*']): ?array
+    public function find($id, $columns = ['*'])
     {
         return $this->where('id', '=', $id)->first($columns);
     }
@@ -522,7 +654,7 @@ class Builder implements BuilderInterface
     {
         $result = $this->first([$column]);
 
-        return $result[$column] ?? null;
+        return $result ? ($result->$column ?? null) : null;
     }
 
     public function pluck($column, $key = null): array
@@ -537,12 +669,13 @@ class Builder implements BuilderInterface
         $plucked = [];
 
         foreach ($results as $row) {
-            $itemValue = $row[$column] ?? null;
+            $itemValue = is_object($row) ? ($row->$column ?? null) : ($row[$column] ?? null);
 
             if (is_null($key)) {
                 $plucked[] = $itemValue;
             } else {
-                $plucked[$row[$key]] = $itemValue;
+                $keyValue = is_object($row) ? ($row->$key ?? null) : ($row[$key] ?? null);
+                $plucked[$keyValue] = $itemValue;
             }
         }
 
@@ -642,7 +775,9 @@ class Builder implements BuilderInterface
         }
         // @codeCoverageIgnoreEnd
 
-        return $results[0]['aggregate'] ?? null;
+        $firstResult = $results[0];
+
+        return $firstResult ? ($firstResult->aggregate ?? null) : null;
     }
 
     protected function setAggregate(string $function, array $columns): self
@@ -802,6 +937,97 @@ class Builder implements BuilderInterface
         }
 
         return $this;
+    }
+
+    public function when($value, callable $callback, ?callable $default = null): self
+    {
+        if ($value) {
+            return $callback($this, $value) ?? $this;
+        } elseif ($default) {
+            return $default($this, $value) ?? $this;
+        }
+
+        return $this;
+    }
+
+    public function unless($value, callable $callback, ?callable $default = null): self
+    {
+        if (! $value) {
+            return $callback($this, $value) ?? $this;
+        } elseif ($default) {
+            return $default($this, $value) ?? $this;
+        }
+
+        return $this;
+    }
+
+    public function whereJsonContains($column, $value, $boolean = 'and', $not = false): self
+    {
+        $type = $not ? 'JsonNotContains' : 'JsonContains';
+        $this->wheres[] = compact('type', 'column', 'value', 'boolean');
+
+        if (! $value instanceof ExpressionInterface) {
+            $this->addBinding($value, 'where');
+        }
+
+        return $this;
+    }
+
+    public function whereJsonLength($column, $operator, $value = null, $boolean = 'and'): self
+    {
+        [$value, $operator] = $this->prepareValueAndOperator(
+            $value, $operator, func_num_args() === 2
+        );
+
+        $this->wheres[] = [
+            'type' => 'JsonLength',
+            'column' => $column,
+            'operator' => $operator,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        if (! $value instanceof ExpressionInterface) {
+            $this->addBinding($value, 'where');
+        }
+
+        return $this;
+    }
+
+    public function whereFullText($columns, $value, $boolean = 'and'): self
+    {
+        $columns = (array) $columns;
+
+        $this->wheres[] = [
+            'type' => 'Fulltext',
+            'columns' => $columns,
+            'value' => $value,
+            'boolean' => $boolean,
+        ];
+
+        $this->addBinding($value, 'where');
+
+        return $this;
+    }
+
+    public function joinSub($query, $as, $first, $operator = null, $second = null, $type = 'inner'): self
+    {
+        if ($query instanceof Closure) {
+            $subQuery = $this->newQuery();
+            $query($subQuery);
+            $query = $subQuery;
+        }
+
+        $expression = '(' . $query->toSql() . ') as ' . $this->grammar->wrap($as);
+
+        $this->addBinding($query->getBindings(), 'join');
+
+        return $this->join(new Expression($expression), $first, $operator, $second, $type);
+    }
+
+    public function leftJoinSub($query, $as, $first, $operator = null, $second = null): self
+    {
+        return $this->joinSub($query, $as, $first, $operator, $second, 'left');
     }
 
     public function toSql(): string
@@ -1047,11 +1273,4 @@ class JoinClause extends Builder
         return $this->on($first, $operator, $second, 'or');
     }
 
-    protected function whereColumn($first, $operator = null, $second = null, $boolean = 'and'): self
-    {
-        $type = 'Column';
-        $this->wheres[] = compact('type', 'first', 'operator', 'second', 'boolean');
-
-        return $this;
-    }
 }

@@ -253,7 +253,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $statement = $this->getCachedStatement($query, $pdo);
             $statement->execute($bindings);
 
-            return $statement->fetchAll(PDO::FETCH_ASSOC);
+            return $statement->fetchAll(PDO::FETCH_OBJ);
         });
 
         // Cache the result
@@ -270,7 +270,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $useReadPdo && $this->readPdo ? $this->readPdo : $this->getPdo();
     }
 
-    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?array
+    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?object
     {
         $records = $this->select($query, $bindings, $useReadPdo);
 
