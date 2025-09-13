@@ -244,7 +244,7 @@ Now that you have Bob installed and configured, explore these topics:
 
 ## Getting Help
 
-- 📖 Read the [full documentation](/guide/)
+- 📖 Read the [full documentation](/guide/getting-started)
 - 🐛 [Report issues](https://github.com/Marwen-Brini/bob-the-builder/issues)
 - 💬 [Ask questions](https://github.com/Marwen-Brini/bob-the-builder/discussions)
 - ⭐ [Star on GitHub](https://github.com/Marwen-Brini/bob-the-builder)

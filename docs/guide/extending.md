@@ -664,13 +664,14 @@ test('can chain multiple extensions together', function () {
    });
    ```
 
-4. **Array vs Object Results**: PDO returns arrays by default, not objects:
+4. **Object Results**: Bob returns stdClass objects by default for consistency:
    ```php
-   // Correct assertion for array results
-   expect($user['email'])->toBe('test@example.com');
-   
-   // Not this (unless you've configured PDO differently)
+   // Bob returns objects
    expect($user->email)->toBe('test@example.com');
+
+   // Both direct select and query builder return objects
+   $user1 = $connection->table('users')->first();  // stdClass
+   $user2 = $connection->selectOne('SELECT * FROM users');  // stdClass
    ```
 
 ### Running Tests
