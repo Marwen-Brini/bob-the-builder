@@ -9,14 +9,14 @@ beforeEach(function () {
         $this->markTestSkipped('PDO MySQL extension is not available.');
     }
 
-    // Use environment variables (for CI/CD)
+    // Use environment variables (for CI/CD) or local credentials
     $dbConfig = [
         'driver' => 'mysql',
         'host' => $_ENV['MYSQL_HOST'] ?? '127.0.0.1',
         'port' => $_ENV['MYSQL_PORT'] ?? 3306,
         'database' => $_ENV['MYSQL_DATABASE'] ?? 'bob_test',
-        'username' => $_ENV['MYSQL_USERNAME'] ?? 'root',
-        'password' => $_ENV['MYSQL_PASSWORD'] ?? 'password',  // CI uses 'password'
+        'username' => $_ENV['MYSQL_USERNAME'] ?? 'marwen',
+        'password' => $_ENV['MYSQL_PASSWORD'] ?? 'Marwanism123',
         'charset' => 'utf8mb4',
         'collation' => 'utf8mb4_unicode_ci',
         'prefix' => '',

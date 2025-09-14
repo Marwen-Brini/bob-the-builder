@@ -72,6 +72,36 @@ $users = $connection->table('users')
     ->get();
 ```
 
+## Configuration
+
+### Fetch Mode
+
+By default, Bob Query Builder returns query results as associative arrays. You can configure this behavior:
+
+```php
+// Option 1: Configure via connection config
+$connection = new Connection([
+    'driver' => 'mysql',
+    'database' => 'mydb',
+    // ... other config
+    'fetch' => PDO::FETCH_OBJ,  // Return objects instead of arrays
+]);
+
+// Option 2: Change dynamically at runtime
+$connection->setFetchMode(PDO::FETCH_OBJ);  // Use objects
+$users = $connection->table('users')->get(); // Returns array of stdClass objects
+
+$connection->setFetchMode(PDO::FETCH_ASSOC); // Back to arrays (default)
+$users = $connection->table('users')->get(); // Returns array of associative arrays
+```
+
+Available fetch modes:
+- `PDO::FETCH_ASSOC` - Associative arrays (default)
+- `PDO::FETCH_OBJ` - stdClass objects
+- `PDO::FETCH_NUM` - Numeric arrays
+- `PDO::FETCH_BOTH` - Both numeric and associative arrays
+- Any other PDO fetch mode constant
+
 ## Basic Usage
 
 ### Select Queries

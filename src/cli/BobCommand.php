@@ -383,12 +383,12 @@ class BobCommand
             case 'pgsql':
                 $results = $connection->select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
 
-                return array_map(fn ($row) => $row->tablename, $results);
+                return array_map(fn ($row) => is_array($row) ? $row['tablename'] : $row->tablename, $results);
 
             case 'sqlite':
                 $results = $connection->select("SELECT name FROM sqlite_master WHERE type='table'");
 
-                return array_map(fn ($row) => $row->name, $results);
+                return array_map(fn ($row) => is_array($row) ? $row['name'] : $row->name, $results);
 
             default:
                 return [];
@@ -570,10 +570,11 @@ class BobCommand
      *
      * @param array|null $version The version query result
      */
-    protected function displayDatabaseVersion(?object $version): void
+    protected function displayDatabaseVersion(mixed $version): void
     {
         if ($version) {
-            $this->info('Database version: '.($version->version ?? 'Unknown'));
+            $versionStr = is_array($version) ? ($version['version'] ?? 'Unknown') : ($version->version ?? 'Unknown');
+            $this->info('Database version: '.$versionStr);
         }
     }
 }

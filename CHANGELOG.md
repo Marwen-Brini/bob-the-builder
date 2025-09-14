@@ -18,9 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive exception system (QueryException, ConnectionException, GrammarException)
 - Full PostgreSQL boolean handling support
 - Database-specific grammar implementations for MySQL, PostgreSQL, and SQLite
+- Configurable fetch mode via connection configuration (`'fetch'` option)
+- `getFetchMode()` and `setFetchMode()` methods for dynamic fetch mode control
+- Support for all PDO fetch modes (FETCH_ASSOC, FETCH_OBJ, FETCH_NUM, FETCH_BOTH, etc.)
 
 ### Changed
-- All query methods now return objects (stdClass) instead of arrays for consistency
+- Default fetch mode set to `PDO::FETCH_ASSOC` (associative arrays) for better performance
+- ConnectionInterface `selectOne()` return type changed to `mixed` for flexibility
 - Improved prepared statement caching with LRU eviction
 - Enhanced transaction support with savepoints
 - Updated to support PHP 8.1 through 8.4

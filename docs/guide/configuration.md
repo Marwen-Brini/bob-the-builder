@@ -17,6 +17,7 @@ $config = [
     'charset'   => 'utf8mb4',    // Character set
     'collation' => 'utf8mb4_unicode_ci', // Collation
     'prefix'    => '',           // Table prefix
+    'fetch'     => PDO::FETCH_ASSOC, // Fetch mode (default: PDO::FETCH_ASSOC)
 ];
 
 $connection = new Connection($config);
@@ -96,6 +97,70 @@ $sqliteMemoryConfig = [
 ```
 
 ## Connection Options
+
+### Fetch Mode Configuration
+
+Bob Query Builder allows you to configure how query results are returned. By default, results are returned as associative arrays.
+
+```php
+// Configure fetch mode in connection config
+$config = [
+    'driver' => 'mysql',
+    'database' => 'myapp',
+    // ... other config
+    'fetch' => PDO::FETCH_ASSOC, // Default: associative arrays
+];
+
+$connection = new Connection($config);
+```
+
+Available fetch modes:
+
+| Mode | Description | Example Result |
+|------|-------------|----------------|
+| `PDO::FETCH_ASSOC` | Associative array (default) | `['id' => 1, 'name' => 'John']` |
+| `PDO::FETCH_OBJ` | stdClass object | `(object) ['id' => 1, 'name' => 'John']` |
+| `PDO::FETCH_NUM` | Numeric array | `[1, 'John']` |
+| `PDO::FETCH_BOTH` | Both numeric and associative | `[0 => 1, 'id' => 1, 1 => 'John', 'name' => 'John']` |
+| `PDO::FETCH_CLASS` | Custom class instances | Instance of specified class |
+
+#### Dynamic Fetch Mode Changes
+
+You can change the fetch mode at runtime:
+
+```php
+// Start with arrays (default)
+$users = $connection->table('users')->get();
+// $users[0]['name'] - array access
+
+// Switch to objects
+$connection->setFetchMode(PDO::FETCH_OBJ);
+$posts = $connection->table('posts')->get();
+// $posts[0]->title - object access
+
+// Switch to numeric arrays
+$connection->setFetchMode(PDO::FETCH_NUM);
+$comments = $connection->table('comments')->get();
+// $comments[0][1] - numeric index
+
+// Check current fetch mode
+$mode = $connection->getFetchMode();
+```
+
+#### Per-Query Fetch Mode
+
+For one-off queries with different fetch modes:
+
+```php
+// Default connection uses arrays
+$connection = new Connection($config);
+
+// Temporarily use objects for this query
+$oldMode = $connection->getFetchMode();
+$connection->setFetchMode(PDO::FETCH_OBJ);
+$users = $connection->table('users')->get();
+$connection->setFetchMode($oldMode); // Restore
+```
 
 ### PDO Attributes
 

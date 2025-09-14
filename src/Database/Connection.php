@@ -48,12 +48,20 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     protected ?QueryCache $queryCache = null;
 
+    /**
+     * The default fetch mode for select statements.
+     */
+    protected int $fetchMode = PDO::FETCH_ASSOC;
+
     protected ?QueryProfiler $profiler = null;
 
     public function __construct(array $config = [])
     {
         $this->config = $config;
         $this->tablePrefix = $config['prefix'] ?? '';
+
+        // Set fetch mode from config, default to associative arrays
+        $this->fetchMode = $config['fetch'] ?? PDO::FETCH_ASSOC;
 
         $this->useDefaultQueryGrammar();
         $this->useDefaultPostProcessor();
@@ -232,6 +240,24 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $this;
     }
 
+    /**
+     * Get the current fetch mode.
+     */
+    public function getFetchMode(): int
+    {
+        return $this->fetchMode;
+    }
+
+    /**
+     * Set the fetch mode for select statements.
+     */
+    public function setFetchMode(int $mode): self
+    {
+        $this->fetchMode = $mode;
+
+        return $this;
+    }
+
     public function select(string $query, array $bindings = [], bool $useReadPdo = true): array
     {
         // Check cache first
@@ -253,7 +279,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $statement = $this->getCachedStatement($query, $pdo);
             $statement->execute($bindings);
 
-            return $statement->fetchAll(PDO::FETCH_OBJ);
+            return $statement->fetchAll($this->fetchMode);
         });
 
         // Cache the result
@@ -270,7 +296,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $useReadPdo && $this->readPdo ? $this->readPdo : $this->getPdo();
     }
 
-    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?object
+    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): mixed
     {
         $records = $this->select($query, $bindings, $useReadPdo);
 

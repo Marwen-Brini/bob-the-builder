@@ -30,7 +30,7 @@ interface ConnectionInterface
 
     public function select(string $query, array $bindings = [], bool $useReadPdo = true): array;
 
-    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): ?object;
+    public function selectOne(string $query, array $bindings = [], bool $useReadPdo = true): mixed;
 
     public function insert(string $query, array $bindings = []): bool;
 

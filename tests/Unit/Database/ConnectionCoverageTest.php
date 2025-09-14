@@ -74,12 +74,34 @@ describe('Connection configuration and setup', function () {
             'host' => 'localhost',
             'database' => 'test'
         ];
-        
+
         $connection = new Connection($config);
-        
+
         expect($connection->getQueryGrammar())->toBeInstanceOf(MySQLGrammar::class);
     });
-    
+
+    it('handles fetch mode configuration', function () {
+        // Test default fetch mode (associative array)
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        expect($connection->getFetchMode())->toBe(PDO::FETCH_ASSOC);
+
+        // Test setting fetch mode via config
+        $connection2 = new Connection([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'fetch' => PDO::FETCH_OBJ
+        ]);
+        expect($connection2->getFetchMode())->toBe(PDO::FETCH_OBJ);
+
+        // Test setFetchMode method
+        $connection->setFetchMode(PDO::FETCH_NUM);
+        expect($connection->getFetchMode())->toBe(PDO::FETCH_NUM);
+
+        // Test fluent interface
+        expect($connection->setFetchMode(PDO::FETCH_BOTH))->toBe($connection);
+        expect($connection->getFetchMode())->toBe(PDO::FETCH_BOTH);
+    });
+
     it('creates PostgreSQL DSN correctly', function () {
         $config = [
             'driver' => 'pgsql',
@@ -320,7 +342,7 @@ describe('Transaction retries', function () {
         
         // Verify data was inserted
         $count = $connection->selectOne('SELECT COUNT(*) as count FROM test');
-        expect($count->count)->toBe(1);
+        expect($count['count'])->toBe(1);
     });
     
     it('throws exception after max attempts', function () {

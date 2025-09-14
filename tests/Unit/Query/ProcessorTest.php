@@ -44,11 +44,32 @@ describe('Processor class', function () {
     
     it('processes empty select results', function () {
         $results = [];
-        
+
         $processed = $this->processor->processSelect($this->builder, $results);
-        
+
         expect($processed)->toBe([]);
         expect($processed)->toHaveCount(0);
+    });
+
+    it('handles mixed array and object results in processSelect', function () {
+        // Test with results that are already objects (covering line 17)
+        $obj1 = (object) ['id' => 1, 'name' => 'John'];
+        $obj2 = (object) ['id' => 2, 'name' => 'Jane'];
+
+        $results = [
+            $obj1,  // Already an object
+            ['id' => 3, 'name' => 'Bob'],  // Array that needs conversion
+            $obj2,  // Already an object
+        ];
+
+        $processed = $this->processor->processSelect($this->builder, $results);
+
+        expect($processed)->toHaveCount(3);
+        expect($processed[0])->toBe($obj1);  // Should return the same object
+        expect($processed[1])->toBeInstanceOf(stdClass::class);
+        expect($processed[1]->id)->toBe(3);
+        expect($processed[1]->name)->toBe('Bob');
+        expect($processed[2])->toBe($obj2);  // Should return the same object
     });
     
     it('processes insertGetId with numeric ID', function () {
