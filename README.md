@@ -20,16 +20,19 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 
 ## Features
 
-- 🚀 **Laravel-like Fluent Interface** - Familiar, expressive syntax
+- 🚀 **Full ORM with ActiveRecord** - Complete ORM layer with models and relationships (v2.0)
+- 🔗 **Laravel-like Relationships** - HasOne, HasMany, BelongsTo, BelongsToMany with eager loading
+- 💼 **Laravel-like Fluent Interface** - Familiar, expressive query builder syntax
 - 🔧 **Database Agnostic** - Support for MySQL, PostgreSQL, SQLite via PDO
 - 🎯 **Zero Dependencies** - Only requires PHP and PDO
 - ⚡ **High Performance** - Query caching, prepared statements, 1M+ rows/second streaming
-- 🧪 **Fully Tested** - 789 tests with Pest, 100% passing rate
+- 🧪 **Fully Tested** - 1400+ tests with Pest, 100% code coverage
 - 🔒 **Secure** - Automatic SQL injection prevention via parameter binding
-- 📦 **Modular** - Easy integration with ANY PHP project
+- 📦 **Modular** - Easy integration with ANY PHP project, use as query builder or full ORM
 - 🔄 **Transaction Support** - Including savepoints for nested transactions
 - 📊 **PSR-3 Logging** - Built-in query logging with slow query detection
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
+- 🎁 **Collections** - Powerful collection class for working with result sets
 
 ## Requirements
 
@@ -414,6 +417,177 @@ $connection = new Connection([
     'database' => ':memory:',
     'prefix' => '',
 ]);
+```
+
+## ORM & Model Features
+
+### Model Definition
+
+Bob v2.0 introduces a full ORM layer with Laravel-inspired models:
+
+```php
+use Bob\Database\Model;
+
+class User extends Model
+{
+    protected $table = 'users';
+    protected $primaryKey = 'id';
+    protected $fillable = ['name', 'email', 'password'];
+
+    // Define relationships
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
+}
+```
+
+### Relationships
+
+#### One-to-One (HasOne)
+```php
+class User extends Model
+{
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+}
+
+// Usage
+$user = User::find(1);
+$profile = $user->profile; // Automatically loads the profile
+```
+
+#### One-to-Many (HasMany)
+```php
+class User extends Model
+{
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+}
+
+// Usage
+$user = User::find(1);
+$posts = $user->posts; // Returns a Collection of Post models
+```
+
+#### Many-to-One (BelongsTo)
+```php
+class Post extends Model
+{
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+}
+
+// Usage
+$post = Post::find(1);
+$author = $post->author; // Loads the User model
+```
+
+#### Many-to-Many (BelongsToMany)
+```php
+class User extends Model
+{
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
+    }
+}
+
+// Usage
+$user = User::find(1);
+$roles = $user->roles; // Returns Collection of Role models
+
+// Attach/Detach relationships
+$user->roles()->attach($roleId);
+$user->roles()->detach($roleId);
+$user->roles()->sync([1, 2, 3]); // Sync to exact set of IDs
+```
+
+### Eager Loading
+
+Prevent N+1 queries with eager loading:
+
+```php
+// Load users with their posts and comments
+$users = User::with('posts.comments')->get();
+
+// Multiple relationships
+$users = User::with(['posts', 'profile', 'roles'])->get();
+
+// Eager loading with constraints
+$users = User::with(['posts' => function($query) {
+    $query->where('published', true);
+}])->get();
+```
+
+### Model Queries
+
+Models provide an intuitive ActiveRecord interface:
+
+```php
+// Find by primary key
+$user = User::find(1);
+
+// Find or fail (throws exception)
+$user = User::findOrFail(1);
+
+// Create new record
+$user = User::create([
+    'name' => 'John Doe',
+    'email' => 'john@example.com'
+]);
+
+// Update existing
+$user->update(['name' => 'Jane Doe']);
+
+// Delete
+$user->delete();
+
+// Query builder integration
+$users = User::where('active', true)
+    ->orderBy('created_at', 'desc')
+    ->limit(10)
+    ->get();
+
+// Aggregates
+$count = User::where('role', 'admin')->count();
+$avg = Product::avg('price');
+```
+
+### Collections
+
+Model queries return powerful Collection objects:
+
+```php
+$users = User::all();
+
+// Collection methods
+$admins = $users->filter(fn($user) => $user->role === 'admin');
+$names = $users->pluck('name');
+$grouped = $users->groupBy('role');
+$sorted = $users->sortBy('created_at');
+
+// Map over items
+$emails = $users->map(fn($user) => $user->email);
+
+// Check if collection contains item
+$hasAdmin = $users->contains('role', 'admin');
 ```
 
 ## Advanced Features

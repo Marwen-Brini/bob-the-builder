@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: Bob Query Builder v1.0.0
-  text: Powerful PHP Database Queries
-  tagline: A Laravel-like query builder that's fast, flexible, and framework-agnostic
+  name: Bob ORM v2.0.0
+  text: Complete ORM & Query Builder for PHP
+  tagline: A full-featured ORM with models, relationships, and Laravel-like query builder - fast, flexible, and framework-agnostic
   image:
     src: /logo.svg
     alt: Bob Query Builder
@@ -17,30 +17,39 @@ hero:
       link: https://github.com/Marwen-Brini/bob-the-builder
 
 features:
+  - icon: 🏗️
+    title: Full ORM with Models
+    details: ActiveRecord pattern with Model base class, CRUD operations, and attribute handling
+  - icon: 🔗
+    title: Powerful Relationships
+    details: HasOne, HasMany, BelongsTo, BelongsToMany with eager loading and N+1 prevention
   - icon: ⚡
     title: Blazing Fast
     details: Optimized for performance with prepared statement caching, connection pooling, and minimal overhead
-  - icon: 🔧
-    title: Framework Agnostic
-    details: Works with any PHP project - WordPress, Laravel, Symfony, or standalone applications
   - icon: 🎯
     title: Laravel-like Syntax
-    details: Familiar fluent interface that PHP developers already know and love
+    details: Familiar fluent interface and Eloquent-style models that PHP developers already know and love
   - icon: 🗄️
     title: Multi-Database Support
     details: MySQL, PostgreSQL, and SQLite support out of the box with PDO
+  - icon: 🔧
+    title: Framework Agnostic
+    details: Works with any PHP project - WordPress, Laravel, Symfony, or standalone applications
+  - icon: 📦
+    title: Collections
+    details: Powerful collection class for working with arrays of models and data
   - icon: 🔌
     title: Highly Extensible
     details: Add custom methods, scopes, and finders through macros and model extensions
-  - icon: 🚀
-    title: Modern PHP
-    details: Built for PHP 8.1+ with type hints, attributes, and modern best practices
   - icon: 📊
     title: Query Profiling
     details: Built-in query profiling and logging for debugging and optimization
-  - icon: 🛠️
-    title: CLI Tools
-    details: Command-line interface for testing connections and building queries
+  - icon: 🚀
+    title: Modern PHP
+    details: Built for PHP 8.1+ with type hints, attributes, and modern best practices
+  - icon: 🧪
+    title: 100% Test Coverage
+    details: Over 1400 tests ensuring reliability and stability
   - icon: 📚
     title: Great Documentation
     details: Comprehensive guides, API reference, and real-world examples

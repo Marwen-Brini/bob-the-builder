@@ -574,11 +574,272 @@ class WPPost extends WordPressModel
 }
 ```
 
+## Relationships
+
+Bob v2.0 introduces a powerful relationship system that makes it easy to work with related models.
+
+### Defining Relationships
+
+#### One-to-One (HasOne)
+
+A one-to-one relationship links two models with a single association:
+
+```php
+class User extends Model
+{
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+}
+
+class Profile extends Model
+{
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+
+// Usage
+$user = User::find(1);
+$profile = $user->profile; // Automatically loads the related profile
+```
+
+#### One-to-Many (HasMany)
+
+A one-to-many relationship is used for parent-child relationships:
+
+```php
+class Post extends Model
+{
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
+}
+
+class Comment extends Model
+{
+    public function post()
+    {
+        return $this->belongsTo(Post::class);
+    }
+}
+
+// Usage
+$post = Post::find(1);
+foreach ($post->comments as $comment) {
+    echo $comment->content;
+}
+```
+
+#### Many-to-Many (BelongsToMany)
+
+Many-to-many relationships require a pivot table:
+
+```php
+class User extends Model
+{
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
+    }
+}
+
+class Role extends Model
+{
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_roles', 'role_id', 'user_id');
+    }
+}
+
+// Usage
+$user = User::find(1);
+$roles = $user->roles;
+
+// Working with pivot table
+$user->roles()->attach($roleId);
+$user->roles()->detach($roleId);
+$user->roles()->sync([1, 2, 3]);
+```
+
+### Eager Loading
+
+Prevent N+1 query problems with eager loading:
+
+```php
+// Load users with their posts and comments
+$users = User::with('posts.comments')->get();
+
+// Multiple relationships
+$users = User::with(['posts', 'profile', 'roles'])->get();
+
+// Eager loading with constraints
+$users = User::with(['posts' => function($query) {
+    $query->where('published', true)->orderBy('created_at', 'desc');
+}])->get();
+```
+
+### Relationship Methods
+
+#### Querying Relations
+
+```php
+// Check if relationship exists
+if ($user->posts()->exists()) {
+    // User has posts
+}
+
+// Count related models
+$postCount = $user->posts()->count();
+
+// Get specific related models
+$recentPosts = $user->posts()
+    ->where('created_at', '>=', now()->subDays(7))
+    ->get();
+```
+
+#### Creating Related Models
+
+```php
+// Create a new related model
+$comment = $post->comments()->create([
+    'content' => 'Great post!',
+    'user_id' => auth()->id()
+]);
+
+// Save an existing model
+$comment = new Comment(['content' => 'Nice!']);
+$post->comments()->save($comment);
+```
+
+#### Updating Relations
+
+```php
+// Update all related models
+$user->posts()->update(['published' => true]);
+
+// Delete related models
+$post->comments()->delete();
+```
+
+### Working with Pivot Tables
+
+For many-to-many relationships, you can work with pivot table data:
+
+```php
+// Attach with additional pivot data
+$user->roles()->attach($roleId, [
+    'assigned_at' => now(),
+    'assigned_by' => auth()->id()
+]);
+
+// Update pivot data
+$user->roles()->updateExistingPivot($roleId, [
+    'updated_at' => now()
+]);
+
+// Detach roles
+$user->roles()->detach([$role1, $role2]);
+
+// Sync roles (detaches all others)
+$user->roles()->sync([1, 2, 3]);
+
+// Sync without detaching
+$user->roles()->syncWithoutDetaching([1, 2, 3]);
+```
+
+### Custom Foreign Keys
+
+You can specify custom foreign keys and local keys:
+
+```php
+class Post extends Model
+{
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'author_id', 'id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class, 'post_id', 'id');
+    }
+}
+```
+
+### Relationship Existence Queries
+
+Query models based on relationship existence:
+
+```php
+// Get all posts that have comments
+$posts = Post::has('comments')->get();
+
+// Get posts with at least 3 comments
+$posts = Post::has('comments', '>=', 3)->get();
+
+// Get posts with active comments
+$posts = Post::whereHas('comments', function ($query) {
+    $query->where('approved', true);
+})->get();
+
+// Get posts without comments
+$posts = Post::doesntHave('comments')->get();
+```
+
+## Collections
+
+Model queries return `Bob\Support\Collection` instances, which provide powerful methods for working with result sets:
+
+```php
+$users = User::all();
+
+// Filter users
+$admins = $users->filter(function ($user) {
+    return $user->role === 'admin';
+});
+
+// Map over users
+$names = $users->map(function ($user) {
+    return $user->name;
+});
+
+// Pluck a single column
+$emails = $users->pluck('email');
+
+// Sort by a field
+$sorted = $users->sortBy('created_at');
+
+// Group by a field
+$grouped = $users->groupBy('role');
+
+// Check if collection contains an item
+if ($users->contains('email', 'john@example.com')) {
+    // User exists
+}
+
+// Get first/last items
+$first = $users->first();
+$last = $users->last();
+
+// Convert to array
+$array = $users->toArray();
+
+// Convert to JSON
+$json = $users->toJson();
+```
+
 ## Summary
 
-Bob's Model class provides:
+Bob's Model class in v2.0 provides:
 
 - **ActiveRecord Pattern**: Work with database rows as objects
+- **Powerful Relationships**: HasOne, HasMany, BelongsTo, BelongsToMany
+- **Eager Loading**: Prevent N+1 queries with intelligent loading
+- **Collections**: Rich collection class for working with result sets
 - **Query Builder Integration**: Full access to query builder methods
 - **Custom Methods**: Define model-specific business logic
 - **Scopes**: Reusable query constraints
