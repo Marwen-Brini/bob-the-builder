@@ -289,5 +289,6 @@ test('benchmark prepared statement caching', function () {
     $secondRun = (microtime(true) - $start) * 1000;
 
     // Second run should be faster or equal due to caching
-    expect($secondRun)->toBeLessThanOrEqual($firstRun * 1.1); // Allow 10% variance for timing
+    // Allow 25% variance for timing inconsistencies in CI environments
+    expect($secondRun)->toBeLessThanOrEqual($firstRun * 1.25);
 });
