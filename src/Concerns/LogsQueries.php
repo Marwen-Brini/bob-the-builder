@@ -121,8 +121,19 @@ trait LogsQueries
      */
     public function logQuery(string $query, array $bindings = [], ?float $time = null): void
     {
+        $queryData = [
+            'query' => $query,
+            'bindings' => $bindings,
+            'time' => $time,
+        ];
+
         if ($this->loggingEnabled) {
             $this->getQueryLogger()->logQuery($query, $bindings, $time);
+        }
+
+        // Fire event listeners if the method exists (for Connection class)
+        if (method_exists($this, 'fireQueryEvent')) {
+            $this->fireQueryEvent($queryData);
         }
     }
 

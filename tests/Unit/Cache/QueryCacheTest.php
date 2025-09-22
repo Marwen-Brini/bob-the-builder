@@ -2,337 +2,344 @@
 
 use Bob\Cache\QueryCache;
 
-describe('QueryCache basic functionality', function () {
-    it('stores and retrieves values', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('key1', 'value1');
-        expect($cache->get('key1'))->toBe('value1');
-    });
-    
-    it('returns null for non-existent keys', function () {
-        $cache = new QueryCache();
-        
-        expect($cache->get('non-existent'))->toBeNull();
-    });
-    
-    it('respects TTL on items', function () {
-        $cache = new QueryCache();
-        
-        // Put item with 1 second TTL
-        $cache->put('key1', 'value1', 1);
-        expect($cache->get('key1'))->toBe('value1');
-        
-        // Wait for expiration
-        sleep(2);
-        expect($cache->get('key1'))->toBeNull();
-    });
-    
-    it('removes expired items and returns null', function () {
-        $cache = new QueryCache();
-        
-        // Use reflection to set expired item directly
-        $reflection = new ReflectionClass($cache);
-        $cacheProperty = $reflection->getProperty('cache');
-        $cacheProperty->setAccessible(true);
-        
-        $cacheProperty->setValue($cache, [
-            'expired_key' => [
-                'value' => 'expired_value',
-                'expires' => time() - 10, // Expired 10 seconds ago
-                'created' => time() - 20
-            ]
-        ]);
-        
-        // Getting expired item should return null and remove it
-        expect($cache->get('expired_key'))->toBeNull();
-        expect($cache->size())->toBe(0);
-    });
-    
-    it('forgets specific keys', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('key1', 'value1');
-        $cache->put('key2', 'value2');
-        
-        expect($cache->size())->toBe(2);
-        
-        $cache->forget('key1');
-        
-        expect($cache->get('key1'))->toBeNull();
-        expect($cache->get('key2'))->toBe('value2');
-        expect($cache->size())->toBe(1);
-    });
-    
-    it('flushes all cache', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('key1', 'value1');
-        $cache->put('key2', 'value2');
-        $cache->put('key3', 'value3');
-        
-        expect($cache->size())->toBe(3);
-        
-        $cache->flush();
-        
-        expect($cache->size())->toBe(0);
-        expect($cache->get('key1'))->toBeNull();
-    });
+beforeEach(function () {
+    $this->cache = new QueryCache();
 });
 
-describe('QueryCache enable/disable functionality', function () {
-    it('can be disabled and enabled', function () {
-        $cache = new QueryCache();
-        
-        expect($cache->isEnabled())->toBeTrue();
-        
-        $cache->disable();
-        expect($cache->isEnabled())->toBeFalse();
-        
-        $cache->enable();
-        expect($cache->isEnabled())->toBeTrue();
-    });
-    
-    it('does not store when disabled', function () {
-        $cache = new QueryCache();
-        
-        $cache->disable();
-        $cache->put('key1', 'value1');
-        
-        expect($cache->size())->toBe(0);
-        expect($cache->get('key1'))->toBeNull();
-    });
-    
-    it('does not retrieve when disabled', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('key1', 'value1');
-        expect($cache->get('key1'))->toBe('value1');
-        
-        $cache->disable();
-        expect($cache->get('key1'))->toBeNull();
-        
-        $cache->enable();
-        expect($cache->get('key1'))->toBe('value1');
-    });
+test('QueryCache constructor sets default values', function () {
+    $cache = new QueryCache();
+    expect($cache->getMaxItems())->toBe(1000);
+    expect($cache->getTtl())->toBe(3600);
+    expect($cache->isEnabled())->toBeTrue();
+    expect($cache->size())->toBe(0);
 });
 
-describe('QueryCache eviction policy', function () {
-    it('evicts oldest item when cache is full', function () {
-        $cache = new QueryCache(3); // Max 3 items
-        
-        // Add 3 items
-        $cache->put('key1', 'value1');
-        sleep(1); // Ensure different timestamps
-        $cache->put('key2', 'value2');
-        $cache->put('key3', 'value3');
-        
-        expect($cache->size())->toBe(3);
-        
-        // Adding 4th item should evict the oldest (key1)
-        $cache->put('key4', 'value4');
-        
-        expect($cache->size())->toBe(3);
-        expect($cache->get('key1'))->toBeNull(); // Oldest was evicted
-        expect($cache->get('key2'))->toBe('value2');
-        expect($cache->get('key3'))->toBe('value3');
-        expect($cache->get('key4'))->toBe('value4');
-    });
-    
-    it('evicts multiple items correctly', function () {
-        $cache = new QueryCache(2); // Max 2 items
-        
-        // Fill cache
-        $cache->put('key1', 'value1');
-        usleep(100000); // 0.1 second delay
-        $cache->put('key2', 'value2');
-        
-        // Add more items, causing evictions
-        usleep(100000);
-        $cache->put('key3', 'value3');
-        expect($cache->get('key1'))->toBeNull(); // Evicted
-        expect($cache->get('key2'))->toBe('value2');
-        expect($cache->get('key3'))->toBe('value3');
-        
-        usleep(100000);
-        $cache->put('key4', 'value4');
-        expect($cache->get('key2'))->toBeNull(); // Evicted
-        expect($cache->get('key3'))->toBe('value3');
-        expect($cache->get('key4'))->toBe('value4');
-    });
-    
-    it('handles eviction when all items have same timestamp', function () {
-        $cache = new QueryCache(2);
-        
-        // Use reflection to set items with same timestamp
-        $reflection = new ReflectionClass($cache);
-        $cacheProperty = $reflection->getProperty('cache');
-        $cacheProperty->setAccessible(true);
-        
-        $timestamp = time();
-        $cacheProperty->setValue($cache, [
-            'key1' => ['value' => 'value1', 'expires' => $timestamp + 3600, 'created' => $timestamp],
-            'key2' => ['value' => 'value2', 'expires' => $timestamp + 3600, 'created' => $timestamp]
-        ]);
-        
-        // Adding a new item should evict one of them
-        $cache->put('key3', 'value3');
-        
-        expect($cache->size())->toBe(2);
-        expect($cache->get('key3'))->toBe('value3');
-        
-        // Either key1 or key2 should be evicted, but not both
-        $key1Exists = $cache->get('key1') !== null;
-        $key2Exists = $cache->get('key2') !== null;
-        expect($key1Exists || $key2Exists)->toBeTrue();
-        expect($key1Exists && $key2Exists)->toBeFalse();
-    });
+test('QueryCache constructor with custom values', function () {
+    $cache = new QueryCache(500, 1800);
+    expect($cache->getMaxItems())->toBe(500);
+    expect($cache->getTtl())->toBe(1800);
 });
 
-describe('QueryCache key generation', function () {
-    it('generates consistent keys for same query and bindings', function () {
-        $cache = new QueryCache();
-        
-        $query = 'SELECT * FROM users WHERE id = ?';
-        $bindings = [1];
-        
-        $key1 = $cache->generateKey($query, $bindings);
-        $key2 = $cache->generateKey($query, $bindings);
-        
-        expect($key1)->toBe($key2);
-    });
-    
-    it('generates different keys for different queries', function () {
-        $cache = new QueryCache();
-        
-        $key1 = $cache->generateKey('SELECT * FROM users');
-        $key2 = $cache->generateKey('SELECT * FROM posts');
-        
-        expect($key1)->not->toBe($key2);
-    });
-    
-    it('generates different keys for different bindings', function () {
-        $cache = new QueryCache();
-        
-        $query = 'SELECT * FROM users WHERE id = ?';
-        
-        $key1 = $cache->generateKey($query, [1]);
-        $key2 = $cache->generateKey($query, [2]);
-        
-        expect($key1)->not->toBe($key2);
-    });
-    
-    it('handles empty bindings', function () {
-        $cache = new QueryCache();
-        
-        $key = $cache->generateKey('SELECT * FROM users');
-        
-        expect($key)->toBeString();
-        expect(strlen($key))->toBe(32); // MD5 hash length
-    });
+test('put and get work correctly', function () {
+    $this->cache->put('key1', 'value1');
+    expect($this->cache->get('key1'))->toBe('value1');
 });
 
-describe('QueryCache configuration', function () {
-    it('respects custom max items setting', function () {
-        $cache = new QueryCache(5, 3600);
-        
-        for ($i = 1; $i <= 6; $i++) {
-            $cache->put("key$i", "value$i");
-            usleep(10000); // Small delay to ensure different timestamps
-        }
-        
-        expect($cache->size())->toBe(5);
-        expect($cache->get('key1'))->toBeNull(); // First one should be evicted
-        expect($cache->get('key6'))->toBe('value6'); // Last one should exist
-    });
-    
-    it('respects custom TTL setting', function () {
-        $cache = new QueryCache(100, 1); // 1 second default TTL
-        
-        $cache->put('key1', 'value1'); // Uses default TTL
-        $cache->put('key2', 'value2', 3); // Custom TTL
-        
-        sleep(2); // Sleep for 2 seconds to ensure key1 expires
-        
-        // After 2 seconds, key1 should be expired but key2 should still be valid
-        expect($cache->get('key1'))->toBeNull();
-        expect($cache->get('key2'))->toBe('value2');
-        
-        sleep(2); // Sleep another 2 seconds
-        
-        // After 4 seconds total, both should be expired
-        expect($cache->get('key2'))->toBeNull();
-    });
+test('put with custom TTL', function () {
+    $this->cache->setCurrentTime(1000);
+    $this->cache->put('key1', 'value1', 60);
+
+    // Should be valid at time 1050
+    $this->cache->setCurrentTime(1050);
+    expect($this->cache->get('key1'))->toBe('value1');
+
+    // Should expire at time 1061
+    $this->cache->setCurrentTime(1061);
+    expect($this->cache->get('key1'))->toBeNull();
 });
 
-describe('QueryCache edge cases', function () {
-    it('handles null values', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('null_key', null);
-        expect($cache->get('null_key'))->toBeNull();
-        
-        // But we can verify it was stored by checking size
-        expect($cache->size())->toBe(1);
-    });
-    
-    it('handles array values', function () {
-        $cache = new QueryCache();
-        
-        $data = ['user' => 'John', 'age' => 30];
-        $cache->put('array_key', $data);
-        
-        expect($cache->get('array_key'))->toBe($data);
-    });
-    
-    it('handles object values', function () {
-        $cache = new QueryCache();
-        
-        $obj = (object) ['name' => 'Test'];
-        $cache->put('object_key', $obj);
-        
-        $retrieved = $cache->get('object_key');
-        expect($retrieved)->toEqual($obj);
-    });
-    
-    it('handles forgetting non-existent keys', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('key1', 'value1');
-        expect($cache->size())->toBe(1);
-        
-        $cache->forget('non-existent');
-        expect($cache->size())->toBe(1);
-        expect($cache->get('key1'))->toBe('value1');
-    });
-    
-    it('handles zero TTL', function () {
-        $cache = new QueryCache();
-        
-        // Use reflection to verify the item is stored with TTL 0
-        $reflection = new ReflectionClass($cache);
-        $cacheProperty = $reflection->getProperty('cache');
-        $cacheProperty->setAccessible(true);
-        
-        $cache->put('key1', 'value1', 0);
-        
-        $cached = $cacheProperty->getValue($cache);
-        expect($cached)->toHaveKey('key1');
-        // With 0 TTL, expires timestamp is current time
-        expect($cached['key1']['expires'])->toBe(time());
-        
-        // Sleep for 1 full second to ensure we're past the expiration time
-        sleep(1);
-        expect($cache->get('key1'))->toBeNull();
-    });
-    
-    it('handles negative TTL', function () {
-        $cache = new QueryCache();
-        
-        $cache->put('key1', 'value1', -10);
-        
-        // With negative TTL, item should be immediately expired
-        usleep(1000); // Small delay to ensure we're past any timestamp
-        expect($cache->get('key1'))->toBeNull();
-    });
+test('get returns null for non-existent key', function () {
+    expect($this->cache->get('nonexistent'))->toBeNull();
+});
+
+test('get returns null when cache is disabled', function () {
+    $this->cache->put('key1', 'value1');
+    $this->cache->disable();
+    expect($this->cache->get('key1'))->toBeNull();
+});
+
+test('put does nothing when cache is disabled', function () {
+    $this->cache->disable();
+    $this->cache->put('key1', 'value1');
+    expect($this->cache->size())->toBe(0);
+});
+
+test('has returns true for existing key', function () {
+    $this->cache->put('key1', 'value1');
+    expect($this->cache->has('key1'))->toBeTrue();
+    expect($this->cache->has('key2'))->toBeFalse();
+});
+
+test('forget removes item and returns true', function () {
+    $this->cache->put('key1', 'value1');
+    expect($this->cache->forget('key1'))->toBeTrue();
+    expect($this->cache->has('key1'))->toBeFalse();
+});
+
+test('forget returns false for non-existent key', function () {
+    expect($this->cache->forget('nonexistent'))->toBeFalse();
+});
+
+test('flush clears all cache', function () {
+    $this->cache->put('key1', 'value1');
+    $this->cache->put('key2', 'value2');
+    expect($this->cache->size())->toBe(2);
+
+    $this->cache->flush();
+    expect($this->cache->size())->toBe(0);
+});
+
+test('enable and disable toggle cache state', function () {
+    expect($this->cache->isEnabled())->toBeTrue();
+
+    $this->cache->disable();
+    expect($this->cache->isEnabled())->toBeFalse();
+
+    $this->cache->enable();
+    expect($this->cache->isEnabled())->toBeTrue();
+});
+
+test('size returns number of items', function () {
+    expect($this->cache->size())->toBe(0);
+
+    $this->cache->put('key1', 'value1');
+    expect($this->cache->size())->toBe(1);
+
+    $this->cache->put('key2', 'value2');
+    expect($this->cache->size())->toBe(2);
+});
+
+test('setMaxItems and getMaxItems work correctly', function () {
+    $this->cache->setMaxItems(100);
+    expect($this->cache->getMaxItems())->toBe(100);
+});
+
+test('setTtl and getTtl work correctly', function () {
+    $this->cache->setTtl(7200);
+    expect($this->cache->getTtl())->toBe(7200);
+});
+
+test('keys returns all cache keys', function () {
+    $this->cache->put('key1', 'value1');
+    $this->cache->put('key2', 'value2');
+    $this->cache->put('key3', 'value3');
+
+    $keys = $this->cache->keys();
+    expect($keys)->toContain('key1');
+    expect($keys)->toContain('key2');
+    expect($keys)->toContain('key3');
+    expect($keys)->toHaveCount(3);
+});
+
+test('eviction removes oldest item when max reached', function () {
+    $cache = new QueryCache(3);
+    $cache->setCurrentTime(1000);
+
+    $cache->put('key1', 'value1');
+    $cache->setCurrentTime(1001);
+    $cache->put('key2', 'value2');
+    $cache->setCurrentTime(1002);
+    $cache->put('key3', 'value3');
+
+    // Now at max, next put should evict oldest (key1)
+    $cache->setCurrentTime(1003);
+    $cache->put('key4', 'value4');
+
+    expect($cache->has('key1'))->toBeFalse();
+    expect($cache->has('key2'))->toBeTrue();
+    expect($cache->has('key3'))->toBeTrue();
+    expect($cache->has('key4'))->toBeTrue();
+});
+
+test('expired items are removed on get', function () {
+    $this->cache->setCurrentTime(1000);
+    $this->cache->put('key1', 'value1', 10); // Expires at 1010
+
+    // Valid at time 1005
+    $this->cache->setCurrentTime(1005);
+    expect($this->cache->get('key1'))->toBe('value1');
+    expect($this->cache->has('key1'))->toBeTrue();
+
+    // Expired at time 1011
+    $this->cache->setCurrentTime(1011);
+    expect($this->cache->get('key1'))->toBeNull();
+    expect($this->cache->has('key1'))->toBeFalse(); // Should be removed
+});
+
+test('generateKey creates consistent hash', function () {
+    $query = 'SELECT * FROM users WHERE id = ?';
+    $bindings = [1];
+
+    $key1 = $this->cache->generateKey($query, $bindings);
+    $key2 = $this->cache->generateKey($query, $bindings);
+
+    expect($key1)->toBe($key2);
+    expect($key1)->toBeString();
+    expect(strlen($key1))->toBe(32); // MD5 hash length
+});
+
+test('generateKey creates different hash for different inputs', function () {
+    $key1 = $this->cache->generateKey('SELECT * FROM users', []);
+    $key2 = $this->cache->generateKey('SELECT * FROM posts', []);
+    $key3 = $this->cache->generateKey('SELECT * FROM users', [1]);
+
+    expect($key1)->not->toBe($key2);
+    expect($key1)->not->toBe($key3);
+    expect($key2)->not->toBe($key3);
+});
+
+test('getStats returns cache statistics', function () {
+    $this->cache->setCurrentTime(1000);
+
+    // Add some valid items
+    $this->cache->put('key1', 'value1', 100);
+    $this->cache->put('key2', 'value2', 100);
+
+    // Add an expired item
+    $this->cache->put('key3', 'value3', 10);
+
+    // Move time forward so key3 expires
+    $this->cache->setCurrentTime(1020);
+
+    $stats = $this->cache->getStats();
+
+    expect($stats['total'])->toBe(3);
+    expect($stats['valid'])->toBe(2);
+    expect($stats['expired'])->toBe(1);
+    expect($stats['max_items'])->toBe(1000);
+    expect($stats['enabled'])->toBeTrue();
+});
+
+test('cleanExpired removes all expired items', function () {
+    $this->cache->setCurrentTime(1000);
+
+    // Add items with different expiration times
+    $this->cache->put('key1', 'value1', 10); // Expires at 1010
+    $this->cache->put('key2', 'value2', 20); // Expires at 1020
+    $this->cache->put('key3', 'value3', 30); // Expires at 1030
+
+    // Move time forward so key1 and key2 expire
+    $this->cache->setCurrentTime(1025);
+
+    $removed = $this->cache->cleanExpired();
+
+    expect($removed)->toBe(2);
+    expect($this->cache->has('key1'))->toBeFalse();
+    expect($this->cache->has('key2'))->toBeFalse();
+    expect($this->cache->has('key3'))->toBeTrue();
+    expect($this->cache->size())->toBe(1);
+});
+
+test('cleanExpired returns 0 when no items expired', function () {
+    $this->cache->setCurrentTime(1000);
+    $this->cache->put('key1', 'value1', 100);
+    $this->cache->put('key2', 'value2', 100);
+
+    $removed = $this->cache->cleanExpired();
+    expect($removed)->toBe(0);
+    expect($this->cache->size())->toBe(2);
+});
+
+test('getRawCache returns internal cache array', function () {
+    $this->cache->setCurrentTime(1000);
+    $this->cache->put('key1', 'value1');
+
+    $raw = $this->cache->getRawCache();
+
+    expect($raw)->toBeArray();
+    expect($raw)->toHaveKey('key1');
+    expect($raw['key1']['value'])->toBe('value1');
+    expect($raw['key1']['created'])->toBe(1000);
+    expect($raw['key1']['expires'])->toBe(1000 + 3600);
+});
+
+test('cache handles various data types', function () {
+    // String
+    $this->cache->put('string', 'test');
+    expect($this->cache->get('string'))->toBe('test');
+
+    // Integer
+    $this->cache->put('int', 42);
+    expect($this->cache->get('int'))->toBe(42);
+
+    // Float
+    $this->cache->put('float', 3.14);
+    expect($this->cache->get('float'))->toBe(3.14);
+
+    // Array
+    $this->cache->put('array', ['a', 'b', 'c']);
+    expect($this->cache->get('array'))->toBe(['a', 'b', 'c']);
+
+    // Object
+    $obj = (object)['name' => 'test'];
+    $this->cache->put('object', $obj);
+    expect($this->cache->get('object'))->toEqual($obj);
+
+    // Null
+    $this->cache->put('null', null);
+    expect($this->cache->get('null'))->toBeNull();
+
+    // Boolean
+    $this->cache->put('bool', true);
+    expect($this->cache->get('bool'))->toBeTrue();
+});
+
+test('eviction works with empty cache', function () {
+    $cache = new QueryCache(0);
+    // Should not throw error even with maxItems = 0
+    $cache->put('key1', 'value1');
+    expect($cache->has('key1'))->toBeFalse(); // Immediately evicted
+});
+
+test('multiple items with same creation time evicts first one', function () {
+    $cache = new QueryCache(3);
+    $cache->setCurrentTime(1000);
+
+    $cache->put('key1', 'value1');
+    $cache->put('key2', 'value2');
+    $cache->put('key3', 'value3');
+
+    // All have same creation time, key1 should be evicted first
+    $cache->put('key4', 'value4');
+
+    expect($cache->has('key1'))->toBeFalse();
+    expect($cache->has('key2'))->toBeTrue();
+    expect($cache->has('key3'))->toBeTrue();
+    expect($cache->has('key4'))->toBeTrue();
+});
+
+test('updating existing key updates value and expiration', function () {
+    $this->cache->setCurrentTime(1000);
+    $this->cache->put('key1', 'value1', 10); // Expires at 1010
+
+    // Update the key with new value and TTL
+    $this->cache->setCurrentTime(1005);
+    $this->cache->put('key1', 'value2', 20); // Expires at 1025
+
+    expect($this->cache->get('key1'))->toBe('value2');
+
+    // Should still be valid at 1020
+    $this->cache->setCurrentTime(1020);
+    expect($this->cache->get('key1'))->toBe('value2');
+
+    // Should expire at 1026
+    $this->cache->setCurrentTime(1026);
+    expect($this->cache->get('key1'))->toBeNull();
+});
+
+test('setCurrentTime resets to real time when set to null', function () {
+    $this->cache->setCurrentTime(1000);
+    $this->cache->put('key1', 'value1', 10);
+
+    // Reset to real time
+    $this->cache->setCurrentTime(null);
+
+    // Should use real time() now - we can't test exact value but can verify it works
+    $this->cache->put('key2', 'value2');
+    expect($this->cache->has('key2'))->toBeTrue();
+});
+
+test('evictOldest handles empty cache gracefully', function () {
+    // Create cache with 1 max item
+    $cache = new QueryCache(1);
+
+    // Get access to protected method via reflection
+    $reflection = new ReflectionClass($cache);
+    $method = $reflection->getMethod('evictOldest');
+    $method->setAccessible(true);
+
+    // Should not throw error when cache is empty
+    $method->invoke($cache);
+
+    expect($cache->size())->toBe(0);
 });

@@ -47,7 +47,7 @@ class SQLiteGrammar extends Grammar
 
     public function supportsSavepoints(): bool
     {
-        return false;
+        return true;
     }
 
     protected function compileDateBasedWhere(string $type, BuilderInterface $query, array $where): string

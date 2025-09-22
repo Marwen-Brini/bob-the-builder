@@ -17,6 +17,9 @@ class BobCommand
     protected array $commands = [
         'test-connection' => 'testConnection',
         'build' => 'buildQuery',
+        'execute' => 'executeQuery',
+        'schema' => 'showSchema',
+        'export' => 'exportQuery',
         'help' => 'showHelp',
         'version' => 'showVersion',
     ];
@@ -25,8 +28,11 @@ class BobCommand
 
     protected ?Connection $connection = null;
 
-    public function __construct()
+    protected array $argv;
+
+    public function __construct(array $argv = [])
     {
+        $this->argv = $argv;
         $this->loadConfig();
     }
 
@@ -118,10 +124,20 @@ class BobCommand
     {
         if (empty($args)) {
             $this->error('Please provide a query to build.');
-            $this->info("\nUsage: bob build <driver> <query>");
+            $this->info("\nUsage: bob build <driver> <query> [--execute]");
             $this->info('Example: bob build mysql "select:* from:users where:active,1 limit:10"');
+            $this->info('Example: bob build mysql "select * from users where active = 1" --execute');
 
             return 1;
+        }
+
+        // Check for --execute flag
+        $execute = false;
+        $executeIndex = array_search('--execute', $args);
+        if ($executeIndex !== false) {
+            $execute = true;
+            unset($args[$executeIndex]);
+            $args = array_values($args);
         }
 
         $driver = array_shift($args);
@@ -134,13 +150,36 @@ class BobCommand
         }
 
         try {
-            $grammar = $this->createGrammar($driver);
-            $processor = new Processor;
-            $connection = $this->createMockConnection($grammar, $processor);
+            // Use real connection if executing, mock otherwise
+            if ($execute) {
+                $config = $this->getConnectionConfig($driver, $args);
+                $connection = new Connection($config);
+            } else {
+                $grammar = $this->createGrammar($driver);
+                $processor = new Processor;
+                $connection = $this->createMockConnection($grammar, $processor);
+            }
+
             $builder = new Builder($connection);
 
-            // Parse the query string using new DSL parser
-            $this->parseDSL($queryString, $builder);
+            // Detect which DSL syntax to use
+            if (strpos($queryString, ':') !== false) {
+                // Colon syntax (e.g., select:id,name from:users)
+                $this->parseAndBuildQuery($builder, $queryString);
+            } else {
+                // Natural SQL syntax (e.g., select id, name from users)
+                $this->parseDSL($queryString, $builder);
+            }
+
+            // For aggregates, don't execute in build mode
+            if (!$execute && $builder->aggregate) {
+                $this->success('Aggregate query detected:');
+                $this->output("Function: " . $builder->aggregate['function']);
+                if (isset($builder->aggregate['columns'])) {
+                    $this->output("Columns: " . implode(', ', $builder->aggregate['columns']));
+                }
+                return 0;
+            }
 
             // Get the SQL
             $sql = $builder->toSql();
@@ -161,10 +200,160 @@ class BobCommand
             $formatted = $this->formatQueryWithBindings($sql, $bindings);
             $this->output($formatted);
 
+            // Execute if requested
+            if ($execute) {
+                $this->info("\nExecuting query...");
+                $results = $builder->get();
+                $this->success("Results (" . count($results) . " rows):");
+                foreach ($results as $row) {
+                    $this->output(json_encode($row));
+                }
+            }
+
             return 0;
         } catch (Exception $e) {
             $this->error('Failed to build query: '.$e->getMessage());
 
+            return 1;
+        }
+    }
+
+    protected function executeQuery(array $args): int
+    {
+        if (count($args) < 2) {
+            $this->error('Please provide driver and query.');
+            $this->info("\nUsage: bob execute <driver> <query>");
+            return 1;
+        }
+
+        $driver = array_shift($args);
+        $queryString = implode(' ', $args);
+
+        try {
+            $config = $this->getConnectionConfigWithDefaults($driver);
+            $connection = new Connection($config);
+            $builder = new Builder($connection);
+
+            // Parse query
+            if (strpos($queryString, ':') !== false) {
+                $this->parseAndBuildQuery($builder, $queryString);
+            } else {
+                $this->parseDSL($queryString, $builder);
+            }
+
+            // Execute
+            $results = $builder->get();
+            $this->success("Results (" . count($results) . " rows):");
+
+            // Output as table or JSON based on flag
+            foreach ($results as $row) {
+                $this->output(json_encode($row));
+            }
+
+            return 0;
+        } catch (Exception $e) {
+            $this->error('Execution failed: '.$e->getMessage());
+            return 1;
+        }
+    }
+
+    protected function showSchema(array $args): int
+    {
+        if (empty($args)) {
+            $this->error('Please provide driver and optional table name.');
+            $this->info("\nUsage: bob schema <driver> [table]");
+            return 1;
+        }
+
+        $driver = array_shift($args);
+        $table = $args[0] ?? null;
+
+        try {
+            $config = $this->getConnectionConfigWithDefaults($driver);
+            $connection = new Connection($config);
+
+            if ($table) {
+                // Show specific table schema
+                $columns = $this->getTableSchema($connection, $driver, $table);
+                $this->success("Schema for table '$table':");
+                foreach ($columns as $column) {
+                    $this->output("  - " . json_encode($column));
+                }
+            } else {
+                // List all tables
+                $tables = $this->getTableList($connection, $driver);
+                $this->success("Available tables:");
+                foreach ($tables as $table) {
+                    $this->output("  - $table");
+                }
+            }
+
+            return 0;
+        } catch (Exception $e) {
+            $this->error('Failed to get schema: '.$e->getMessage());
+            return 1;
+        }
+    }
+
+    protected function exportQuery(array $args): int
+    {
+        if (count($args) < 2) {
+            $this->error('Please provide driver and query.');
+            $this->info("\nUsage: bob export <driver> <query> [--format=csv|json]");
+            return 1;
+        }
+
+        // Parse format flag
+        $format = 'json';
+        foreach ($args as $key => $arg) {
+            if (strpos($arg, '--format=') === 0) {
+                $format = substr($arg, 9);
+                unset($args[$key]);
+            }
+        }
+        $args = array_values($args);
+
+        $driver = array_shift($args);
+        $queryString = implode(' ', $args);
+
+        try {
+            $config = $this->getConnectionConfigWithDefaults($driver);
+            $connection = new Connection($config);
+            $builder = new Builder($connection);
+
+            // Parse query
+            if (strpos($queryString, ':') !== false) {
+                $this->parseAndBuildQuery($builder, $queryString);
+            } else {
+                $this->parseDSL($queryString, $builder);
+            }
+
+            // Execute and export
+            $results = $builder->get();
+
+            if ($format === 'csv') {
+                // Output as CSV
+                if (count($results) > 0) {
+                    // Headers
+                    $headers = array_keys((array)$results[0]);
+                    $this->output(implode(',', $headers));
+
+                    // Data
+                    foreach ($results as $row) {
+                        $values = array_map(function($v) {
+                            return is_string($v) ? '"' . str_replace('"', '""', $v) . '"' : $v;
+                        }, (array)$row);
+                        $this->output(implode(',', $values));
+                    }
+                }
+            } else {
+                // Output as JSON
+                $this->output(json_encode($results, JSON_PRETTY_PRINT));
+            }
+
+            return 0;
+        } catch (Exception $e) {
+            $this->error('Export failed: '.$e->getMessage());
             return 1;
         }
     }
@@ -175,26 +364,31 @@ class BobCommand
         $this->output("Usage: bob <command> [options]\n");
         $this->output('Commands:');
         $this->output('  test-connection <driver> [options]  Test database connection');
-        $this->output('  build <driver> <query>              Build and display SQL query');
-        $this->output('  version                             Show version information');
-        $this->output("  help                                Show this help message\n");
+        $this->output('  build <driver> <query> [--execute]  Build and display SQL query');
+        $this->output('  execute <driver> <query>             Execute query and show results');
+        $this->output('  schema <driver> [table]              Show database schema');
+        $this->output('  export <driver> <query> [--format]   Export query results');
+        $this->output('  version                              Show version information');
+        $this->output("  help                                 Show this help message\n");
 
         $this->output("Drivers: mysql, pgsql, sqlite\n");
 
         $this->output('Connection options:');
-        $this->output('  --host=<host>      Database host (default: localhost)');
+        $this->output('  --host=<host>      Database host (default: from config or localhost)');
         $this->output('  --port=<port>      Database port');
         $this->output('  --database=<db>    Database name');
         $this->output('  --username=<user>  Database username');
         $this->output('  --password=<pass>  Database password');
         $this->output("  --path=<path>      SQLite database path\n");
 
-        $this->output('Query syntax:');
-        $this->output('  select:<columns> from:<table> where:<field>,<value> ...');
+        $this->output('Query syntax (both supported):');
+        $this->output('  Colon syntax: select:<columns> from:<table> where:<field>,<value>');
+        $this->output('  SQL syntax: select <columns> from <table> where <field> = <value>');
         $this->output('  Examples:');
         $this->output('    bob build mysql "select:* from:users where:active,1"');
-        $this->output('    bob build sqlite "select:name,email from:users limit:10"');
-        
+        $this->output('    bob build sqlite "select name, email from users limit 10"');
+        $this->output('    bob execute mysql "select * from users" --format=csv');
+
         return 0;
     }
 
@@ -322,6 +516,11 @@ class BobCommand
             }
         }
 
+        // Apply loaded configuration first
+        if (isset($this->config['connections'][$driver])) {
+            $config = array_merge($this->config['connections'][$driver], $config);
+        }
+
         // Set defaults based on driver
         switch ($driver) {
             case 'mysql':
@@ -349,6 +548,66 @@ class BobCommand
         }
 
         return $config;
+    }
+
+    protected function getConnectionConfigWithDefaults(string $driver): array
+    {
+        // Use config file or defaults without command line args
+        $config = ['driver' => $driver];
+
+        // Apply loaded configuration
+        if (isset($this->config['connections'][$driver])) {
+            $config = array_merge($config, $this->config['connections'][$driver]);
+        }
+
+        // Set defaults based on driver if not in config
+        switch ($driver) {
+            case 'mysql':
+                $config['host'] = $config['host'] ?? 'localhost';
+                $config['port'] = $config['port'] ?? 3306;
+                $config['database'] = $config['database'] ?? 'test';
+                $config['username'] = $config['username'] ?? 'root';
+                $config['password'] = $config['password'] ?? '';
+                $config['charset'] = $config['charset'] ?? 'utf8mb4';
+                $config['collation'] = $config['collation'] ?? 'utf8mb4_unicode_ci';
+                break;
+
+            case 'pgsql':
+                $config['host'] = $config['host'] ?? 'localhost';
+                $config['port'] = $config['port'] ?? 5432;
+                $config['database'] = $config['database'] ?? 'test';
+                $config['username'] = $config['username'] ?? 'postgres';
+                $config['password'] = $config['password'] ?? '';
+                $config['charset'] = $config['charset'] ?? 'utf8';
+                break;
+
+            case 'sqlite':
+                $config['database'] = $config['path'] ?? $config['database'] ?? ':memory:';
+                break;
+        }
+
+        return $config;
+    }
+
+    protected function getTableSchema(Connection $connection, string $driver, string $table): array
+    {
+        switch ($driver) {
+            case 'mysql':
+                return $connection->select("SHOW COLUMNS FROM `$table`");
+
+            case 'pgsql':
+                return $connection->select("
+                    SELECT column_name, data_type, is_nullable, column_default
+                    FROM information_schema.columns
+                    WHERE table_name = ?
+                ", [$table]);
+
+            case 'sqlite':
+                return $connection->select("PRAGMA table_info($table)");
+
+            default:
+                return [];
+        }
     }
 
     protected function createGrammar(string $driver)
@@ -472,6 +731,28 @@ class BobCommand
                         $value = $parts[$i + 2];
                         $builder->where($column, $operator, $value);
                         $i += 3;
+
+                        // Check for AND/OR
+                        while ($i < count($parts)) {
+                            $next = strtolower($parts[$i]);
+                            if ($next === 'and' && $i + 3 < count($parts)) {
+                                $i++;
+                                $column = $parts[$i];
+                                $operator = $parts[$i + 1];
+                                $value = $parts[$i + 2];
+                                $builder->where($column, $operator, $value);
+                                $i += 3;
+                            } elseif ($next === 'or' && $i + 3 < count($parts)) {
+                                $i++;
+                                $column = $parts[$i];
+                                $operator = $parts[$i + 1];
+                                $value = $parts[$i + 2];
+                                $builder->orWhere($column, $operator, $value);
+                                $i += 3;
+                            } else {
+                                break;
+                            }
+                        }
                     }
                     break;
 
@@ -532,18 +813,25 @@ class BobCommand
                     }
                     break;
 
-                case 'count':
-                    // Check if there's a column specified or default to *
+                case 'offset':
                     $i++;
-                    if ($i < count($parts) && strtolower($parts[$i]) === 'from') {
-                        // Count all records from table
-                        $builder->count();
-                    } else {
-                        // Count specific column
-                        $column = ($i < count($parts)) ? $parts[$i] : '*';
-                        $builder->count($column);
-                        if ($i < count($parts)) $i++;
+                    if ($i < count($parts)) {
+                        $builder->offset((int) $parts[$i]);
+                        $i++;
                     }
+                    break;
+
+                case 'count':
+                    // For build command, just set aggregate without executing
+                    $i++;
+                    if ($i < count($parts) && strtolower($parts[$i]) !== 'from') {
+                        $column = trim($parts[$i], '()');
+                        $i++;
+                    } else {
+                        $column = '*';
+                    }
+                    // Set aggregate info without executing
+                    $builder->aggregate = ['function' => 'count', 'columns' => [$column]];
                     break;
 
                 case 'sum':
@@ -551,11 +839,13 @@ class BobCommand
                 case 'min':
                 case 'max':
                     $i++;
+                    $column = '*';
                     if ($i < count($parts)) {
                         $column = trim($parts[$i], '()');
-                        $builder->{$part}($column);
                         $i++;
                     }
+                    // Set aggregate info without executing
+                    $builder->aggregate = ['function' => $part, 'columns' => [$column]];
                     break;
 
                 default:

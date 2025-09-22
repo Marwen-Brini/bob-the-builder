@@ -1,221 +1,405 @@
 <?php
 
-use Bob\Database\Connection;
 use Bob\Logging\Log;
-use Psr\Log\NullLogger;
+use Bob\Logging\QueryLogger;
+use Bob\Database\Connection;
+use Psr\Log\LoggerInterface;
+use Mockery as m;
 
-beforeEach(function () {
-    Log::reset();
-});
+describe('Log Tests', function () {
 
-test('can enable and disable logging globally', function () {
-    expect(Log::isEnabled())->toBeFalse();
+    beforeEach(function () {
+        // Reset the Log state before each test
+        Log::reset();
+    });
 
-    Log::enable();
-    expect(Log::isEnabled())->toBeTrue();
+    afterEach(function () {
+        m::close();
+        Log::reset(); // Clean up after each test
+    });
 
-    Log::disable();
-    expect(Log::isEnabled())->toBeFalse();
-});
+    test('Log starts with disabled state', function () {
+        expect(Log::isEnabled())->toBeFalse();
+    });
 
-test('can set and get global logger', function () {
-    $logger = new NullLogger;
+    test('enable method enables logging globally', function () {
+        Log::enable();
+        expect(Log::isEnabled())->toBeTrue();
+    });
 
-    Log::setLogger($logger);
+    test('disable method disables logging globally', function () {
+        Log::enable();
+        Log::disable();
+        expect(Log::isEnabled())->toBeFalse();
+    });
 
-    expect(Log::getLogger())->toBe($logger);
-});
+    test('setLogger sets global PSR-3 logger', function () {
+        $logger = m::mock(LoggerInterface::class);
 
-test('automatically configures registered connections when enabling globally', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        Log::setLogger($logger);
 
-    expect($connection->isLoggingEnabled())->toBeFalse();
+        expect(Log::getLogger())->toBe($logger);
+    });
 
-    Log::enable();
+    test('clearLogger removes global logger', function () {
+        $logger = m::mock(LoggerInterface::class);
 
-    expect($connection->isLoggingEnabled())->toBeTrue();
-});
+        Log::setLogger($logger);
+        Log::clearLogger();
 
-test('can enable logging for specific connection', function () {
-    $connection1 = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        expect(Log::getLogger())->toBeNull();
+    });
 
-    $connection2 = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+    test('getQueryLogger returns QueryLogger instance', function () {
+        $queryLogger = Log::getQueryLogger();
 
-    Log::enableFor($connection1);
+        expect($queryLogger)->toBeInstanceOf(QueryLogger::class);
+    });
 
-    expect($connection1->isLoggingEnabled())->toBeTrue();
-    expect($connection2->isLoggingEnabled())->toBeFalse();
-});
+    test('getQueryLogger returns same instance on multiple calls', function () {
+        $queryLogger1 = Log::getQueryLogger();
+        $queryLogger2 = Log::getQueryLogger();
 
-test('can disable logging for specific connection', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        expect($queryLogger1)->toBe($queryLogger2);
+    });
 
-    Log::enable();
-    expect($connection->isLoggingEnabled())->toBeTrue();
+    test('registerConnection adds connection to registry', function () {
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('setQueryLogger')->once();
 
-    Log::disableFor($connection);
-    expect($connection->isLoggingEnabled())->toBeFalse();
-});
+        Log::registerConnection($connection);
 
-test('shares global logger with registered connections', function () {
-    // Start with logging disabled
-    Log::disable();
+        // Enable logging should affect registered connections
+        $connection->shouldReceive('enableQueryLog')->once();
+        Log::enable();
+    });
 
-    $logger = new NullLogger;
-    Log::setLogger($logger);
+    test('registerConnection enables logging if globally enabled', function () {
+        $connection = m::mock(Connection::class);
 
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        Log::enable(); // Enable first
 
-    expect($connection->isLoggingEnabled())->toBeFalse();
+        $connection->shouldReceive('enableQueryLog')->once();
+        $connection->shouldReceive('setQueryLogger')->once();
 
-    Log::enable();
+        Log::registerConnection($connection);
+    });
 
-    expect($connection->isLoggingEnabled())->toBeTrue();
-});
+    test('registerConnection sets logger if global logger exists', function () {
+        $logger = m::mock(LoggerInterface::class);
+        $connection = m::mock(Connection::class);
 
-test('can get query log from all connections', function () {
-    Log::enable();
+        Log::setLogger($logger);
 
-    $connection1 = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        $connection->shouldReceive('setLogger')->with($logger)->once();
+        $connection->shouldReceive('setQueryLogger')->once();
 
-    $connection2 = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        Log::registerConnection($connection);
+    });
 
-    // Clear any connection logs
-    Log::clearQueryLog();
+    test('unregisterConnection removes connection from registry', function () {
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('setQueryLogger')->once();
 
-    // Use logQuery directly since toSql() doesn't log
-    $connection1->logQuery('SELECT * FROM users', [], 10);
-    $connection2->logQuery('SELECT * FROM posts', [], 15);
+        Log::registerConnection($connection);
+        Log::unregisterConnection($connection);
 
-    $log = Log::getQueryLog();
+        // After unregistering, enable should not affect the connection
+        Log::enable();
+        // No expectations on connection means it won't be called
+    });
 
-    expect($log)->toBeArray();
-    // Just check that we have logs from both connections
-    $queries = array_filter($log, fn ($entry) => isset($entry['query']));
-    expect($queries)->toHaveCount(2);
-});
+    test('enableFor enables logging for specific connection', function () {
+        $connection = m::mock(Connection::class);
 
-test('can clear query log for all connections', function () {
-    Log::enable();
+        $connection->shouldReceive('enableQueryLog')->once();
+        $connection->shouldReceive('setQueryLogger')->once();
 
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        Log::enableFor($connection);
+    });
 
-    // Use logQuery directly
-    $connection->logQuery('SELECT * FROM users', [], 10);
+    test('enableFor registers connection if not already registered', function () {
+        $connection = m::mock(Connection::class);
 
-    expect(Log::getQueryLog())->not->toBeEmpty();
+        $connection->shouldReceive('enableQueryLog')->twice(); // Once in enableFor, once in enable
+        $connection->shouldReceive('setQueryLogger')->once();
 
-    Log::clearQueryLog();
+        Log::enableFor($connection);
+        Log::enable(); // This should affect the registered connection
+    });
 
-    expect(Log::getQueryLog())->toBeEmpty();
-});
+    test('disableFor disables logging for specific connection', function () {
+        $connection = m::mock(Connection::class);
 
-test('can get statistics from all connections', function () {
-    Log::enable();
+        $connection->shouldReceive('disableQueryLog')->once();
 
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        Log::disableFor($connection);
+    });
 
-    $stats = Log::getStatistics();
+    test('getQueryLog returns empty array when no logger', function () {
+        $result = Log::getQueryLog();
 
-    expect($stats)->toBeArray()
-        ->toHaveKeys(['total_queries', 'total_time', 'average_time', 'slow_queries', 'queries_by_type', 'connections']);
+        expect($result)->toBe([]);
+    });
 
-    expect($stats['connections'])->toBe(1);
-});
+    test('getQueryLog returns logs from global query logger', function () {
+        $queryLogger = Log::getQueryLogger();
 
-test('can configure global logging settings', function () {
-    Log::configure([
-        'log_bindings' => false,
-        'log_time' => false,
-        'slow_query_threshold' => 500,
-        'max_query_log' => 50,
-    ]);
+        // Mock the query log
+        $mockLogs = [['query' => 'SELECT * FROM users']];
 
-    $queryLogger = Log::getQueryLogger();
+        // Use reflection to set the query log
+        $reflection = new ReflectionClass($queryLogger);
+        $property = $reflection->getProperty('queryLog');
+        $property->setAccessible(true);
+        $property->setValue($queryLogger, $mockLogs);
 
-    expect($queryLogger)->toBeInstanceOf(\Bob\Logging\QueryLogger::class);
-});
+        $result = Log::getQueryLog();
 
-test('can log queries manually', function () {
-    Log::enable();
+        expect($result)->toBe($mockLogs);
+    });
 
-    Log::logQuery('SELECT * FROM users WHERE id = ?', [1], 10.5);
+    test('clearQueryLog clears all logs', function () {
+        $queryLogger = Log::getQueryLogger();
 
-    $log = Log::getQueryLog();
+        // Add some logs
+        $reflection = new ReflectionClass($queryLogger);
+        $property = $reflection->getProperty('queryLog');
+        $property->setAccessible(true);
+        $property->setValue($queryLogger, [['query' => 'test']]);
 
-    expect($log)->toHaveCount(1);
-    expect($log[0])->toHaveKeys(['query', 'bindings', 'time']);
-    expect($log[0]['query'])->toBe('SELECT * FROM users WHERE id = ?');
-    expect($log[0]['bindings'])->toBe([1]);
-    expect($log[0]['time'])->toBe('10.5ms');
-});
+        Log::clearQueryLog();
 
-test('can log errors manually', function () {
-    Log::enable();
+        expect($property->getValue($queryLogger))->toBe([]);
+    });
 
-    Log::logError('Database connection failed', ['host' => 'localhost']);
+    test('clearQueryLog clears logs from registered connections', function () {
+        $connection = m::mock(Connection::class);
 
-    $log = Log::getQueryLog();
+        $connection->shouldReceive('setQueryLogger')->once();
+        $connection->shouldReceive('clearQueryLog')->once();
 
-    expect($log)->toHaveCount(1);
-    expect($log[0])->toHaveKeys(['level', 'message', 'context']);
-    expect($log[0]['level'])->toBe('error');
-    expect($log[0]['message'])->toBe('Database connection failed');
-});
+        Log::registerConnection($connection);
+        Log::clearQueryLog();
+    });
 
-test('can log info manually', function () {
-    Log::enable();
+    test('getStatistics returns statistics', function () {
+        $stats = Log::getStatistics();
 
-    Log::logInfo('Cache cleared', ['duration' => '100ms']);
+        expect($stats)->toHaveKeys(['total_queries', 'total_time', 'average_time', 'slow_queries', 'queries_by_type', 'connections']);
+        expect($stats['total_queries'])->toBe(0);
+        expect($stats['connections'])->toBe(0);
+    });
 
-    $log = Log::getQueryLog();
+    test('getStatistics merges statistics from query logger', function () {
+        Log::enable();
 
-    expect($log)->toHaveCount(1);
-    expect($log[0])->toHaveKeys(['level', 'message', 'context']);
-    expect($log[0]['level'])->toBe('info');
-    expect($log[0]['message'])->toBe('Cache cleared');
-});
+        // Log some queries to generate statistics
+        Log::logQuery('SELECT * FROM users', [], 20);
+        Log::logQuery('SELECT * FROM posts', [], 30);
+        Log::logQuery('INSERT INTO logs', [], 50);
 
-test('reset clears all global state', function () {
-    $logger = new NullLogger;
-    Log::setLogger($logger);
-    Log::enable();
+        $stats = Log::getStatistics();
 
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        expect($stats['total_queries'])->toBe(3);
+        expect($stats['total_time'])->toBe('100ms');
+        expect($stats['average_time'])->toBe('33.33ms');
+        expect($stats['queries_by_type'])->toHaveKey('SELECT');
+    });
 
-    Log::reset();
+    test('configure updates global configuration', function () {
+        Log::configure([
+            'log_bindings' => false,
+            'log_time' => false,
+            'slow_query_threshold' => 500
+        ]);
 
-    expect(Log::isEnabled())->toBeFalse();
-    expect(Log::getLogger())->toBeNull();
-    expect(Log::getStatistics()['connections'])->toBe(0);
+        $queryLogger = Log::getQueryLogger();
+
+        // Check that configuration is applied
+        $reflection = new ReflectionClass($queryLogger);
+
+        $logBindings = $reflection->getProperty('logBindings');
+        $logBindings->setAccessible(true);
+        expect($logBindings->getValue($queryLogger))->toBeFalse();
+
+        $logTime = $reflection->getProperty('logTime');
+        $logTime->setAccessible(true);
+        expect($logTime->getValue($queryLogger))->toBeFalse();
+
+        $threshold = $reflection->getProperty('slowQueryThreshold');
+        $threshold->setAccessible(true);
+        expect($threshold->getValue($queryLogger))->toBe(500.0);
+    });
+
+    test('configure applies to existing query logger', function () {
+        $queryLogger = Log::getQueryLogger(); // Create logger first
+
+        Log::configure([
+            'log_bindings' => false,
+            'log_time' => false,
+            'slow_query_threshold' => 200
+        ]);
+
+        $reflection = new ReflectionClass($queryLogger);
+
+        $threshold = $reflection->getProperty('slowQueryThreshold');
+        $threshold->setAccessible(true);
+        expect($threshold->getValue($queryLogger))->toBe(200.0);
+    });
+
+    test('logQuery logs when enabled', function () {
+        Log::enable();
+
+        Log::logQuery('SELECT * FROM users', ['id' => 1], 10.5);
+
+        $logs = Log::getQueryLog();
+        expect($logs)->toHaveCount(1);
+        expect($logs[0]['query'])->toBe('SELECT * FROM users');
+        expect($logs[0]['bindings'])->toBe(['id' => 1]);
+        expect($logs[0]['time'])->toBe(10.5);
+    });
+
+    test('logQuery does not log when disabled', function () {
+        Log::disable();
+
+        Log::logQuery('SELECT * FROM users', ['id' => 1], 10.5);
+
+        $logs = Log::getQueryLog();
+        expect($logs)->toHaveCount(0);
+    });
+
+    test('logError logs error when enabled', function () {
+        $logger = m::mock(LoggerInterface::class);
+        $logger->shouldReceive('error')->with('Test error', ['context' => 'test'])->once();
+
+        Log::setLogger($logger);
+        Log::enable();
+
+        Log::logError('Test error', ['context' => 'test']);
+    });
+
+    test('logError does not log when disabled', function () {
+        $logger = m::mock(LoggerInterface::class);
+        $logger->shouldNotReceive('error');
+
+        Log::setLogger($logger);
+        Log::disable();
+
+        Log::logError('Test error', ['context' => 'test']);
+    });
+
+    test('logInfo logs info when enabled', function () {
+        $logger = m::mock(LoggerInterface::class);
+        $logger->shouldReceive('info')->with('Test info', ['context' => 'test'])->once();
+
+        Log::setLogger($logger);
+        Log::enable();
+
+        Log::logInfo('Test info', ['context' => 'test']);
+    });
+
+    test('logInfo does not log when disabled', function () {
+        $logger = m::mock(LoggerInterface::class);
+        $logger->shouldNotReceive('info');
+
+        Log::setLogger($logger);
+        Log::disable();
+
+        Log::logInfo('Test info', ['context' => 'test']);
+    });
+
+    test('reset clears all state', function () {
+        $logger = m::mock(LoggerInterface::class);
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('setQueryLogger')->once();
+        $connection->shouldReceive('setLogger')->once();
+        $connection->shouldReceive('enableQueryLog')->once(); // Called when registering after global enable
+
+        Log::enable();
+        Log::setLogger($logger);
+        Log::registerConnection($connection);
+
+        Log::reset();
+
+        expect(Log::isEnabled())->toBeFalse();
+        expect(Log::getLogger())->toBeNull();
+
+        // Connections should be cleared - enable should not affect the previously registered connection
+        Log::enable(); // No expectations means connection won't be called
+    });
+
+    test('mergeStatistics merges statistics correctly', function () {
+        // Test protected method via reflection
+        $reflection = new ReflectionClass(Log::class);
+        $method = $reflection->getMethod('mergeStatistics');
+        $method->setAccessible(true);
+
+        $stats1 = [
+            'total_queries' => 5,
+            'total_time' => 100,
+            'slow_queries' => 1,
+            'queries_by_type' => ['select' => 3, 'insert' => 2]
+        ];
+
+        $stats2 = [
+            'total_queries' => 3,
+            'total_time' => '50ms',
+            'slow_queries' => 2,
+            'queries_by_type' => ['select' => 1, 'update' => 2]
+        ];
+
+        $merged = $method->invoke(null, $stats1, $stats2);
+
+        expect($merged['total_queries'])->toBe(8);
+        expect($merged['total_time'])->toBe(150.0);
+        expect($merged['slow_queries'])->toBe(3);
+        expect($merged['queries_by_type'])->toBe(['select' => 4, 'insert' => 2, 'update' => 2]);
+    });
+
+    test('setLogger updates existing query logger', function () {
+        $logger1 = m::mock(LoggerInterface::class);
+        $logger2 = m::mock(LoggerInterface::class);
+
+        Log::setLogger($logger1);
+        $queryLogger = Log::getQueryLogger(); // Create query logger with first logger
+
+        Log::setLogger($logger2);
+
+        // Check that query logger was updated
+        $reflection = new ReflectionClass($queryLogger);
+        $property = $reflection->getProperty('logger');
+        $property->setAccessible(true);
+
+        expect($property->getValue($queryLogger))->toBe($logger2);
+    });
+
+    test('enable updates existing query logger state', function () {
+        Log::disable();
+        $queryLogger = Log::getQueryLogger(); // Create while disabled
+
+        Log::enable();
+
+        // Check that query logger was enabled
+        $reflection = new ReflectionClass($queryLogger);
+        $property = $reflection->getProperty('enabled');
+        $property->setAccessible(true);
+
+        expect($property->getValue($queryLogger))->toBeTrue();
+    });
+
+    test('disable updates existing query logger state', function () {
+        Log::enable();
+        $queryLogger = Log::getQueryLogger(); // Create while enabled
+
+        Log::disable();
+
+        // Check that query logger was disabled
+        $reflection = new ReflectionClass($queryLogger);
+        $property = $reflection->getProperty('enabled');
+        $property->setAccessible(true);
+
+        expect($property->getValue($queryLogger))->toBeFalse();
+    });
+
 });

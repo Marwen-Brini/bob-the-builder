@@ -4,12 +4,15 @@ namespace Bob\Database;
 
 use Bob\Contracts\ConnectionInterface;
 use Bob\Query\Builder;
+use Bob\Database\Relations;
+use Bob\Support\Collection;
+use JsonSerializable;
 
 /**
  * Base Model class that provides ActiveRecord-like functionality
  * Combines global extensions (via Macroable) with model-specific methods
  */
-abstract class Model
+class Model implements JsonSerializable
 {
     /**
      * The connection instance
@@ -42,6 +45,11 @@ abstract class Model
     protected string $updatedAt = 'updated_at';
 
     /**
+     * The attributes that should be cast to native types
+     */
+    protected array $casts = [];
+
+    /**
      * The model's attributes
      */
     protected array $attributes = [];
@@ -52,11 +60,34 @@ abstract class Model
     protected array $original = [];
 
     /**
+     * The changed attributes for the model.
+     */
+    protected array $changes = [];
+
+    /**
+     * The loaded relationships for the model.
+     */
+    protected array $relations = [];
+
+    /**
+     * Indicates if we should ignore touch events.
+     */
+    protected static bool $ignoreTouch = false;
+
+    /**
      * Set the global connection for all models
      */
-    public static function setConnection(ConnectionInterface $connection): void
+    public static function setConnection(?ConnectionInterface $connection): void
     {
         static::$connection = $connection;
+    }
+
+    /**
+     * Clear the global connection
+     */
+    public static function clearConnection(): void
+    {
+        static::$connection = null;
     }
 
     /**
@@ -78,7 +109,10 @@ abstract class Model
     {
         $instance = new static;
 
-        return static::getConnection()->table($instance->getTable());
+        $builder = static::getConnection()->table($instance->getTable());
+        $builder->setModel($instance);
+
+        return $builder;
     }
 
     /**
@@ -129,7 +163,7 @@ abstract class Model
     public function __construct(array $attributes = [])
     {
         $this->fill($attributes);
-        $this->original = $this->attributes;
+        // Don't set original here as hydrate handles it
     }
 
     /**
@@ -138,10 +172,32 @@ abstract class Model
     public function fill(array $attributes): self
     {
         foreach ($attributes as $key => $value) {
-            $this->setAttribute($key, $value);
+            // Check if the attribute is fillable
+            if ($this->isFillable($key)) {
+                $this->setAttribute($key, $value);
+            }
         }
 
         return $this;
+    }
+
+    /**
+     * Determine if the given attribute may be mass assigned
+     */
+    protected function isFillable(string $key): bool
+    {
+        // If fillable is empty and guarded is empty, allow all
+        if (empty($this->fillable) && empty($this->guarded)) {
+            return true;
+        }
+
+        // If fillable is set, only allow those attributes
+        if (!empty($this->fillable)) {
+            return in_array($key, $this->fillable);
+        }
+
+        // If guarded is set, allow all except guarded
+        return !in_array($key, $this->guarded);
     }
 
     /**
@@ -155,11 +211,46 @@ abstract class Model
     }
 
     /**
+     * Get all attributes
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    /**
      * Get an attribute from the model
      */
     public function getAttribute(string $key, $default = null)
     {
-        return $this->attributes[$key] ?? $default;
+        // Handle special properties
+        if ($key === 'exists') {
+            return $this->exists();
+        }
+
+        // Check attributes first
+        if (isset($this->attributes[$key])) {
+            return $this->attributes[$key];
+        }
+
+        // Check loaded relations
+        if (isset($this->relations[$key])) {
+            return $this->relations[$key];
+        }
+
+        // Check if it's a relationship method
+        if (method_exists($this, $key)) {
+            $relation = $this->{$key}();
+
+            // If it's a relation object, execute the query
+            if ($relation instanceof Relations\Relation) {
+                $result = $relation->getResults();
+                $this->relations[$key] = $result;
+                return $result;
+            }
+        }
+
+        return $default;
     }
 
     /**
@@ -189,6 +280,7 @@ abstract class Model
 
         if ($id) {
             $this->setAttribute($this->primaryKey, $id);
+            $this->syncChanges();
             $this->original = $this->attributes;
 
             return true;
@@ -202,23 +294,48 @@ abstract class Model
      */
     protected function update(): bool
     {
-        if ($this->timestamps) {
-            $this->setAttribute($this->updatedAt, date('Y-m-d H:i:s'));
+        // First check if anything is dirty before timestamps
+        if (!$this->isDirty()) {
+            // Nothing dirty, no need to update
+            return true;
         }
 
-        $dirty = $this->getDirty();
+        $dirty = $this->prepareAttributesForUpdate();
 
         if (empty($dirty)) {
             return true;
         }
 
+        return $this->performUpdate($dirty);
+    }
+
+    /**
+     * Prepare attributes for update
+     */
+    protected function prepareAttributesForUpdate(): array
+    {
+        $dirty = $this->getDirty();
+
+        if ($this->timestamps) {
+            $this->setAttribute($this->updatedAt, date('Y-m-d H:i:s'));
+            $dirty = $this->getDirty();
+        }
+
+        return $dirty;
+    }
+
+    /**
+     * Perform the actual update query
+     */
+    protected function performUpdate(array $dirty): bool
+    {
         $updated = static::query()
             ->where($this->primaryKey, $this->getAttribute($this->primaryKey))
             ->update($dirty);
 
         if ($updated) {
+            $this->syncChanges();
             $this->original = $this->attributes;
-
             return true;
         }
 
@@ -230,10 +347,26 @@ abstract class Model
      */
     public function delete(): bool
     {
-        if (! $this->exists()) {
+        if (!$this->canDelete()) {
             return false;
         }
 
+        return $this->performDelete();
+    }
+
+    /**
+     * Check if model can be deleted
+     */
+    protected function canDelete(): bool
+    {
+        return $this->exists();
+    }
+
+    /**
+     * Perform the actual delete query
+     */
+    protected function performDelete(): bool
+    {
         return (bool) static::query()
             ->where($this->primaryKey, $this->getAttribute($this->primaryKey))
             ->delete();
@@ -281,11 +414,9 @@ abstract class Model
     public static function find($id): ?self
     {
         $instance = new static;
-        $result = static::query()
+        return static::query()
             ->where($instance->primaryKey, $id)
             ->first();
-
-        return $result ? static::hydrate($result) : null;
     }
 
     /**
@@ -307,9 +438,7 @@ abstract class Model
      */
     public static function all(): array
     {
-        $results = static::query()->get();
-
-        return static::hydrateMany($results);
+        return static::query()->get();
     }
 
     /**
@@ -317,18 +446,27 @@ abstract class Model
      */
     public static function first(): ?self
     {
-        $result = static::query()->first();
-
-        return $result ? static::hydrate($result) : null;
+        return static::query()->first();
     }
 
     /**
      * Create a model instance from database result
      */
-    protected static function hydrate($data): self
+    public static function hydrate($data): self
     {
+        // If data is already a Model instance, just return it
+        if ($data instanceof self) {
+            return $data;
+        }
+
         $attributes = is_object($data) ? (array) $data : $data;
-        $model = new static($attributes);
+        $model = new static();
+
+        // Directly set attributes without fillable check for hydration
+        foreach ($attributes as $key => $value) {
+            $model->setAttribute($key, $value);
+        }
+
         $model->original = $attributes;
 
         return $model;
@@ -347,7 +485,82 @@ abstract class Model
      */
     public function toArray(): array
     {
-        return $this->attributes;
+        $array = $this->getVisibleAttributes();
+        $array = $this->appendAccessors($array);
+        $array = $this->appendRelations($array);
+
+        return $array;
+    }
+
+    /**
+     * Get visible attributes
+     */
+    protected function getVisibleAttributes(): array
+    {
+        $array = [];
+        foreach ($this->attributes as $key => $value) {
+            if ($this->isVisible($key)) {
+                $array[$key] = $value;
+            }
+        }
+        return $array;
+    }
+
+    /**
+     * Append accessor values to array
+     */
+    protected function appendAccessors(array $array): array
+    {
+        foreach ($this->appends ?? [] as $key) {
+            $accessor = 'get' . str_replace('_', '', ucwords($key, '_')) . 'Attribute';
+            if (method_exists($this, $accessor)) {
+                $array[$key] = $this->$accessor();
+            }
+        }
+        return $array;
+    }
+
+    /**
+     * Append relation values to array
+     */
+    protected function appendRelations(array $array): array
+    {
+        foreach ($this->relations as $key => $value) {
+            if ($this->isVisible($key)) {
+                $array[$key] = $this->serializeRelation($value);
+            }
+        }
+        return $array;
+    }
+
+    /**
+     * Serialize a relation value
+     */
+    protected function serializeRelation($value)
+    {
+        if ($value instanceof Model) {
+            return $value->toArray();
+        }
+
+        if (is_array($value)) {
+            return array_map(function ($item) {
+                return $item instanceof Model ? $item->toArray() : $item;
+            }, $value);
+        }
+
+        if ($value instanceof Collection) {
+            return $value->toArray();
+        }
+
+        return $value;
+    }
+
+    /**
+     * Check if an attribute is visible
+     */
+    protected function isVisible(string $key): bool
+    {
+        return !in_array($key, $this->hidden ?? []);
     }
 
     /**
@@ -356,6 +569,82 @@ abstract class Model
     public function toJson(int $options = 0): string
     {
         return json_encode($this->toArray(), $options);
+    }
+
+    /**
+     * Convert the model's attributes to an array.
+     */
+    public function attributesToArray(): array
+    {
+        // Reuse the same logic as toArray
+        return $this->toArray();
+    }
+
+    /**
+     * Specify data which should be serialized to JSON
+     */
+    public function jsonSerialize(): mixed
+    {
+        return $this->toArray();
+    }
+
+    /**
+     * Convert the model to its string representation
+     */
+    public function __toString(): string
+    {
+        return $this->toJson();
+    }
+
+    /**
+     * Get a casted attribute value
+     */
+    public function getCastedAttribute(string $key)
+    {
+        $value = $this->getAttribute($key);
+
+        if (!isset($this->casts[$key])) {
+            return $value;
+        }
+
+        return $this->castAttribute($key, $value);
+    }
+
+    /**
+     * Cast an attribute to a native PHP type
+     */
+    protected function castAttribute(string $key, $value)
+    {
+        if (is_null($value)) {
+            return $value;
+        }
+
+        $castType = $this->casts[$key] ?? null;
+
+        switch ($castType) {
+            case 'int':
+            case 'integer':
+                return (int) $value;
+            case 'real':
+            case 'float':
+            case 'double':
+                return (float) $value;
+            case 'string':
+                return (string) $value;
+            case 'bool':
+            case 'boolean':
+                return (bool) $value;
+            case 'array':
+                return is_string($value) ? json_decode($value, true) : (array) $value;
+            case 'json':
+                return is_string($value) ? json_decode($value, true) : (array) $value;
+            case 'object':
+                return is_string($value) ? json_decode($value) : (object) $value;
+            case 'datetime':
+                return new \DateTime($value);
+            default:
+                return $value;
+        }
     }
 
     /**
@@ -458,4 +747,649 @@ abstract class Model
      * $post = Post::findBySlug('my-post');
      * $posts = Post::published()->get();
      */
+
+    // ============================================================
+    // Relationship Methods
+    // ============================================================
+
+    /**
+     * Define a one-to-one relationship.
+     */
+    public function hasOne(string $related, ?string $foreignKey = null, ?string $localKey = null): Relations\HasOne
+    {
+        $instance = $this->newRelatedInstance($related);
+
+        $foreignKey = $foreignKey ?: $this->getForeignKey();
+        $localKey = $localKey ?: $this->getKeyName();
+
+        return new Relations\HasOne($instance->newQuery(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
+    }
+
+    /**
+     * Define a one-to-many relationship.
+     */
+    public function hasMany(string $related, ?string $foreignKey = null, ?string $localKey = null): Relations\HasMany
+    {
+        $instance = $this->newRelatedInstance($related);
+
+        $foreignKey = $foreignKey ?: $this->getForeignKey();
+        $localKey = $localKey ?: $this->getKeyName();
+
+        return new Relations\HasMany($instance->newQuery(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
+    }
+
+    /**
+     * Define an inverse one-to-one or many relationship.
+     */
+    public function belongsTo(string $related, ?string $foreignKey = null, ?string $ownerKey = null, ?string $relation = null): Relations\BelongsTo
+    {
+        if (is_null($relation)) {
+            $relation = $this->guessBelongsToRelation();
+        }
+
+        $instance = $this->newRelatedInstance($related);
+
+        if (is_null($foreignKey)) {
+            $foreignKey = $this->getForeignKeyForBelongsTo($relation);
+        }
+
+        $ownerKey = $ownerKey ?: $instance->getKeyName();
+
+        return new Relations\BelongsTo(
+            $instance->newQuery(), $this, $foreignKey, $ownerKey, $relation
+        );
+    }
+
+    /**
+     * Define a many-to-many relationship.
+     */
+    public function belongsToMany(
+        string $related,
+        ?string $table = null,
+        ?string $foreignPivotKey = null,
+        ?string $relatedPivotKey = null,
+        ?string $parentKey = null,
+        ?string $relatedKey = null,
+        ?string $relation = null
+    ): Relations\BelongsToMany {
+        if (is_null($relation)) {
+            $relation = $this->guessBelongsToManyRelation();
+        }
+
+        $instance = $this->newRelatedInstance($related);
+
+        $foreignPivotKey = $foreignPivotKey ?: $this->getForeignKey();
+        $relatedPivotKey = $relatedPivotKey ?: $instance->getForeignKey();
+
+        if (is_null($table)) {
+            $table = $this->joiningTable($this->getTable(), $instance->getTable());
+        }
+
+        $parentKey = $parentKey ?: $this->getKeyName();
+        $relatedKey = $relatedKey ?: $instance->getKeyName();
+
+        return new Relations\BelongsToMany(
+            $instance->newQuery(),
+            $this,
+            $table,
+            $foreignPivotKey,
+            $relatedPivotKey,
+            $parentKey,
+            $relatedKey,
+            $relation
+        );
+    }
+
+    /**
+     * Create a new model instance for a related model.
+     */
+    protected function newRelatedInstance(string $class): self
+    {
+        return new $class;
+    }
+
+    /**
+     * Get the foreign key for the model.
+     */
+    public function getForeignKey(): string
+    {
+        return $this->getSnakeCase(class_basename($this)).'_'.$this->getKeyName();
+    }
+
+    /**
+     * Get the foreign key for a belongs to relationship.
+     */
+    protected function getForeignKeyForBelongsTo(string $relation): string
+    {
+        return $this->getSnakeCase($relation).'_id';
+    }
+
+    /**
+     * Guess the "belongs to" relationship name.
+     */
+    protected function guessBelongsToRelation(): string
+    {
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+
+        return $caller[2]['function'] ?? '';
+    }
+
+    /**
+     * Guess the "belongs to many" relationship name.
+     */
+    protected function guessBelongsToManyRelation(): string
+    {
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+
+        return $caller[2]['function'] ?? '';
+    }
+
+    /**
+     * Get the joining table name for a many-to-many relation.
+     */
+    protected function joiningTable(string $first, string $second): string
+    {
+        // Sort tables alphabetically and join with underscore
+        $tables = [
+            str_replace('_', '', $this->getSnakeCase($first)),
+            str_replace('_', '', $this->getSnakeCase($second))
+        ];
+
+        sort($tables);
+
+        return implode('_', $tables);
+    }
+
+    /**
+     * Convert a string to snake case.
+     */
+    protected function getSnakeCase(string $value): string
+    {
+        return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $value));
+    }
+
+    /**
+     * Get the key name for the model.
+     */
+    public function getKeyName(): string
+    {
+        return $this->primaryKey;
+    }
+
+    /**
+     * Get the value of the model's primary key.
+     */
+    public function getKey()
+    {
+        return $this->getAttribute($this->getKeyName());
+    }
+
+    /**
+     * Qualify the given column name by the model's table.
+     */
+    public function qualifyColumn(string $column): string
+    {
+        if (str_contains($column, '.')) {
+            return $column;
+        }
+
+        return $this->getTable().'.'.$column;
+    }
+
+    /**
+     * Get a relationship value from a method.
+     */
+    protected function getRelationValue(string $key)
+    {
+        // Check if already loaded
+        if ($this->relationLoaded($key)) {
+            return $this->getLoadedRelation($key);
+        }
+
+        // Try to load from method
+        if ($this->hasRelationMethod($key)) {
+            return $this->getRelationshipFromMethod($key);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get a loaded relation
+     */
+    protected function getLoadedRelation(string $key)
+    {
+        return $this->relations[$key] ?? null;
+    }
+
+    /**
+     * Check if a relation method exists
+     */
+    protected function hasRelationMethod(string $key): bool
+    {
+        return method_exists($this, $key);
+    }
+
+    /**
+     * Get a relationship value from a method.
+     */
+    protected function getRelationshipFromMethod(string $method)
+    {
+        $relation = $this->$method();
+
+        if (! $relation instanceof Relations\Relation) {
+            throw new \LogicException(sprintf(
+                '%s::%s must return a relationship instance.', static::class, $method
+            ));
+        }
+
+        return tap($relation->getResults(), function ($results) use ($method) {
+            $this->setRelation($method, $results);
+        });
+    }
+
+    /**
+     * Set the given relationship on the model.
+     */
+    public function setRelation(string $relation, $value): self
+    {
+        $this->relations[$relation] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Unset a loaded relationship.
+     */
+    public function unsetRelation(string $relation): self
+    {
+        unset($this->relations[$relation]);
+
+        return $this;
+    }
+
+    /**
+     * Determine if the given relation is loaded.
+     */
+    public function relationLoaded(string $key): bool
+    {
+        return array_key_exists($key, $this->relations);
+    }
+
+    /**
+     * Get all the loaded relations for the instance.
+     */
+    public function getRelations(): array
+    {
+        return $this->relations;
+    }
+
+    /**
+     * Get a specific relationship value.
+     *
+     * @param string $relation
+     * @return mixed
+     */
+    public function getRelation(string $relation)
+    {
+        return $this->relations[$relation] ?? null;
+    }
+
+    /**
+     * Sync the original attributes with the current.
+     */
+    public function syncOriginal(): self
+    {
+        $this->original = $this->attributes;
+        return $this;
+    }
+
+    /**
+     * Get the original attribute values.
+     *
+     * @param string|null $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function getOriginal($key = null, $default = null)
+    {
+        if (is_null($key)) {
+            return $this->original;
+        }
+
+        return $this->original[$key] ?? $default;
+    }
+
+    /**
+     * Determine if the model or any of the given attribute(s) have been modified.
+     *
+     * @param array|string|null $attributes
+     * @return bool
+     */
+    public function isDirty($attributes = null): bool
+    {
+        if (is_null($attributes)) {
+            return count($this->getDirty()) > 0;
+        }
+
+        $attributes = is_array($attributes) ? $attributes : [$attributes];
+
+        foreach ($attributes as $attribute) {
+            if (array_key_exists($attribute, $this->getDirty())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the name of the "created at" column.
+     */
+    public function getCreatedAtColumn(): string
+    {
+        return $this->createdAt;
+    }
+
+    /**
+     * Get the name of the "updated at" column.
+     */
+    public function getUpdatedAtColumn(): string
+    {
+        return $this->updatedAt;
+    }
+
+    /**
+     * Get a fresh timestamp for the model.
+     */
+    public function freshTimestamp(): string
+    {
+        return date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Determine if the model is ignoring touch events.
+     */
+    public static function isIgnoringTouch(): bool
+    {
+        return static::$ignoreTouch;
+    }
+
+    /**
+     * Get a new query builder for the model's table.
+     */
+    public function newQuery(): Builder
+    {
+        $builder = static::getConnection()->table($this->getTable());
+        $builder->setModel($this);
+
+        return $builder;
+    }
+
+    /**
+     * Create a new instance of the given model.
+     */
+    public function newInstance(array $attributes = []): self
+    {
+        $model = new static;
+
+        $model->fill($attributes);
+
+        return $model;
+    }
+
+    /**
+     * Get the model for a bound value.
+     */
+    public function getModel(): self
+    {
+        return $this;
+    }
+
+    /**
+     * Determine if the model uses auto-incrementing IDs.
+     */
+    public function getIncrementing(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the type of the primary key.
+     */
+    public function getKeyType(): string
+    {
+        return 'int';
+    }
+
+    /**
+     * Determine if the model or any attributes have been modified.
+     */
+    public function isClean($attributes = null): bool
+    {
+        return !$this->isDirty($attributes);
+    }
+
+    /**
+     * Determine if the model or given attribute(s) were changed.
+     */
+    public function wasChanged($attributes = null): bool
+    {
+        if (is_null($attributes)) {
+            return count($this->changes) > 0;
+        }
+
+        $attributes = is_array($attributes) ? $attributes : [$attributes];
+
+        foreach ($attributes as $attribute) {
+            if (array_key_exists($attribute, $this->changes)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the attributes that were changed.
+     */
+    public function getChanges(): array
+    {
+        return $this->changes;
+    }
+
+    /**
+     * Sync the changes.
+     */
+    public function syncChanges(): self
+    {
+        $this->changes = $this->getDirty();
+
+        return $this;
+    }
+
+    /**
+     * Get only the specified attributes from the model.
+     */
+    public function only($attributes): array
+    {
+        $attributes = is_array($attributes) ? $attributes : func_get_args();
+
+        $results = [];
+
+        foreach ($attributes as $attribute) {
+            $results[$attribute] = $this->getAttribute($attribute);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get all attributes except the specified ones.
+     */
+    public function except($attributes): array
+    {
+        $attributes = is_array($attributes) ? $attributes : func_get_args();
+
+        return array_diff_key($this->attributes, array_flip($attributes));
+    }
+
+    /**
+     * Clone the model into a new, non-existing instance.
+     */
+    public function replicate(array $except = []): self
+    {
+        $attributes = $this->except(array_merge(
+            [$this->getKeyName()],
+            $except
+        ));
+
+        $model = new static();
+        $model->fill($attributes);
+
+        return $model;
+    }
+
+    /**
+     * Reload a fresh model instance from the database.
+     */
+    public function fresh($with = []): ?self
+    {
+        if (!$this->exists()) {
+            return null;
+        }
+
+        return static::query()
+            ->where($this->getKeyName(), $this->getKey())
+            ->first();
+    }
+
+    /**
+     * Reload the current model instance with fresh attributes from the database.
+     */
+    public function refresh(): self
+    {
+        if (!$this->exists()) {
+            return $this;
+        }
+
+        $fresh = $this->fresh();
+
+        if ($fresh) {
+            $this->attributes = $fresh->attributes;
+            $this->original = $fresh->original;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Update the model's update timestamp.
+     */
+    public function touch(): bool
+    {
+        if (!$this->timestamps) {
+            return false;
+        }
+
+        $this->setAttribute($this->getUpdatedAtColumn(), $this->freshTimestamp());
+
+        return $this->save();
+    }
+
+    /**
+     * Determine if two models have the same ID and belong to the same table.
+     */
+    public function is($model): bool
+    {
+        if (is_null($model)) {
+            return false;
+        }
+
+        return !is_null($this->getKey()) &&
+               $this->getKey() === $model->getKey() &&
+               $this->getTable() === $model->getTable() &&
+               get_class($this) === get_class($model);
+    }
+
+    /**
+     * Determine if two models are not the same.
+     */
+    public function isNot($model): bool
+    {
+        return !$this->is($model);
+    }
+
+    /**
+     * Save the model and all of its relationships.
+     */
+    public function push(): bool
+    {
+        if (!$this->save()) {
+            return false;
+        }
+
+        // In a full implementation, this would also save loaded relationships
+        // For now, just save the model itself
+        foreach ($this->relations as $relation) {
+            // Future: Save each loaded relationship
+        }
+
+        return true;
+    }
+
+    /**
+     * Make the given, typically hidden, attributes visible.
+     */
+    public function makeVisible($attributes): self
+    {
+        $this->hidden = array_diff($this->hidden, (array) $attributes);
+
+        if (!empty($this->visible)) {
+            $this->visible = array_merge($this->visible, (array) $attributes);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Make the given, typically visible, attributes hidden.
+     */
+    public function makeHidden($attributes): self
+    {
+        $this->hidden = array_merge($this->hidden, (array) $attributes);
+
+        return $this;
+    }
+
+    /**
+     * Append attributes to query when building a query.
+     */
+    public function append($attributes): self
+    {
+        $this->appends = array_merge(
+            $this->appends,
+            is_string($attributes) ? [$attributes] : $attributes
+        );
+
+        return $this;
+    }
+
+    /**
+     * Set the accessors to be appended to model arrays.
+     */
+    public function setAppends(array $appends): self
+    {
+        $this->appends = $appends;
+
+        return $this;
+    }
+
+    /**
+     * Get the appendable attributes for the model.
+     */
+    public function getAppends(): array
+    {
+        return $this->appends;
+    }
 }

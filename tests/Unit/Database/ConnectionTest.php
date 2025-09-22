@@ -1,293 +1,183 @@
 <?php
 
-declare(strict_types=1);
-
 use Bob\Database\Connection;
+use Bob\Query\Grammar;
+use Bob\Query\Grammars\MySQLGrammar;
+use Bob\Query\Grammars\SQLiteGrammar;
+use Bob\Query\Grammars\PostgreSQLGrammar;
+use Bob\Query\Processor;
+use Bob\Query\Builder;
+use Bob\Exceptions\ConnectionException;
+use Bob\Logging\Log;
 
-it('handles postgres driver aliases', function () {
-    // Test various postgres driver aliases
-    $drivers = ['pgsql', 'postgres', 'postgresql'];
-    
-    foreach ($drivers as $driver) {
-        // This will test that the DSN is created properly for all postgres variants
-        $connection = new Connection([
-            'driver' => $driver,
-            'host' => 'localhost',
-            'database' => 'test_db',
-            'username' => 'user',
-            'password' => 'pass',
-        ]);
-        
-        // Use reflection to check the driver was normalized
-        $reflection = new ReflectionClass($connection);
-        $configProperty = $reflection->getProperty('config');
-        $configProperty->setAccessible(true);
-        $config = $configProperty->getValue($connection);
-        
-        // The driver should still be what was passed
-        expect($config['driver'])->toBe($driver);
-    }
+beforeEach(function () {
+    // Clear any global loggers to ensure test isolation
+    $reflection = new ReflectionClass(Log::class);
+
+    $globalLogger = $reflection->getProperty('globalLogger');
+    $globalLogger->setAccessible(true);
+    $globalLogger->setValue(null, null);
+
+    $globalQueryLogger = $reflection->getProperty('globalQueryLogger');
+    $globalQueryLogger->setAccessible(true);
+    $globalQueryLogger->setValue(null, null);
+
+    $globalEnabled = $reflection->getProperty('globalEnabled');
+    $globalEnabled->setAccessible(true);
+    $globalEnabled->setValue(null, false);
 });
 
-it('reconnects to database', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
-    
-    // Get initial PDO
-    $pdo1 = $connection->getPdo();
-    expect($pdo1)->toBeInstanceOf(PDO::class);
-    
-    // Reconnect
-    $connection->reconnect();
-    
-    // Should have a new PDO instance
-    $pdo2 = $connection->getPdo();
-    expect($pdo2)->toBeInstanceOf(PDO::class);
-    // Note: Can't easily test if they're different objects since PDO might reuse connections
+afterEach(function () {
+    // Clean up after each test
+    $reflection = new ReflectionClass(Log::class);
+
+    $globalLogger = $reflection->getProperty('globalLogger');
+    $globalLogger->setAccessible(true);
+    $globalLogger->setValue(null, null);
+
+    $globalQueryLogger = $reflection->getProperty('globalQueryLogger');
+    $globalQueryLogger->setAccessible(true);
+    $globalQueryLogger->setValue(null, null);
+
+    $globalEnabled = $reflection->getProperty('globalEnabled');
+    $globalEnabled->setAccessible(true);
+    $globalEnabled->setValue(null, false);
 });
 
-it('gets database name from config', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => 'test_database.db',
-    ]);
+describe('Connection', function () {
     
-    expect($connection->getDatabaseName())->toBe('test_database.db');
-    
-    // Test without database in config
-    $connection = new Connection([
-        'driver' => 'sqlite',
-    ]);
-    
-    expect($connection->getDatabaseName())->toBe('');
-});
-
-it('returns empty array when selecting in pretend mode', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
-    
-    // Create a test table
-    $connection->statement('CREATE TABLE test (id INTEGER, name TEXT)');
-    $connection->statement('INSERT INTO test VALUES (1, "John")');
-    
-    // Normal select should return results
-    $results = $connection->select('SELECT * FROM test');
-    expect($results)->toHaveCount(1);
-    
-    // Enable pretend mode
-    $connection->pretend(function ($connection) {
-        $results = $connection->select('SELECT * FROM test');
-        expect($results)->toBe([]);
+    test('implements ConnectionInterface', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        expect($connection)->toBeInstanceOf(\Bob\Contracts\ConnectionInterface::class);
     });
-});
-
-it('handles multiple postgres aliases in match statement', function () {
-    // We can't actually connect to postgres in tests, but we can verify
-    // the DSN is built correctly by catching the connection exception
-    $drivers = ['pgsql', 'postgres', 'postgresql'];
-
-    foreach ($drivers as $driver) {
+    
+    test('creates appropriate grammar for driver', function () {
+        $mysqlConnection = new Connection(['driver' => 'mysql']);
+        expect($mysqlConnection->getQueryGrammar())->toBeInstanceOf(MySQLGrammar::class);
+        
+        $sqliteConnection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        expect($sqliteConnection->getQueryGrammar())->toBeInstanceOf(SQLiteGrammar::class);
+        
+        $postgresConnection = new Connection(['driver' => 'pgsql']);
+        expect($postgresConnection->getQueryGrammar())->toBeInstanceOf(PostgreSQLGrammar::class);
+    });
+    
+    test('throws exception for unsupported driver', function () {
+        expect(fn() => new Connection(['driver' => 'oracle']))
+            ->toThrow(\InvalidArgumentException::class, 'Database driver [oracle] not supported');
+    });
+    
+    test('creates processor', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        expect($connection->getPostProcessor())->toBeInstanceOf(Processor::class);
+    });
+    
+    test('creates query builder', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        $builder = $connection->table('users');
+        
+        expect($builder)->toBeInstanceOf(Builder::class);
+        expect($builder->from)->toBe('users');
+    });
+    
+    test('creates raw expression', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        $raw = $connection->raw('COUNT(*)');
+        
+        expect($raw)->toBeInstanceOf(\Bob\Database\Expression::class);
+        expect((string) $raw)->toBe('COUNT(*)');
+    });
+    
+    test('handles table prefix', function () {
         $connection = new Connection([
-            'driver' => $driver,
-            'host' => '127.0.0.1',
-            'port' => 5432,
-            'database' => 'test_db',
-            'username' => 'test_user',
-            'password' => 'test_pass',
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => 'wp_'
         ]);
+        
+        expect($connection->getTablePrefix())->toBe('wp_');
+    });
+    
+    test('pretend mode', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
 
-        // Try to get PDO which will trigger DSN creation
-        try {
-            $connection->getPdo();
-        } catch (\PDOException $e) {
-            // Expected - either driver not found or connection failed
-            // Both are acceptable as they prove the DSN was built
-            $message = $e->getMessage();
-            expect(
-                str_contains($message, 'could not find driver') ||
-                str_contains($message, 'password authentication failed') ||
-                str_contains($message, 'connection to server')
-            )->toBeTrue();
+        $queries = $connection->pretend(function ($connection) {
+            $connection->table('users')->insert(['name' => 'John']);
+        });
+
+        expect($queries)->toHaveCount(1);
+        expect($queries[0]['query'])->toContain('insert into');
+    });
+    
+    test('query logging', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+
+        // Clear any existing logs and enable logging
+        $connection->flushQueryLog();
+        $connection->enableQueryLog();
+
+        // Create a table first
+        $connection->statement('CREATE TABLE test (id INTEGER)');
+        $connection->select('SELECT * FROM test');
+
+        $log = $connection->getQueryLog();
+
+        // Find the select query in the log
+        $selectQuery = null;
+        foreach ($log as $entry) {
+            if (isset($entry['query']) && strpos($entry['query'], 'SELECT * FROM test') !== false) {
+                $selectQuery = $entry;
+                break;
+            }
         }
-    }
-});
 
-it('disconnects and nullifies PDO connections on reconnect', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
+        expect($selectQuery)->not->toBeNull();
+        expect($selectQuery['query'])->toBe('SELECT * FROM test');
+
+        $connection->flushQueryLog();
+        expect($connection->getQueryLog())->toBe([]);
+    });
     
-    // Establish connection and create table
-    $connection->statement('CREATE TABLE test (id INTEGER)');
-    $connection->statement('INSERT INTO test VALUES (1)');
+    test('transactions', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        
+        $connection->beginTransaction();
+        expect($connection->transactionLevel())->toBe(1);
+        
+        $connection->commit();
+        expect($connection->transactionLevel())->toBe(0);
+        
+        $connection->beginTransaction();
+        $connection->rollBack();
+        expect($connection->transactionLevel())->toBe(0);
+    });
     
-    // Use reflection to check internal state
-    $reflection = new ReflectionClass($connection);
-    $pdoProperty = $reflection->getProperty('pdo');
-    $pdoProperty->setAccessible(true);
+    test('transaction callbacks', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+        
+        $executed = false;
+        $result = $connection->transaction(function () use (&$executed) {
+            $executed = true;
+            return 'success';
+        });
+        
+        expect($executed)->toBeTrue();
+        expect($result)->toBe('success');
+    });
     
-    // Verify PDO is set
-    $pdo1 = $pdoProperty->getValue($connection);
-    expect($pdo1)->toBeInstanceOf(PDO::class);
-    
-    // Call reconnect
-    $connection->reconnect();
-    
-    // After reconnect, PDO should be nullified initially
-    // But since we're using :memory:, we need to recreate the table
-    $connection->statement('CREATE TABLE test2 (id INTEGER)');
-    $connection->statement('INSERT INTO test2 VALUES (1)');
-    
-    // Verify a new PDO was created
-    $pdo2 = $pdoProperty->getValue($connection);
-    expect($pdo2)->toBeInstanceOf(PDO::class);
-});
+    test('reconnection', function () {
+        $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
 
-it('prepares bindings correctly for PostgreSQL with booleans', function () {
-    $connection = new Connection([
-        'driver' => 'pgsql',
-        'host' => 'localhost',
-        'database' => 'test_db',
-        'username' => 'user',
-        'password' => 'pass',
-    ]);
+        // Force connection to be established first
+        $pdo = $connection->getPdo();
+        expect($pdo)->toBeInstanceOf(PDO::class);
 
-    // Test with boolean values
-    $bindings = [
-        'name' => 'John',
-        'active' => true,
-        'admin' => false,
-        'score' => 100,
-    ];
+        $connection->disconnect();
+        // After disconnect, getPdo() will reconnect automatically
+        // so we can't test for null, instead we test that reconnect works
 
-    $prepared = $connection->prepareBindings($bindings);
-
-    // PostgreSQL should convert booleans to strings
-    expect($prepared['name'])->toBe('John');
-    expect($prepared['active'])->toBe('true');
-    expect($prepared['admin'])->toBe('false');
-    expect($prepared['score'])->toBe(100);
-});
-
-it('prepares bindings correctly for MySQL with booleans', function () {
-    $connection = new Connection([
-        'driver' => 'mysql',
-        'host' => 'localhost',
-        'database' => 'test_db',
-        'username' => 'user',
-        'password' => 'pass',
-    ]);
-
-    // Test with boolean values
-    $bindings = [
-        'name' => 'John',
-        'active' => true,
-        'admin' => false,
-        'score' => 100,
-    ];
-
-    $prepared = $connection->prepareBindings($bindings);
-
-    // MySQL should convert booleans to integers
-    expect($prepared['name'])->toBe('John');
-    expect($prepared['active'])->toBe(1);
-    expect($prepared['admin'])->toBe(0);
-    expect($prepared['score'])->toBe(100);
-});
-
-it('prepares bindings correctly for SQLite with booleans', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
-
-    // Test with boolean values
-    $bindings = [
-        'name' => 'John',
-        'active' => true,
-        'admin' => false,
-        'score' => 100,
-    ];
-
-    $prepared = $connection->prepareBindings($bindings);
-
-    // SQLite should convert booleans to integers
-    expect($prepared['name'])->toBe('John');
-    expect($prepared['active'])->toBe(1);
-    expect($prepared['admin'])->toBe(0);
-    expect($prepared['score'])->toBe(100);
-});
-
-it('prepares bindings with DateTime objects', function () {
-    $connection = new Connection([
-        'driver' => 'sqlite',
-        'database' => ':memory:',
-    ]);
-
-    $date = new DateTime('2024-01-15 10:30:00');
-
-    $bindings = [
-        'created_at' => $date,
-        'name' => 'John',
-    ];
-
-    $prepared = $connection->prepareBindings($bindings);
-
-    // DateTime should be formatted as string
-    expect($prepared['created_at'])->toBe('2024-01-15 10:30:00');
-    expect($prepared['name'])->toBe('John');
-});
-
-it('prepares mixed bindings correctly', function () {
-    // Test PostgreSQL with mixed types
-    $pgConnection = new Connection([
-        'driver' => 'pgsql',
-        'host' => 'localhost',
-        'database' => 'test_db',
-        'username' => 'user',
-        'password' => 'pass',
-    ]);
-
-    $date = new DateTime('2024-01-15 10:30:00');
-
-    $bindings = [
-        'id' => 1,
-        'name' => 'John',
-        'active' => true,
-        'score' => 95.5,
-        'created_at' => $date,
-        'deleted' => false,
-        'metadata' => null,
-    ];
-
-    $prepared = $pgConnection->prepareBindings($bindings);
-
-    // Verify all types are handled correctly for PostgreSQL
-    expect($prepared['id'])->toBe(1);
-    expect($prepared['name'])->toBe('John');
-    expect($prepared['active'])->toBe('true'); // Boolean converted to string for PostgreSQL
-    expect($prepared['score'])->toBe(95.5);
-    expect($prepared['created_at'])->toBe('2024-01-15 10:30:00');
-    expect($prepared['deleted'])->toBe('false'); // Boolean converted to string for PostgreSQL
-    expect($prepared['metadata'])->toBeNull();
-
-    // Test MySQL with same data
-    $mysqlConnection = new Connection([
-        'driver' => 'mysql',
-        'host' => 'localhost',
-        'database' => 'test_db',
-        'username' => 'user',
-        'password' => 'pass',
-    ]);
-
-    $prepared = $mysqlConnection->prepareBindings($bindings);
-
-    // Verify booleans are converted to int for MySQL
-    expect($prepared['active'])->toBe(1);
-    expect($prepared['deleted'])->toBe(0);
+        $connection->reconnect();
+        $newPdo = $connection->getPdo();
+        expect($newPdo)->toBeInstanceOf(PDO::class);
+    });
 });

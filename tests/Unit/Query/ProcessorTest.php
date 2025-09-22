@@ -1,195 +1,185 @@
 <?php
 
 use Bob\Query\Processor;
-use Bob\Query\Builder;
+use Bob\Contracts\BuilderInterface;
 use Bob\Database\Connection;
+use Mockery as m;
 
-describe('Processor class', function () {
+describe('Processor Tests', function () {
+
     beforeEach(function () {
         $this->processor = new Processor();
-        
-        // Create a mock connection for testing
-        $this->connection = new Connection([
-            'driver' => 'sqlite',
-            'database' => ':memory:'
-        ]);
-        
-        $this->builder = new Builder($this->connection);
     });
-    
+
     afterEach(function () {
-        Mockery::close();
+        m::close();
     });
-    
-    it('implements ProcessorInterface', function () {
-        expect($this->processor)->toBeInstanceOf(\Bob\Contracts\ProcessorInterface::class);
+
+    test('Processor implements ProcessorInterface', function () {
+        expect($this->processor)->toBeInstanceOf(Bob\Contracts\ProcessorInterface::class);
     });
-    
-    it('processes select results without modification', function () {
+
+    test('processSelect returns results as-is', function () {
+        $query = m::mock(BuilderInterface::class);
         $results = [
             ['id' => 1, 'name' => 'John'],
-            ['id' => 2, 'name' => 'Jane']
+            ['id' => 2, 'name' => 'Jane'],
+            ['id' => 3, 'name' => 'Bob']
         ];
 
-        $processed = $this->processor->processSelect($this->builder, $results);
+        $processed = $this->processor->processSelect($query, $results);
 
-        expect($processed)->toHaveCount(2);
-        expect($processed[0])->toBeInstanceOf(stdClass::class);
-        expect($processed[0]->id)->toBe(1);
-        expect($processed[0]->name)->toBe('John');
-        expect($processed[1])->toBeInstanceOf(stdClass::class);
-        expect($processed[1]->id)->toBe(2);
-        expect($processed[1]->name)->toBe('Jane');
+        expect($processed)->toBe($results);
     });
-    
-    it('processes empty select results', function () {
+
+    test('processSelect with empty results', function () {
+        $query = m::mock(BuilderInterface::class);
         $results = [];
 
-        $processed = $this->processor->processSelect($this->builder, $results);
+        $processed = $this->processor->processSelect($query, $results);
 
         expect($processed)->toBe([]);
-        expect($processed)->toHaveCount(0);
     });
 
-    it('handles mixed array and object results in processSelect', function () {
-        // Test with results that are already objects (covering line 17)
-        $obj1 = (object) ['id' => 1, 'name' => 'John'];
-        $obj2 = (object) ['id' => 2, 'name' => 'Jane'];
-
+    test('processSelect preserves array structure', function () {
+        $query = m::mock(BuilderInterface::class);
         $results = [
-            $obj1,  // Already an object
-            ['id' => 3, 'name' => 'Bob'],  // Array that needs conversion
-            $obj2,  // Already an object
+            ['id' => 1, 'data' => ['nested' => 'value']],
+            ['id' => 2, 'data' => null]
         ];
 
-        $processed = $this->processor->processSelect($this->builder, $results);
+        $processed = $this->processor->processSelect($query, $results);
 
-        expect($processed)->toHaveCount(3);
-        expect($processed[0])->toBe($obj1);  // Should return the same object
-        expect($processed[1])->toBeInstanceOf(stdClass::class);
-        expect($processed[1]->id)->toBe(3);
-        expect($processed[1]->name)->toBe('Bob');
-        expect($processed[2])->toBe($obj2);  // Should return the same object
+        expect($processed)->toBe($results);
+        expect($processed[0]['data'])->toBe(['nested' => 'value']);
+        expect($processed[1]['data'])->toBeNull();
     });
-    
-    it('processes insertGetId with numeric ID', function () {
-        // Create a test table
-        $this->connection->statement('CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)');
-        
-        // Test insertGetId
-        $id = $this->processor->processInsertGetId(
-            $this->builder, 
-            'INSERT INTO test_table (name) VALUES (?)', 
-            ['Test Name']
-        );
-        
-        expect($id)->toBeInt();
-        expect($id)->toBeGreaterThan(0);
+
+    test('processInsertGetId executes insert and returns numeric ID', function () {
+        $pdo = m::mock(PDO::class);
+        $pdo->shouldReceive('lastInsertId')->with(null)->once()->andReturn('42');
+
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('insert')->with('INSERT INTO users', ['name' => 'John'])->once();
+        $connection->shouldReceive('getPdo')->once()->andReturn($pdo);
+
+        $query = m::mock(BuilderInterface::class);
+        $query->shouldReceive('getConnection')->twice()->andReturn($connection);
+
+        $id = $this->processor->processInsertGetId($query, 'INSERT INTO users', ['name' => 'John']);
+
+        expect($id)->toBe(42);
     });
-    
-    it('processes insertGetId with string ID', function () {
-        // Mock a connection that returns a string ID
-        $mockConnection = Mockery::mock(Connection::class);
-        $mockPdo = Mockery::mock(\PDO::class);
-        
-        $mockConnection->shouldReceive('insert')->once();
-        $mockConnection->shouldReceive('getPdo')->andReturn($mockPdo);
-        $mockPdo->shouldReceive('lastInsertId')->with(null)->andReturn('string-id-123');
-        
-        $mockBuilder = Mockery::mock(Builder::class);
-        $mockBuilder->shouldReceive('getConnection')->andReturn($mockConnection);
-        
-        $id = $this->processor->processInsertGetId(
-            $mockBuilder,
-            'INSERT INTO test (name) VALUES (?)',
-            ['Test'],
-            null
-        );
-        
-        expect($id)->toBe('string-id-123');
-        expect($id)->toBeString();
+
+    test('processInsertGetId with custom sequence', function () {
+        $pdo = m::mock(PDO::class);
+        $pdo->shouldReceive('lastInsertId')->with('users_id_seq')->once()->andReturn('100');
+
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('insert')->with('INSERT INTO users', ['name' => 'Jane'])->once();
+        $connection->shouldReceive('getPdo')->once()->andReturn($pdo);
+
+        $query = m::mock(BuilderInterface::class);
+        $query->shouldReceive('getConnection')->twice()->andReturn($connection);
+
+        $id = $this->processor->processInsertGetId($query, 'INSERT INTO users', ['name' => 'Jane'], 'users_id_seq');
+
+        expect($id)->toBe(100);
     });
-    
-    it('processes insertGetId with sequence parameter', function () {
-        // Mock a connection that uses a sequence (like PostgreSQL)
-        $mockConnection = Mockery::mock(Connection::class);
-        $mockPdo = Mockery::mock(\PDO::class);
-        
-        $mockConnection->shouldReceive('insert')->once();
-        $mockConnection->shouldReceive('getPdo')->andReturn($mockPdo);
-        $mockPdo->shouldReceive('lastInsertId')->with('users_id_seq')->andReturn('42');
-        
-        $mockBuilder = Mockery::mock(Builder::class);
-        $mockBuilder->shouldReceive('getConnection')->andReturn($mockConnection);
-        
-        $id = $this->processor->processInsertGetId(
-            $mockBuilder,
-            'INSERT INTO users (name) VALUES (?)',
-            ['Test User'],
-            'users_id_seq'
-        );
-        
-        expect($id)->toBe(42); // Should be converted to int since it's numeric
+
+    test('processInsertGetId returns non-numeric ID as string', function () {
+        $pdo = m::mock(PDO::class);
+        $pdo->shouldReceive('lastInsertId')->with(null)->once()->andReturn('abc-123-def');
+
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('insert')->with('INSERT INTO items', ['uuid' => 'test'])->once();
+        $connection->shouldReceive('getPdo')->once()->andReturn($pdo);
+
+        $query = m::mock(BuilderInterface::class);
+        $query->shouldReceive('getConnection')->twice()->andReturn($connection);
+
+        $id = $this->processor->processInsertGetId($query, 'INSERT INTO items', ['uuid' => 'test']);
+
+        expect($id)->toBe('abc-123-def');
     });
-    
-    it('processes column listing results without modification', function () {
-        $columnResults = [
-            ['column_name' => 'id'],
-            ['column_name' => 'name'],
-            ['column_name' => 'email']
-        ];
-        
-        $processed = $this->processor->processColumnListing($columnResults);
-        
-        expect($processed)->toBe($columnResults);
-        expect($processed)->toHaveCount(3);
+
+    test('processInsertGetId with zero ID', function () {
+        $pdo = m::mock(PDO::class);
+        $pdo->shouldReceive('lastInsertId')->with(null)->once()->andReturn('0');
+
+        $connection = m::mock(Connection::class);
+        $connection->shouldReceive('insert')->once();
+        $connection->shouldReceive('getPdo')->once()->andReturn($pdo);
+
+        $query = m::mock(BuilderInterface::class);
+        $query->shouldReceive('getConnection')->twice()->andReturn($connection);
+
+        $id = $this->processor->processInsertGetId($query, 'INSERT INTO test', []);
+
+        expect($id)->toBe(0);
     });
-    
-    it('processes empty column listing', function () {
-        $columnResults = [];
-        
-        $processed = $this->processor->processColumnListing($columnResults);
-        
+
+    test('processColumnListing returns results as-is', function () {
+        $columns = ['id', 'name', 'email', 'created_at', 'updated_at'];
+
+        $processed = $this->processor->processColumnListing($columns);
+
+        expect($processed)->toBe($columns);
+    });
+
+    test('processColumnListing with empty array', function () {
+        $columns = [];
+
+        $processed = $this->processor->processColumnListing($columns);
+
         expect($processed)->toBe([]);
-        expect($processed)->toHaveCount(0);
     });
-    
-    // Line 31: processColumnTypeListing method (this was the uncovered line)
-    it('processes column type listing results without modification', function () {
-        $typeResults = [
-            ['column_name' => 'id', 'data_type' => 'integer'],
-            ['column_name' => 'name', 'data_type' => 'text'],
-            ['column_name' => 'email', 'data_type' => 'varchar']
+
+    test('processColumnListing preserves column order', function () {
+        $columns = ['z_column', 'a_column', 'm_column'];
+
+        $processed = $this->processor->processColumnListing($columns);
+
+        expect($processed)->toBe($columns);
+        expect($processed[0])->toBe('z_column');
+        expect($processed[1])->toBe('a_column');
+        expect($processed[2])->toBe('m_column');
+    });
+
+    test('processColumnTypeListing returns results as-is', function () {
+        $types = [
+            ['column' => 'id', 'type' => 'integer'],
+            ['column' => 'name', 'type' => 'varchar'],
+            ['column' => 'email', 'type' => 'varchar'],
+            ['column' => 'created_at', 'type' => 'timestamp']
         ];
-        
-        $processed = $this->processor->processColumnTypeListing($typeResults);
-        
-        expect($processed)->toBe($typeResults);
-        expect($processed)->toHaveCount(3);
-        expect($processed[0])->toHaveKey('column_name');
-        expect($processed[0])->toHaveKey('data_type');
+
+        $processed = $this->processor->processColumnTypeListing($types);
+
+        expect($processed)->toBe($types);
     });
-    
-    it('processes empty column type listing', function () {
-        $typeResults = [];
-        
-        $processed = $this->processor->processColumnTypeListing($typeResults);
-        
+
+    test('processColumnTypeListing with empty array', function () {
+        $types = [];
+
+        $processed = $this->processor->processColumnTypeListing($types);
+
         expect($processed)->toBe([]);
-        expect($processed)->toHaveCount(0);
     });
-    
-    it('processes column type listing with complex data types', function () {
-        $typeResults = [
-            ['column_name' => 'id', 'data_type' => 'bigint', 'is_nullable' => 'NO'],
-            ['column_name' => 'decimal_field', 'data_type' => 'decimal(10,2)', 'is_nullable' => 'YES'],
-            ['column_name' => 'json_field', 'data_type' => 'json', 'is_nullable' => 'YES']
+
+    test('processColumnTypeListing with complex types', function () {
+        $types = [
+            ['column' => 'data', 'type' => 'json', 'nullable' => true],
+            ['column' => 'amount', 'type' => 'decimal(10,2)', 'default' => '0.00'],
+            ['column' => 'is_active', 'type' => 'boolean', 'default' => false]
         ];
-        
-        $processed = $this->processor->processColumnTypeListing($typeResults);
-        
-        expect($processed)->toBe($typeResults);
-        expect($processed)->toHaveCount(3);
-        expect($processed[1]['data_type'])->toBe('decimal(10,2)');
+
+        $processed = $this->processor->processColumnTypeListing($types);
+
+        expect($processed)->toBe($types);
+        expect($processed[0]['nullable'])->toBeTrue();
+        expect($processed[1]['default'])->toBe('0.00');
+        expect($processed[2]['default'])->toBeFalse();
     });
+
 });

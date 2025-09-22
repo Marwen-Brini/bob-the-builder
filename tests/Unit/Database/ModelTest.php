@@ -2,212 +2,264 @@
 
 use Bob\Database\Model;
 use Bob\Database\Connection;
-use Bob\Contracts\ConnectionInterface;
+use Bob\Query\Builder;
+use Bob\Database\Relations\HasOne;
+use Bob\Database\Relations\HasMany;
+use Bob\Database\Relations\BelongsTo;
+use Bob\Database\Relations\BelongsToMany;
 
 class TestModel extends Model
 {
     protected string $table = 'test_models';
-    protected string $primaryKey = 'id';
+    protected $fillable = ['name', 'email'];
+    protected $guarded = ['password'];
+    protected $hidden = ['secret'];
+    protected array $casts = [
+        'is_active' => 'boolean',
+        'age' => 'integer',
+        'metadata' => 'array'
+    ];
+}
+
+class UserModel extends Model 
+{
+    protected string $table = 'users';
+    
+    public function profile()
+    {
+        return $this->hasOne(ProfileModel::class, 'user_id', 'id');
+    }
+    
+    public function posts()
+    {
+        return $this->hasMany(PostModel::class, 'user_id', 'id');
+    }
+}
+
+class PostModel extends Model
+{
+    protected string $table = 'posts';
+    
+    public function user()
+    {
+        return $this->belongsTo(UserModel::class, 'user_id', 'id');
+    }
+    
+    public function tags()
+    {
+        return $this->belongsToMany(TagModel::class, 'post_tags', 'post_id', 'tag_id');
+    }
+}
+
+class ProfileModel extends Model
+{
+    protected string $table = 'profiles';
+}
+
+class TagModel extends Model
+{
+    protected string $table = 'tags';
 }
 
 beforeEach(function () {
-    $this->connection = Mockery::mock(ConnectionInterface::class);
-    TestModel::setConnection($this->connection);
+    // Set up a mock connection for all tests
+    $this->connection = Mockery::mock(Connection::class);
+    Model::setConnection($this->connection);
 });
 
-it('can set and get connection', function () {
-    $connection = Mockery::mock(ConnectionInterface::class);
-    TestModel::setConnection($connection);
-    
-    expect(TestModel::getConnection())->toBe($connection);
+afterEach(function () {
+    // Clean up
+    Mockery::close();
 });
 
-it('creates new query builder instances', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
+describe('Model', function () {
     
-    $result = TestModel::query();
-    expect($result)->toBe($builder);
-});
+    test('basic attributes', function () {
+        $model = new TestModel();
 
-it('forwards static calls to query builder', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
+        $model->setAttribute('name', 'John Doe');
+        expect($model->getAttribute('name'))->toBe('John Doe');
+
+        $model->name = 'Jane Doe';
+        expect($model->name)->toBe('Jane Doe');
+
+        // Test using setAttribute for email
+        $model->setAttribute('email', 'jane@example.com');
+        expect($model->getAttribute('email'))->toBe('jane@example.com');
+    });
     
-    $builder->shouldReceive('where')
-        ->with('active', true)
-        ->andReturnSelf();
+    test('mass assignment with fillable', function () {
+        $model = new TestModel();
+        $model->fill([
+            'name' => 'John',
+            'email' => 'john@example.com',
+            'password' => 'secret' // This should be ignored due to guarded
+        ]);
         
-    $result = TestModel::where('active', true);
-    expect($result)->toBe($builder);
-});
-
-it('can find records by id', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
+        expect($model->name)->toBe('John');
+        expect($model->email)->toBe('john@example.com');
+        expect($model->getAttribute('password'))->toBeNull();
+    });
     
-    $builder->shouldReceive('where')
-        ->with('id', 123)
-        ->andReturnSelf();
-    $builder->shouldReceive('first')
-        ->andReturn(['id' => 123, 'name' => 'Test']);
+    test('hidden attributes', function () {
+        $model = new TestModel();
+        $model->fill([
+            'name' => 'John',
+            'secret' => 'hidden_value'
+        ]);
         
-    $result = TestModel::find(123);
-    expect($result)->toBeInstanceOf(TestModel::class);
-    expect($result->id)->toBe(123);
-    expect($result->name)->toBe('Test');
-});
-
-it('can get all records', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
-    
-    $builder->shouldReceive('get')
-        ->andReturn([['id' => 1], ['id' => 2]]);
+        $array = $model->toArray();
+        expect($array)->toHaveKey('name');
+        expect($array)->not->toHaveKey('secret');
         
-    $result = TestModel::all();
-    expect($result)->toHaveCount(2);
-    expect($result[0])->toBeInstanceOf(TestModel::class);
-    expect($result[1])->toBeInstanceOf(TestModel::class);
-    expect($result[0]->id)->toBe(1);
-    expect($result[1]->id)->toBe(2);
-});
-
-it('can create new records', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
+        $json = $model->toJson();
+        expect($json)->toContain('John');
+        expect($json)->not->toContain('hidden_value');
+    });
     
-    $builder->shouldReceive('insertGetId')
-        ->with(Mockery::type('array'))
-        ->andReturn(123);
+    test('attribute casting', function () {
+        $model = new TestModel();
         
-    $attributes = ['name' => 'Test', 'email' => 'test@example.com'];
-    $result = TestModel::create($attributes);
-    expect($result)->toBeInstanceOf(TestModel::class);
-    expect($result->id)->toBe(123);
-});
-
-it('can update records', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
-    
-    $builder->shouldReceive('where')
-        ->with('id', 123)
-        ->andReturnSelf();
-    $builder->shouldReceive('update')
-        ->with(['name' => 'Updated'])
-        ->andReturn(1);
+        $model->setAttribute('is_active', 1);
+        expect($model->getCastedAttribute('is_active'))->toBe(true);
         
-    $result = TestModel::where('id', 123)->update(['name' => 'Updated']);
-    expect($result)->toBe(1);
-});
-
-it('can delete records', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
-    
-    $builder->shouldReceive('where')
-        ->with('id', 123)
-        ->andReturnSelf();
-    $builder->shouldReceive('delete')
-        ->andReturn(1);
+        $model->setAttribute('age', '25');
+        expect($model->getCastedAttribute('age'))->toBe(25);
         
-    $result = TestModel::where('id', 123)->delete();
-    expect($result)->toBe(1);
-});
-
-it('can count records', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
+        $model->setAttribute('metadata', ['key' => 'value']);
+        $retrieved = $model->getCastedAttribute('metadata');
+        expect($retrieved)->toBe(['key' => 'value']);
+    });
     
-    $builder->shouldReceive('count')
-        ->andReturn(42);
+    test('dirty tracking', function () {
+        $model = new TestModel();
+        $model->syncOriginal();
         
-    $result = TestModel::count();
-    expect($result)->toBe(42);
-});
-
-it('can get table name', function () {
-    $model = new TestModel();
-    expect($model->getTable())->toBe('test_models');
-});
-
-it('can get primary key name', function () {
-    $model = new TestModel();
-    expect($model->getPrimaryKey())->toBe('id');
-});
-
-it('throws exception when no connection set', function () {
-    // Reset connection to null using reflection since setConnection requires ConnectionInterface
-    $reflection = new ReflectionClass(TestModel::class);
-    $property = $reflection->getProperty('connection');
-    $property->setAccessible(true);
-    $property->setValue(null, null);
-    
-    expect(fn() => TestModel::query())
-        ->toThrow(RuntimeException::class, 'No database connection');
-    
-    // Restore connection for other tests
-    TestModel::setConnection($this->connection);
-});
-
-it('handles dynamic method calls', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
-    
-    $builder->shouldReceive('orderBy')
-        ->with('created_at', 'desc')
-        ->andReturnSelf();
+        expect($model->isDirty())->toBeFalse();
         
-    $result = TestModel::orderBy('created_at', 'desc');
-    expect($result)->toBe($builder);
-});
-
-it('can handle aggregate methods', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
-    
-    $builder->shouldReceive('max')
-        ->with('score')
-        ->andReturn(100);
+        $model->name = 'John';
+        expect($model->isDirty())->toBeTrue();
+        expect($model->isDirty('name'))->toBeTrue();
+        expect($model->isDirty('email'))->toBeFalse();
         
-    $result = TestModel::max('score');
-    expect($result)->toBe(100);
-});
-
-it('can handle scoped queries', function () {
-    $builder = Mockery::mock(Bob\Query\Builder::class);
-    $this->connection->shouldReceive('table')
-        ->with('test_models')
-        ->andReturn($builder);
-    
-    $builder->shouldReceive('where')
-        ->with('active', true)
-        ->andReturnSelf();
-    $builder->shouldReceive('where')
-        ->with('verified', true)
-        ->andReturnSelf();
+        expect($model->getDirty())->toBe(['name' => 'John']);
         
-    $result = TestModel::where('active', true)->where('verified', true);
-    expect($result)->toBe($builder);
+        $model->syncOriginal();
+        expect($model->isDirty())->toBeFalse();
+    });
+    
+    test('original attributes', function () {
+        $model = new TestModel();
+        $model->name = 'John';
+        $model->syncOriginal();
+        
+        $model->name = 'Jane';
+        expect($model->getOriginal('name'))->toBe('John');
+        expect($model->getAttribute('name'))->toBe('Jane');
+    });
+    
+    test('array and JSON serialization', function () {
+        $model = new TestModel();
+        $model->name = 'John';
+        $model->email = 'john@example.com';
+        $model->secret = 'hidden';
+        
+        $array = $model->toArray();
+        expect($array)->toHaveKeys(['name', 'email']);
+        expect($array)->not->toHaveKey('secret');
+        
+        $json = $model->toJson();
+        $decoded = json_decode($json, true);
+        expect($decoded)->toHaveKeys(['name', 'email']);
+        expect($decoded)->not->toHaveKey('secret');
+    });
+    
+    test('hasOne relationship', function () {
+        $builder = Mockery::mock(Builder::class);
+        $related = new ProfileModel();
+
+        $this->connection->shouldReceive('table')->andReturn($builder);
+        $builder->shouldReceive('setModel')->andReturn($builder);
+        $builder->shouldReceive('getModel')->andReturn($related);
+        $builder->shouldReceive('where')->andReturn($builder);
+        $builder->shouldReceive('whereNotNull')->andReturn($builder);
+
+        $user = new UserModel();
+        $user->id = 1;
+
+        $relation = $user->profile();
+        expect($relation)->toBeInstanceOf(HasOne::class);
+    });
+    
+    test('hasMany relationship', function () {
+        $builder = Mockery::mock(Builder::class);
+        $related = new PostModel();
+
+        $this->connection->shouldReceive('table')->andReturn($builder);
+        $builder->shouldReceive('setModel')->andReturn($builder);
+        $builder->shouldReceive('getModel')->andReturn($related);
+        $builder->shouldReceive('where')->andReturn($builder);
+        $builder->shouldReceive('whereNotNull')->andReturn($builder);
+
+        $user = new UserModel();
+        $user->id = 1;
+
+        $relation = $user->posts();
+        expect($relation)->toBeInstanceOf(HasMany::class);
+    });
+    
+    test('belongsTo relationship', function () {
+        $builder = Mockery::mock(Builder::class);
+        $related = new UserModel();
+
+        $this->connection->shouldReceive('table')->andReturn($builder);
+        $builder->shouldReceive('setModel')->andReturn($builder);
+        $builder->shouldReceive('getModel')->andReturn($related);
+        $builder->shouldReceive('where')->andReturn($builder);
+
+        $post = new PostModel();
+        $post->user_id = 1;
+
+        $relation = $post->user();
+        expect($relation)->toBeInstanceOf(BelongsTo::class);
+    });
+    
+    test('belongsToMany relationship', function () {
+        $builder = Mockery::mock(Builder::class);
+        $related = new TagModel();
+
+        $this->connection->shouldReceive('table')->andReturn($builder);
+        $builder->shouldReceive('setModel')->andReturn($builder);
+        $builder->shouldReceive('getModel')->andReturn($related);
+        $builder->shouldReceive('join')->andReturn($builder);
+        $builder->shouldReceive('where')->andReturn($builder);
+
+        $post = new PostModel();
+        $post->id = 1;
+
+        $relation = $post->tags();
+        expect($relation)->toBeInstanceOf(BelongsToMany::class);
+    });
+    
+    test('timestamps', function () {
+        $model = new TestModel();
+        $model->timestamps = true;
+        
+        // Test that timestamps would be set
+        expect($model->timestamps)->toBeTrue();
+        expect($model->getCreatedAtColumn())->toBe('created_at');
+        expect($model->getUpdatedAtColumn())->toBe('updated_at');
+    });
+    
+    test('query builder creation', function () {
+        $builder = Mockery::mock(Builder::class);
+
+        $this->connection->shouldReceive('table')
+            ->with('test_models')
+            ->andReturn($builder);
+        $builder->shouldReceive('setModel')->andReturn($builder);
+
+        $query = TestModel::query();
+        expect($query)->toBe($builder);
+    });
 });

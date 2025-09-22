@@ -112,6 +112,15 @@ class Log
     }
 
     /**
+     * Clear the global PSR-3 logger
+     */
+    public static function clearLogger(): void
+    {
+        self::$globalLogger = null;
+        self::$globalQueryLogger = null;
+    }
+
+    /**
      * Get the global logger
      */
     public static function getLogger(): ?LoggerInterface
