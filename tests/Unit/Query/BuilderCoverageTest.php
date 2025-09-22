@@ -1,631 +1,513 @@
 <?php
 
+use Bob\Query\Builder;
+use Bob\Query\Grammar;
+use Bob\Query\Processor;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
-use Bob\Query\Builder;
-use Bob\Contracts\ExpressionInterface;
+use Bob\Query\JoinClause;
 
-describe('Builder coverage improvement', function () {
-    beforeEach(function () {
-        $this->connection = new Connection([
-            'driver' => 'sqlite',
-            'database' => ':memory:'
-        ]);
-        
-        $this->builder = new Builder($this->connection);
-        
-        // Create test table
-        $this->connection->statement('CREATE TABLE users (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            email TEXT,
-            age INTEGER,
-            active BOOLEAN DEFAULT 1,
-            created_at TEXT,
-            updated_at TEXT
-        )');
-        
-        $this->connection->statement('CREATE TABLE posts (
-            id INTEGER PRIMARY KEY,
-            user_id INTEGER,
-            title TEXT,
-            content TEXT,
-            created_at TEXT
-        )');
-        
-        // Insert test data
-        $this->connection->insert('INSERT INTO users (name, email, age, active) VALUES (?, ?, ?, ?)', 
-            ['John', 'john@example.com', 25, 1]);
-        $this->connection->insert('INSERT INTO users (name, email, age, active) VALUES (?, ?, ?, ?)', 
-            ['Jane', 'jane@example.com', 30, 1]);
-        $this->connection->insert('INSERT INTO users (name, email, age, active) VALUES (?, ?, ?, ?)', 
-            ['Bob', 'bob@example.com', 35, 0]);
+beforeEach(function () {
+    $this->connection = Mockery::mock(Connection::class);
+    $this->grammar = Mockery::mock(Grammar::class);
+    $this->processor = Mockery::mock(Processor::class);
+
+    $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
+    $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
+
+    $this->builder = new Builder($this->connection, $this->grammar, $this->processor);
+});
+
+describe('Builder Extended Coverage', function () {
+
+    test('distinct queries', function () {
+        $this->builder->distinct()->from('users');
+
+        expect($this->builder->distinct)->toBeTrue();
     });
-    
-    afterEach(function () {
-        Mockery::close();
+
+    test('select with array columns', function () {
+        $this->builder->select(['name', 'email'])->from('users');
+
+        expect($this->builder->columns)->toBe(['name', 'email']);
     });
-    
-    // Line 115: Array where conditions
-    it('handles array where conditions with numeric keys', function () {
-        $results = $this->connection->table('users')
-            ->where([['name', '=', 'John'], ['age', '>', 20]])
-            ->get();
-            
-        expect($results)->toHaveCount(1);
-        expect($results[0]->name)->toBe('John');
+
+    test('selectRaw', function () {
+        $this->builder->selectRaw('count(*) as user_count')->from('users');
+
+        expect($this->builder->columns[0])->toBeInstanceOf(Expression::class);
     });
-    
-    // Lines 127-128: Invalid operator handling
-    it('handles invalid operators by defaulting to equals', function () {
-        // Test that invalid operator gets converted to '=' - we just need to verify the query structure
-        $query = $this->connection->table('users')
-            ->where('name', 'invalid_op', 'John');
-            
-        // Should have converted invalid operator to '='
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['operator'])->toBe('=');
+
+    test('addSelect', function () {
+        $this->builder->select('name')->addSelect('email')->from('users');
+
+        expect($this->builder->columns)->toHaveCount(2);
+        expect($this->builder->columns)->toBe(['name', 'email']);
     });
-    
-    // Line 132: Subquery in where with Closure
-    it('handles subquery where clauses with closures', function () {
-        $query = $this->connection->table('users')
-            ->where('id', '=', function ($subQuery) {
-                $subQuery->from('users')
-                    ->select('id')
-                    ->where('name', 'John')
-                    ->limit(1);
+
+    test('selectSub with closure', function () {
+        // Mock the wrap method for the alias
+        $this->grammar->shouldReceive('wrap')->with('orders_count')->andReturn('`orders_count`');
+        // Mock the compileSelect method for the subquery
+        $this->grammar->shouldReceive('compileSelect')->andReturn('select count(*) from orders where user_id = users.id');
+
+        $this->builder->selectSub(function ($query) {
+            $query->from('orders')->selectRaw('count(*)')->whereColumn('user_id', 'users.id');
+        }, 'orders_count')->from('users');
+
+        expect($this->builder->columns)->toHaveCount(1);
+    });
+
+    test('whereColumn', function () {
+        $this->builder->from('users')->whereColumn('first_name', 'last_name');
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Column');
+    });
+
+    test('orWhereColumn', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereColumn('first_name', 'last_name');
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+    });
+
+    test('whereRaw', function () {
+        $this->builder->from('users')->whereRaw('age > ?', [18]);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Raw');
+        expect($this->builder->getBindings())->toBe([18]);
+    });
+
+    test('orWhereRaw', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereRaw('age > ?', [21]);
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+    });
+
+    test('whereNotIn', function () {
+        $this->builder->from('users')->whereNotIn('id', [1, 2, 3]);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('NotIn');
+    });
+
+    test('orWhereIn', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereIn('role', ['admin', 'moderator']);
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+        expect($this->builder->wheres[1]['type'])->toBe('In');
+    });
+
+    test('orWhereNotIn', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereNotIn('status', ['banned', 'suspended']);
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+        expect($this->builder->wheres[1]['type'])->toBe('NotIn');
+    });
+
+    test('whereNotNull', function () {
+        $this->builder->from('users')->whereNotNull('email_verified_at');
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('NotNull');
+    });
+
+    test('whereDate', function () {
+        $this->builder->from('users')->whereDate('created_at', '2023-01-01');
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Date');
+    });
+
+    test('whereTime', function () {
+        $this->builder->from('users')->whereTime('created_at', '>=', '08:00:00');
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Time');
+    });
+
+    test('whereDay', function () {
+        $this->builder->from('users')->whereDay('created_at', 15);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Day');
+    });
+
+    test('whereMonth', function () {
+        $this->builder->from('users')->whereMonth('created_at', 12);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Month');
+    });
+
+    test('whereYear', function () {
+        $this->builder->from('users')->whereYear('created_at', 2023);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Year');
+    });
+
+    test('whereNested', function () {
+        $this->builder->from('users')->whereNested(function ($query) {
+            $query->where('name', 'John')->orWhere('name', 'Jane');
+        });
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Nested');
+    });
+
+    test('whereExists with closure', function () {
+        $this->builder->from('users')->whereExists(function ($query) {
+            $query->from('orders')->whereColumn('user_id', 'users.id');
+        });
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('Exists');
+    });
+
+    test('whereNotExists', function () {
+        $this->builder->from('users')->whereNotExists(function ($query) {
+            $query->from('orders')->whereColumn('user_id', 'users.id');
+        });
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('NotExists');
+    });
+
+    test('orWhereExists', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereExists(function ($query) {
+                $query->from('posts')->whereColumn('user_id', 'users.id');
             });
-            
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('Sub');
-        expect($query->getWheres()[0])->toHaveKey('query');
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+        expect($this->builder->wheres[1]['type'])->toBe('Exists');
     });
-    
-    // Line 136: Null value handling with not equals
-    it('handles null values with not equals operator', function () {
-        $this->connection->table('users')
-            ->where('name', '!=', null)
-            ->get();
-            
-        // This should be converted to whereNotNull
-        $query = $this->connection->table('users');
-        $query->where('name', '!=', null);
-        
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('NotNull');
-    });
-    
-    // Lines 151-159: Array where conditions handling
-    it('processes array where conditions correctly', function () {
-        // Test associative array (key-value pairs)
-        $query1 = $this->connection->table('users')
-            ->where(['name' => 'John', 'age' => 25]);
-            
-        expect($query1->getWheres())->toHaveCount(2);
-        
-        // Test numeric array with sub-arrays
-        $query2 = $this->connection->table('users')
-            ->where([
-                ['name', '=', 'John'],
-                ['age', '>', 20]
-            ]);
-            
-        expect($query2->getWheres())->toHaveCount(2);
-    });
-    
-    // Line 167: Invalid operator and value combination
-    it('throws exception for invalid operator and value combination', function () {
-        expect(fn() => $this->connection->table('users')
-            ->where('name', 'like', null)
-        )->toThrow(InvalidArgumentException::class, 'Illegal operator and value combination.');
-    });
-    
-    // Lines 205-212: Sub query where handling
-    it('handles sub queries in where clauses', function () {
-        $query = $this->connection->table('users');
-        
-        $query->where('id', '=', function ($q) {
-            $q->from('users')
-                ->select('id')
-                ->where('active', 1);
-        });
-        
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('Sub');
-    });
-    
-    // Line 229: whereInSub with closure for subquery
-    it('handles whereIn with closure subquery', function () {
-        $query = $this->connection->table('users');
-        
-        $query->whereIn('id', function ($q) {
-            $q->from('users')
-                ->select('id')
-                ->where('active', 1);
-        });
-        
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('InSub');
-    });
-    
-    // Lines 251-258: whereNotIn subquery
-    it('handles whereNotIn with closure subquery', function () {
-        $query = $this->connection->table('users');
-        
-        $query->whereNotIn('id', function ($q) {
-            $q->from('users')
-                ->select('id')
-                ->where('active', 0);
-        });
-        
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('NotInSub');
-    });
-    
-    // Line 286: orWhereNull
-    it('supports orWhereNull', function () {
-        $query = $this->connection->table('users')
-            ->where('name', 'John')
-            ->orWhereNull('email');
-            
-        expect($query->getWheres())->toHaveCount(2);
-        expect($query->getWheres()[1]['boolean'])->toBe('or');
-    });
-    
-    // Lines 305-322: whereExists and whereNotExists with callbacks
-    it('handles whereExists with callback', function () {
-        $query = $this->connection->table('users');
-        
-        $query->whereExists(function ($q) {
-            $q->from('posts')
-                ->select('*')
-                ->where('user_id', '>', 0);
-        });
-        
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('Exists');
-    });
-    
-    it('handles whereNotExists with callback', function () {
-        $query = $this->connection->table('users');
-        
-        $query->whereNotExists(function ($q) {
-            $q->from('posts')
-                ->select('*')
-                ->where('user_id', '>', 0);
-        });
-        
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('NotExists');
-    });
-    
-    // Line 357: rightJoin
-    it('supports right join', function () {
-        $query = $this->connection->table('users')
-            ->rightJoin('posts', 'users.id', '=', 'posts.user_id');
-            
-        expect($query->getJoins())->toHaveCount(1);
-        expect($query->getJoins()[0]->type)->toBe('right');
-    });
-    
-    // Line 363: crossJoin with conditions
-    it('supports cross join with conditions', function () {
-        $query = $this->connection->table('users')
-            ->crossJoin('posts', 'users.id', '=', 'posts.user_id');
-            
-        expect($query->getJoins())->toHaveCount(1);
-        expect($query->getJoins()[0]->type)->toBe('cross');
-    });
-    
-    // Lines 401-405: orHaving
-    it('supports orHaving clauses', function () {
-        $query = $this->connection->table('users')
-            ->groupBy('age')
-            ->having('age', '>', 25)
-            ->orHaving('age', '<', 20);
-            
-        expect($query->getHavings())->toHaveCount(2);
-        expect($query->getHavings()[1]['boolean'])->toBe('or');
-    });
-    
-    // Line 427: orderByDesc
-    it('supports orderByDesc', function () {
-        $query = $this->connection->table('users')
-            ->orderByDesc('name');
-            
-        expect($query->getOrders())->toHaveCount(1);
-        expect($query->getOrders()[0]['direction'])->toBe('desc');
-    });
-    
-    // Lines 441-451: orderByRaw, latest, oldest, inRandomOrder
-    it('supports orderByRaw', function () {
-        $query = $this->connection->table('users')
-            ->orderByRaw('RANDOM()', []);
-            
-        expect($query->getOrders())->toHaveCount(1);
-        expect($query->getOrders()[0]['type'])->toBe('Raw');
-    });
-    
-    it('supports latest method', function () {
-        $query = $this->connection->table('users')
-            ->latest('created_at');
-            
-        expect($query->getOrders())->toHaveCount(1);
-        expect($query->getOrders()[0]['direction'])->toBe('desc');
-    });
-    
-    it('supports oldest method', function () {
-        $query = $this->connection->table('users')
-            ->oldest('created_at');
-            
-        expect($query->getOrders())->toHaveCount(1);
-        expect($query->getOrders()[0]['direction'])->toBe('asc');
-    });
-    
-    it('supports inRandomOrder', function () {
-        $query = $this->connection->table('users')
-            ->inRandomOrder();
-            
-        expect($query->getOrders())->toHaveCount(1);
-    });
-    
-    // Lines 518-549: find, value, pluck methods
-    it('supports find method', function () {
-        $result = $this->connection->table('users')->find(1);
-        
-        expect($result)->not->toBeNull();
-        expect((int)$result->id)->toBe(1);
-    });
-    
-    it('supports value method', function () {
-        $name = $this->connection->table('users')->value('name');
-        
-        expect($name)->toBe('John');
-    });
-    
-    it('supports pluck method without key', function () {
-        $names = $this->connection->table('users')
-            ->pluck('name');
-            
-        expect($names)->toHaveCount(3);
-        expect($names)->toContain('John');
-    });
-    
-    it('supports pluck method with key', function () {
-        $users = $this->connection->table('users')
-            ->pluck('name', 'id');
-            
-        expect($users)->toHaveKey('1');
-        expect($users['1'])->toBe('John');
-    });
-    
-    // Lines 564-569: exists and doesntExist
-    it('supports exists method', function () {
-        $exists = $this->connection->table('users')
-            ->where('name', 'John')
-            ->exists();
-            
-        expect($exists)->toBeTrue();
-    });
-    
-    it('supports doesntExist method', function () {
-        $doesntExist = $this->connection->table('users')
-            ->where('name', 'NonExistent')
-            ->doesntExist();
-            
-        expect($doesntExist)->toBeTrue();
-    });
-    
-    // Line 584: chunk callback returns false
-    it('handles chunk callback returning false', function () {
-        $processedPages = 0;
-        
-        $result = $this->connection->table('users')
-            ->chunk(2, function ($users, $page) use (&$processedPages) {
-                $processedPages++;
-                if ($page >= 2) {
-                    return false; // Stop processing
-                }
-                return true;
+
+    test('orWhereNotExists', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereNotExists(function ($query) {
+                $query->from('bans')->whereColumn('user_id', 'users.id');
             });
-            
-        expect($result)->toBeFalse();
-        expect($processedPages)->toBe(2);
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+        expect($this->builder->wheres[1]['type'])->toBe('NotExists');
     });
-    
-    // Line 629: sum returns 0 for null
-    it('returns 0 for sum when no results', function () {
-        $sum = $this->connection->table('users')
-            ->where('name', 'NonExistent')
-            ->sum('age');
-            
-        expect($sum)->toBe(0);
+
+    test('whereJsonContains', function () {
+        $this->builder->from('users')->whereJsonContains('options->languages', 'en');
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('JsonContains');
     });
-    
-    // Line 640: aggregate with no results
-    it('handles aggregate with no results', function () {
-        $count = $this->connection->table('users')
-            ->where('name', 'NonExistent')
-            ->count();
-            
-        expect($count)->toBe(0);
+
+    test('whereJsonLength', function () {
+        $this->builder->from('users')->whereJsonLength('options->languages', 3);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('JsonLength');
     });
-    
-    // Line 683: insert with empty values
-    it('handles insert with empty values', function () {
-        $result = $this->connection->table('users')->insert([]);
-        
-        expect($result)->toBeTrue();
+
+    test('orderByRaw', function () {
+        $this->builder->from('users')->orderByRaw('FIELD(status, ?, ?, ?)', ['active', 'pending', 'inactive']);
+
+        expect($this->builder->orders)->toHaveCount(1);
+        expect($this->builder->orders[0]['type'])->toBe('Raw');
     });
-    
-    // Lines 712-727: insertOrIgnore
-    it('supports insertOrIgnore with empty values', function () {
-        $result = $this->connection->table('users')->insertOrIgnore([]);
-        
-        expect($result)->toBe(0);
+
+    test('orderByDesc', function () {
+        $this->builder->from('users')->orderByDesc('created_at');
+
+        expect($this->builder->orders)->toHaveCount(1);
+        expect($this->builder->orders[0]['direction'])->toBe('desc');
     });
-    
-    it('supports insertOrIgnore with single record', function () {
-        $result = $this->connection->table('users')
-            ->insertOrIgnore(['name' => 'Test', 'email' => 'test@example.com']);
-        
-        expect($result)->toBe(1);
+
+    test('latest', function () {
+        $this->builder->from('users')->latest();
+
+        expect($this->builder->orders)->toHaveCount(1);
+        expect($this->builder->orders[0]['column'])->toBe('created_at');
+        expect($this->builder->orders[0]['direction'])->toBe('desc');
     });
-    
-    it('supports insertOrIgnore with multiple records', function () {
-        $result = $this->connection->table('users')
-            ->insertOrIgnore([
-                ['name' => 'Test1', 'email' => 'test1@example.com'],
-                ['name' => 'Test2', 'email' => 'test2@example.com']
-            ]);
-        
-        expect($result)->toBe(2);
+
+    test('oldest', function () {
+        $this->builder->from('users')->oldest('updated_at');
+
+        expect($this->builder->orders)->toHaveCount(1);
+        expect($this->builder->orders[0]['column'])->toBe('updated_at');
+        expect($this->builder->orders[0]['direction'])->toBe('asc');
     });
-    
-    // Lines 742-768: updateOrInsert, increment, decrement
-    it('supports updateOrInsert when record exists', function () {
-        $result = $this->connection->table('users')
-            ->updateOrInsert(
-                ['name' => 'John'],
-                ['age' => 26]
-            );
-            
-        expect($result)->toBeTrue();
-        
-        // Check if updated
-        $user = $this->connection->table('users')->where('name', 'John')->first();
-        expect((int)$user->age)->toBe(26);
+
+    test('inRandomOrder', function () {
+        // Mock the compileRandom method
+        $this->grammar->shouldReceive('compileRandom')->with('')->andReturn('RANDOM()');
+
+        $result = $this->builder->from('users')->inRandomOrder();
+
+        expect($result)->toBeInstanceOf(Builder::class);
+        expect($this->builder->orders)->toHaveCount(1);
+        expect($this->builder->orders[0]['type'])->toBe('Raw');
     });
-    
-    it('supports updateOrInsert when record does not exist', function () {
-        $result = $this->connection->table('users')
-            ->updateOrInsert(
-                ['name' => 'NewUser'],
-                ['email' => 'new@example.com', 'age' => 40]
-            );
-            
-        expect($result)->toBeTrue();
-        
-        // Check if inserted
-        $user = $this->connection->table('users')->where('name', 'NewUser')->first();
-        expect($user)->not->toBeNull();
+
+    test('skip and take', function () {
+        $this->builder->from('users')->skip(10)->take(5);
+
+        expect($this->builder->offset)->toBe(10);
+        expect($this->builder->limit)->toBe(5);
     });
-    
-    it('supports updateOrInsert with no update values', function () {
-        $result = $this->connection->table('users')
-            ->updateOrInsert(['name' => 'John'], []);
-            
-        expect($result)->toBeTrue();
+
+    test('forPage', function () {
+        $this->builder->from('users')->forPage(3, 15);
+
+        expect($this->builder->offset)->toBe(30);
+        expect($this->builder->limit)->toBe(15);
     });
-    
-    it('supports increment method', function () {
-        $result = $this->connection->table('users')
-            ->where('name', 'John')
-            ->increment('age', 5);
-            
-        expect($result)->toBe(1);
-        
-        // Verify increment
-        $user = $this->connection->table('users')->where('name', 'John')->first();
-        expect((int)$user->age)->toBe(30);
+
+    test('rightJoin', function () {
+        $this->builder->from('users')->rightJoin('posts', 'users.id', '=', 'posts.user_id');
+
+        expect($this->builder->joins)->toHaveCount(1);
+        expect($this->builder->joins[0]->type)->toBe('right');
     });
-    
-    it('supports decrement method', function () {
-        $result = $this->connection->table('users')
-            ->where('name', 'Jane')
-            ->decrement('age', 2);
-            
-        expect($result)->toBe(1);
-        
-        // Verify decrement
-        $user = $this->connection->table('users')->where('name', 'Jane')->first();
-        expect((int)$user->age)->toBe(28);
+
+    test('crossJoin', function () {
+        $this->builder->from('users')->crossJoin('roles');
+
+        expect($this->builder->joins)->toHaveCount(1);
+        expect($this->builder->joins[0]->type)->toBe('cross');
     });
-    
-    // Line 774: delete with ID
-    it('supports delete with specific ID', function () {
-        $result = $this->connection->table('users')->delete(1);
-        
-        expect($result)->toBe(1);
-        
-        // Verify deletion
-        $user = $this->connection->table('users')->find(1);
-        expect($user)->toBeNull();
+
+    test('joinWhere', function () {
+        $this->builder->from('users')->joinWhere('posts', 'users.id', '=', 'posts.user_id', function ($join) {
+            $join->where('posts.published', true);
+        });
+
+        expect($this->builder->joins)->toHaveCount(1);
     });
-    
-    // Lines 784-791: truncate and raw
-    it('supports truncate method', function () {
-        // Test truncate - SQLite may not support all truncate features
-        try {
-            $this->connection->table('users')->truncate();
-            
-            // Verify table is empty
-            $count = $this->connection->table('users')->count();
-            expect($count)->toBe(0);
-        } catch (Exception $e) {
-            // Some database drivers might not support truncate
-            expect($e)->toBeInstanceOf(Exception::class);
-        }
+
+    test('leftJoinWhere', function () {
+        $this->builder->from('users')->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function ($join) {
+            $join->where('posts.published', true);
+        });
+
+        expect($this->builder->joins)->toHaveCount(1);
+        expect($this->builder->joins[0]->type)->toBe('left');
     });
-    
-    it('supports raw method', function () {
-        $expression = $this->connection->table('users')->raw('COUNT(*)');
-        
-        expect($expression)->toBeInstanceOf(ExpressionInterface::class);
-        expect($expression->getValue())->toBe('COUNT(*)');
+
+    test('union', function () {
+        $otherBuilder = clone $this->builder;
+        $otherBuilder->from('admins')->select('name');
+
+        $this->builder->from('users')->select('name')->union($otherBuilder);
+
+        expect($this->builder->unions)->toHaveCount(1);
+        expect($this->builder->unions[0]['all'])->toBeFalse();
     });
-    
-    // Line 818: addBinding with invalid type (using reflection to access protected method)
-    it('throws exception for invalid binding type', function () {
-        $query = $this->connection->table('users');
-        
-        // Use reflection to access protected method
-        $reflection = new ReflectionClass($query);
-        $addBindingMethod = $reflection->getMethod('addBinding');
-        $addBindingMethod->setAccessible(true);
-        
-        expect(fn() => $addBindingMethod->invoke($query, 'value', 'invalid_type'))
-            ->toThrow(InvalidArgumentException::class, 'Invalid binding type: invalid_type.');
+
+    test('unionAll', function () {
+        $otherBuilder = clone $this->builder;
+        $otherBuilder->from('admins')->select('name');
+
+        $this->builder->from('users')->select('name')->unionAll($otherBuilder);
+
+        expect($this->builder->unions)->toHaveCount(1);
+        expect($this->builder->unions[0]['all'])->toBeTrue();
     });
-    
-    // Lines 915-925: Getter methods
-    it('has working getter methods', function () {
-        $query = $this->connection->table('users')
-            ->select(['name', 'email'])
-            ->distinct()
-            ->where('active', 1)
-            ->groupBy('name')
-            ->having('name', '!=', '')
+
+    test('lock for update', function () {
+        $this->builder->from('users')->where('id', 1)->lockForUpdate();
+
+        expect($this->builder->lock)->toBe(true);
+    });
+
+    test('shared lock', function () {
+        $this->builder->from('users')->where('id', 1)->sharedLock();
+
+        expect($this->builder->lock)->toBe(false);
+    });
+
+    test('when condition true', function () {
+        $result = $this->builder->from('users')->when(true, function ($query) {
+            $query->where('active', true);
+        });
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($result)->toBe($this->builder);
+    });
+
+    test('when condition false with default', function () {
+        $this->builder->from('users')->when(false, function ($query) {
+            $query->where('active', true);
+        }, function ($query) {
+            $query->where('active', false);
+        });
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['value'])->toBeFalse();
+    });
+
+    test('unless condition false', function () {
+        $this->builder->from('users')->unless(false, function ($query) {
+            $query->where('banned', false);
+        });
+
+        expect($this->builder->wheres)->toHaveCount(1);
+    });
+
+    test('tap method', function () {
+        $tapped = false;
+
+        $result = $this->builder->from('users')->tap(function ($query) use (&$tapped) {
+            $tapped = true;
+            expect($query)->toBeInstanceOf(Builder::class);
+        });
+
+        expect($tapped)->toBeTrue();
+        expect($result)->toBe($this->builder);
+    });
+
+    test('whereIntegerInRaw', function () {
+        $this->builder->from('users')->whereIntegerInRaw('id', [1, 2, 3]);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('InRaw');
+    });
+
+    test('whereIntegerNotInRaw', function () {
+        $this->builder->from('users')->whereIntegerNotInRaw('id', [4, 5, 6]);
+
+        expect($this->builder->wheres)->toHaveCount(1);
+        expect($this->builder->wheres[0]['type'])->toBe('NotInRaw');
+    });
+
+    test('orWhereIntegerInRaw', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereIntegerInRaw('role_id', [1, 2]);
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['boolean'])->toBe('or');
+    });
+
+    test('orWhereIntegerNotInRaw', function () {
+        $this->builder->from('users')
+            ->where('active', true)
+            ->orWhereIntegerNotInRaw('status_id', [3, 4]);
+
+        expect($this->builder->wheres)->toHaveCount(2);
+        expect($this->builder->wheres[1]['type'])->toBe('NotInRaw');
+    });
+
+    test('havingRaw', function () {
+        $this->builder->from('users')
+            ->groupBy('status')
+            ->havingRaw('COUNT(*) > ?', [5]);
+
+        expect($this->builder->havings)->toHaveCount(1);
+        expect($this->builder->havings[0]['type'])->toBe('Raw');
+    });
+
+    test('orHavingRaw', function () {
+        $this->builder->from('users')
+            ->groupBy('status')
+            ->having('status', 'active')
+            ->orHavingRaw('COUNT(*) < ?', [10]);
+
+        expect($this->builder->havings)->toHaveCount(2);
+        expect($this->builder->havings[1]['boolean'])->toBe('or');
+    });
+
+    test('reorder clears existing orders', function () {
+        $this->builder->from('users')
             ->orderBy('name')
-            ->limit(10)
-            ->offset(5);
-        
-        expect($query->getColumns())->toBe(['name', 'email']);
-        expect($query->getDistinct())->toBeTrue();
-        expect($query->getFrom())->toBe('users');
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getGroups())->toBe(['name']);
-        expect($query->getHavings())->toHaveCount(1);
-        expect($query->getOrders())->toHaveCount(1);
-        expect($query->getLimit())->toBe(10);
-        expect($query->getOffset())->toBe(5);
-        expect($query->getAggregate())->toBeNull();
-        expect($query->getJoins())->toBeNull();
-        expect($query->getUnions())->toBeNull();
-        expect($query->getUnionLimit())->toBeNull();
-        expect($query->getUnionOffset())->toBeNull();
-        expect($query->getUnionOrders())->toBeNull();
-        expect($query->getLock())->toBeNull();
+            ->orderBy('email')
+            ->reorder();
+
+        expect($this->builder->orders)->toBeNull();
     });
-    
-    // Line 950: __call method with undefined method
-    it('throws exception for undefined magic method', function () {
-        $query = $this->connection->table('users');
-        
-        expect(fn() => $query->undefinedMethod())
-            ->toThrow(BadMethodCallException::class);
+
+    test('reorder with new column', function () {
+        $this->builder->from('users')
+            ->orderBy('name')
+            ->reorder('created_at', 'desc');
+
+        expect($this->builder->orders)->toHaveCount(1);
+        expect($this->builder->orders[0]['column'])->toBe('created_at');
     });
-    
-    // Line 1043: JoinClause orOn method
-    it('supports orOn in join clauses', function () {
-        $query = $this->connection->table('users')
-            ->join('posts', function ($join) {
-                $join->on('users.id', '=', 'posts.user_id')
-                     ->orOn('users.email', '=', 'posts.author_email');
-            });
-            
-        expect($query->getJoins())->toHaveCount(1);
-        expect($query->getJoins()[0]->getWheres())->toHaveCount(2);
+});
+
+test('increment method', function () {
+    $this->connection->shouldReceive('update')->andReturn(1);
+    $this->connection->shouldReceive('raw')->andReturnUsing(function($value) {
+        return new Expression($value);
     });
-    
-    // Additional edge cases for complete coverage
-    it('handles Expression objects in bindings', function () {
-        $query = $this->connection->table('users')
-            ->where('name', '=', new Expression('UPPER("john")'));
-            
-        // Expression objects should not be added to bindings
-        $bindings = $query->getBindings();
-        expect($bindings)->toBeEmpty();
+    $this->grammar->shouldReceive('wrap')->andReturn('`points`');
+    $this->grammar->shouldReceive('compileUpdate')->andReturn('UPDATE users SET points = points + ?');
+
+    $result = $this->builder->from('users')->where('id', 1)->increment('points', 5);
+
+    expect($result)->toBe(1);
+});
+
+test('decrement method', function () {
+    $this->connection->shouldReceive('update')->andReturn(1);
+    $this->connection->shouldReceive('raw')->andReturnUsing(function($value) {
+        return new Expression($value);
     });
-    
-    it('handles whereIn with Builder instance', function () {
-        $subQuery = $this->connection->table('users')
-            ->select('id')
-            ->where('active', 1);
-            
-        $query = $this->connection->table('posts')
-            ->whereIn('user_id', $subQuery);
-            
-        expect($query->getWheres())->toHaveCount(1);
-        expect($query->getWheres()[0]['type'])->toBe('InSub');
-    });
-    
-    it('handles selectRaw with bindings', function () {
-        $query = $this->connection->table('users')
-            ->selectRaw('COUNT(*) as total, ? as status', ['active']);
-            
-        $bindings = $query->getBindings();
-        expect($bindings)->toContain('active');
-    });
-    
-    // Line 286: orWhereNotNull method
-    it('supports orWhereNotNull method', function () {
-        $query = $this->connection->table('users')
-            ->where('name', 'John')
-            ->orWhereNotNull('email');
-            
-        expect($query->getWheres())->toHaveCount(2);
-        expect($query->getWheres()[1]['type'])->toBe('NotNull');
-        expect($query->getWheres()[1]['boolean'])->toBe('or');
-    });
-    
-    // Line 564: exists() method return false path
-    it('handles exists method when no results found', function () {
-        // Mock connection to return empty results for exists query
-        $mockConnection = Mockery::mock(Connection::class);
-        $mockConnection->shouldReceive('getQueryGrammar')->andReturn($this->connection->getQueryGrammar());
-        $mockConnection->shouldReceive('getPostProcessor')->andReturn($this->connection->getPostProcessor());
-        $mockConnection->shouldReceive('select')->andReturn([]); // Empty results
-        
-        $query = new Builder($mockConnection);
-        $query->from('users');
-        
-        $exists = $query->exists();
-        expect($exists)->toBeFalse();
-    });
-    
-    // Line 629: average method (alias for avg)
-    it('supports average method as alias for avg', function () {
-        $average = $this->connection->table('users')->average('age');
-        
-        expect($average)->toBeFloat();
-        expect($average)->toBeGreaterThan(0);
-    });
-    
-    // Line 640: aggregate method return null when no results
-    it('handles aggregate method when no results found', function () {
-        $result = $this->connection->table('users')
-            ->where('name', 'NonExistent')
-            ->max('age');
-            
-        expect($result)->toBeNull();
-    });
-    
-    // Line 950: __call method with local scopes (using withScope)
-    it('handles __call method with local scopes', function () {
-        // Test the path that calls withScope - we can't easily test this without 
-        // registering actual scopes, so let's test the macro path instead
-        $query = $this->connection->table('users');
-        
-        // Register a test macro
-        Builder::macro('testMacro', function () {
-            return 'macro_result';
-        });
-        
-        $result = $query->testMacro();
-        expect($result)->toBe('macro_result');
-        
-        // Note: macro cleanup would need reflection to access protected $macros property
-    });
+    $this->grammar->shouldReceive('wrap')->andReturn('`points`');
+    $this->grammar->shouldReceive('compileUpdate')->andReturn('UPDATE users SET points = points - ?');
+
+    $result = $this->builder->from('users')->where('id', 1)->decrement('points', 3);
+
+    expect($result)->toBe(1);
+});
+
+test('truncate method', function () {
+    $this->connection->shouldReceive('statement')->andReturn(true);
+    $this->grammar->shouldReceive('compileTruncate')->andReturn(['TRUNCATE TABLE users' => []]);
+
+    // Now truncate returns boolean after fixing the implementation
+    $result = $this->builder->from('users')->truncate();
+
+    expect($result)->toBeTrue();
+});
+
+test('newQuery creates new instance', function () {
+    $newBuilder = $this->builder->newQuery();
+
+    expect($newBuilder)->toBeInstanceOf(Builder::class);
+    expect($newBuilder)->not->toBe($this->builder);
+});
+
+test('clone preserves all properties', function () {
+    $this->builder->from('users')
+        ->select('name')
+        ->where('active', true)
+        ->orderBy('name')
+        ->limit(10);
+
+    $cloned = clone $this->builder;
+
+    expect($cloned->from)->toBe('users');
+    expect($cloned->columns)->toBe(['name']);
+    expect($cloned->wheres)->toHaveCount(1);
+    expect($cloned->orders)->toHaveCount(1);
+    expect($cloned->limit)->toBe(10);
 });

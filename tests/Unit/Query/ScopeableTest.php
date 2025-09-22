@@ -1,318 +1,436 @@
 <?php
 
 use Bob\Query\Scopeable;
-use Bob\Database\Connection;
-use Bob\Query\Builder;
 
-describe('Scopeable trait', function () {
-    beforeEach(function () {
-        // Create a test class that uses Scopeable trait
-        $this->testClass = new class {
-            use Scopeable;
-            
-            public $conditions = [];
-            
-            public function where(string $column, string $operator, $value): self
-            {
-                $this->conditions[] = [$column, $operator, $value];
-                return $this;
-            }
-            
-            public function getConditions(): array
-            {
-                return $this->conditions;
-            }
-        };
-        
-        // Clear scopes before each test
-        $this->testClass::clearScopes();
+// Create a test class that uses the trait
+class TestScopeable
+{
+    use Scopeable;
+
+    public array $conditions = [];
+    public array $orders = [];
+    public ?int $limitValue = null;
+
+    public function where(string $column, $value): self
+    {
+        $this->conditions[] = [$column, '=', $value];
+        return $this;
+    }
+
+    public function orderBy(string $column, string $direction = 'asc'): self
+    {
+        $this->orders[] = [$column, $direction];
+        return $this;
+    }
+
+    public function limit(int $value): self
+    {
+        $this->limitValue = $value;
+        return $this;
+    }
+}
+
+beforeEach(function () {
+    TestScopeable::clearScopes();
+    $this->instance = new TestScopeable();
+});
+
+afterEach(function () {
+    TestScopeable::clearScopes();
+});
+
+test('scope registers a local scope', function () {
+    TestScopeable::scope('active', function () {
+        $this->where('active', true);
     });
-    
-    afterEach(function () {
-        // Clean up scopes after each test
-        $this->testClass::clearScopes();
+
+    expect(TestScopeable::hasLocalScope('active'))->toBeTrue();
+    expect(TestScopeable::hasScope('active'))->toBeTrue();
+});
+
+test('globalScope registers a global scope', function () {
+    TestScopeable::globalScope('notDeleted', function () {
+        $this->where('deleted_at', null);
     });
-    
-    it('can register and check global scopes', function () {
-        $this->testClass::globalScope('active', function () {
-            $this->where('active', '=', 1);
-        });
-        
-        expect($this->testClass::hasScope('active'))->toBeTrue();
+
+    expect(TestScopeable::hasGlobalScope('notDeleted'))->toBeTrue();
+    expect(TestScopeable::hasScope('notDeleted'))->toBeTrue();
+});
+
+test('withScope applies a local scope', function () {
+    TestScopeable::scope('active', function () {
+        $this->where('active', true);
     });
-    
-    it('can register and check local scopes', function () {
-        $this->testClass::scope('recent', function () {
-            $this->where('created_at', '>', '2023-01-01');
-        });
-        
-        expect($this->testClass::hasScope('recent'))->toBeTrue();
+
+    $this->instance->withScope('active');
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['active', '=', true]);
+    expect($this->instance->hasAppliedScope('active'))->toBeTrue();
+});
+
+test('withScope with parameters', function () {
+    TestScopeable::scope('ofType', function ($type) {
+        $this->where('type', $type);
     });
-    
-    it('can apply local scopes with withScope', function () {
-        $this->testClass::scope('byStatus', function (string $status) {
-            $this->where('status', '=', $status);
-        });
-        
-        $instance = new $this->testClass();
-        $instance->withScope('byStatus', 'published');
-        
-        expect($instance->getConditions())->toHaveCount(1);
-        expect($instance->getConditions()[0])->toBe(['status', '=', 'published']);
+
+    $this->instance->withScope('ofType', 'premium');
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['type', '=', 'premium']);
+});
+
+test('withScope throws exception for non-existent scope', function () {
+    expect(fn() => $this->instance->withScope('nonExistent'))
+        ->toThrow(InvalidArgumentException::class, 'Scope [nonExistent] not found.');
+});
+
+test('withScopes applies multiple scopes', function () {
+    TestScopeable::scope('active', function () {
+        $this->where('active', true);
     });
-    
-    it('can apply local scopes with multiple parameters', function () {
-        $this->testClass::scope('byRange', function (string $start, string $end) {
-            $this->where('date', '>=', $start);
-            $this->where('date', '<=', $end);
-        });
-        
-        $instance = new $this->testClass();
-        $instance->withScope('byRange', '2023-01-01', '2023-12-31');
-        
-        expect($instance->getConditions())->toHaveCount(2);
-        expect($instance->getConditions()[0])->toBe(['date', '>=', '2023-01-01']);
-        expect($instance->getConditions()[1])->toBe(['date', '<=', '2023-12-31']);
+
+    TestScopeable::scope('recent', function () {
+        $this->orderBy('created_at', 'desc');
     });
-    
-    it('ignores non-existent scopes in withScope', function () {
-        $instance = new $this->testClass();
-        $result = $instance->withScope('nonexistent');
-        
-        expect($result)->toBe($instance); // Should return self
-        expect($instance->getConditions())->toHaveCount(0);
+
+    $this->instance->withScopes(['active', 'recent']);
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->orders)->toHaveCount(1);
+    expect($this->instance->hasAppliedScope('active'))->toBeTrue();
+    expect($this->instance->hasAppliedScope('recent'))->toBeTrue();
+});
+
+test('withScopes with parameters', function () {
+    TestScopeable::scope('ofType', function ($type) {
+        $this->where('type', $type);
     });
-    
-    it('can exclude specific global scopes with withoutGlobalScope', function () {
-        $this->testClass::globalScope('active', function () {
-            $this->where('active', '=', 1);
-        });
-        
-        $instance = new $this->testClass();
-        $result = $instance->withoutGlobalScope('active');
-        
-        expect($result)->toBe($instance);
-        
-        // Verify the scope is marked as excluded
-        $reflection = new ReflectionClass($instance);
-        $appliedScopesProperty = $reflection->getProperty('appliedScopes');
-        $appliedScopesProperty->setAccessible(true);
-        $appliedScopes = $appliedScopesProperty->getValue($instance);
-        
-        expect($appliedScopes)->toContain('!active');
+
+    TestScopeable::scope('limitTo', function ($limit) {
+        $this->limit($limit);
     });
-    
-    // Lines 86-90: withoutGlobalScopes method
-    it('can exclude all global scopes with withoutGlobalScopes', function () {
-        $this->testClass::globalScope('active', function () {
-            $this->where('active', '=', 1);
-        });
-        
-        $this->testClass::globalScope('published', function () {
-            $this->where('published', '=', 1);
-        });
-        
-        $this->testClass::globalScope('visible', function () {
-            $this->where('visible', '=', 1);
-        });
-        
-        $instance = new $this->testClass();
-        $result = $instance->withoutGlobalScopes();
-        
-        expect($result)->toBe($instance);
-        
-        // Verify all scopes are marked as excluded
-        $reflection = new ReflectionClass($instance);
-        $appliedScopesProperty = $reflection->getProperty('appliedScopes');
-        $appliedScopesProperty->setAccessible(true);
-        $appliedScopes = $appliedScopesProperty->getValue($instance);
-        
-        expect($appliedScopes)->toContain('!active');
-        expect($appliedScopes)->toContain('!published');
-        expect($appliedScopes)->toContain('!visible');
-        expect($appliedScopes)->toHaveCount(3);
+
+    $this->instance->withScopes([
+        'ofType' => 'premium',
+        'limitTo' => [10]
+    ]);
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['type', '=', 'premium']);
+    expect($this->instance->limitValue)->toBe(10);
+});
+
+test('applyGlobalScopes applies all global scopes', function () {
+    TestScopeable::globalScope('notDeleted', function () {
+        $this->where('deleted_at', null);
     });
-    
-    it('handles withoutGlobalScopes when no global scopes exist', function () {
-        $instance = new $this->testClass();
-        $result = $instance->withoutGlobalScopes();
-        
-        expect($result)->toBe($instance);
-        
-        // Should have no excluded scopes
-        $reflection = new ReflectionClass($instance);
-        $appliedScopesProperty = $reflection->getProperty('appliedScopes');
-        $appliedScopesProperty->setAccessible(true);
-        $appliedScopes = $appliedScopesProperty->getValue($instance);
-        
-        expect($appliedScopes)->toHaveCount(0);
+
+    TestScopeable::globalScope('published', function () {
+        $this->where('published', true);
     });
-    
-    it('applies global scopes correctly', function () {
-        $this->testClass::globalScope('active', function () {
-            $this->where('active', '=', 1);
-        });
-        
-        $this->testClass::globalScope('published', function () {
-            $this->where('published', '=', 1);
-        });
-        
-        $instance = new $this->testClass();
-        
-        // Use reflection to call protected method
-        $reflection = new ReflectionClass($instance);
-        $applyGlobalScopesMethod = $reflection->getMethod('applyGlobalScopes');
-        $applyGlobalScopesMethod->setAccessible(true);
-        $applyGlobalScopesMethod->invoke($instance);
-        
-        expect($instance->getConditions())->toHaveCount(2);
-        expect($instance->getConditions()[0])->toBe(['active', '=', 1]);
-        expect($instance->getConditions()[1])->toBe(['published', '=', 1]);
+
+    $this->instance->applyGlobalScopes();
+
+    expect($this->instance->conditions)->toHaveCount(2);
+    expect($this->instance->conditions[0])->toBe(['deleted_at', '=', null]);
+    expect($this->instance->conditions[1])->toBe(['published', '=', true]);
+});
+
+test('withoutGlobalScope removes a global scope', function () {
+    TestScopeable::globalScope('notDeleted', function () {
+        $this->where('deleted_at', null);
     });
-    
-    it('skips excluded global scopes when applying', function () {
-        $this->testClass::globalScope('active', function () {
-            $this->where('active', '=', 1);
-        });
-        
-        $this->testClass::globalScope('published', function () {
-            $this->where('published', '=', 1);
-        });
-        
-        $instance = new $this->testClass();
-        $instance->withoutGlobalScope('active');
-        
-        // Use reflection to call protected method
-        $reflection = new ReflectionClass($instance);
-        $applyGlobalScopesMethod = $reflection->getMethod('applyGlobalScopes');
-        $applyGlobalScopesMethod->setAccessible(true);
-        $applyGlobalScopesMethod->invoke($instance);
-        
-        expect($instance->getConditions())->toHaveCount(1);
-        expect($instance->getConditions()[0])->toBe(['published', '=', 1]);
+
+    TestScopeable::globalScope('published', function () {
+        $this->where('published', true);
     });
-    
-    it('checks scope existence in both global and local scopes', function () {
-        $this->testClass::globalScope('globalScope', function () {
-            // Global scope
-        });
-        
-        $this->testClass::scope('localScope', function () {
-            // Local scope
-        });
-        
-        expect($this->testClass::hasScope('globalScope'))->toBeTrue();
-        expect($this->testClass::hasScope('localScope'))->toBeTrue();
-        expect($this->testClass::hasScope('nonexistent'))->toBeFalse();
+
+    $this->instance->withoutGlobalScope('notDeleted')->applyGlobalScopes();
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['published', '=', true]);
+
+    // Use reflection to test protected method
+    $reflection = new ReflectionClass($this->instance);
+    $method = $reflection->getMethod('shouldSkipGlobalScope');
+    $method->setAccessible(true);
+    expect($method->invoke($this->instance, 'notDeleted'))->toBeTrue();
+});
+
+test('withoutGlobalScopes removes all global scopes', function () {
+    TestScopeable::globalScope('notDeleted', function () {
+        $this->where('deleted_at', null);
     });
-    
-    // Line 126: removeScope method
-    it('can remove scopes with removeScope', function () {
-        $this->testClass::globalScope('global1', function () {
-            $this->where('global', '=', 1);
-        });
-        
-        $this->testClass::scope('local1', function () {
-            $this->where('local', '=', 1);
-        });
-        
-        expect($this->testClass::hasScope('global1'))->toBeTrue();
-        expect($this->testClass::hasScope('local1'))->toBeTrue();
-        
-        $this->testClass::removeScope('global1');
-        $this->testClass::removeScope('local1');
-        
-        expect($this->testClass::hasScope('global1'))->toBeFalse();
-        expect($this->testClass::hasScope('local1'))->toBeFalse();
+
+    TestScopeable::globalScope('published', function () {
+        $this->where('published', true);
     });
-    
-    it('can clear all scopes', function () {
-        $this->testClass::globalScope('global1', function () {
-            // Global scope 1
-        });
-        
-        $this->testClass::globalScope('global2', function () {
-            // Global scope 2
-        });
-        
-        $this->testClass::scope('local1', function () {
-            // Local scope 1
-        });
-        
-        expect($this->testClass::hasScope('global1'))->toBeTrue();
-        expect($this->testClass::hasScope('global2'))->toBeTrue();
-        expect($this->testClass::hasScope('local1'))->toBeTrue();
-        
-        $this->testClass::clearScopes();
-        
-        expect($this->testClass::hasScope('global1'))->toBeFalse();
-        expect($this->testClass::hasScope('global2'))->toBeFalse();
-        expect($this->testClass::hasScope('local1'))->toBeFalse();
+
+    $this->instance->withoutGlobalScopes()->applyGlobalScopes();
+
+    expect($this->instance->conditions)->toHaveCount(0);
+});
+
+test('withoutGlobalScopes with specific scopes', function () {
+    TestScopeable::globalScope('scope1', function () {
+        $this->where('field1', 'value1');
     });
-    
-    // Lines 143-146: getScopes method
-    it('can get all scopes with getScopes', function () {
-        $globalScope1 = function () {
-            $this->where('global1', '=', 1);
-        };
-        
-        $globalScope2 = function () {
-            $this->where('global2', '=', 1);
-        };
-        
-        $localScope1 = function () {
-            $this->where('local1', '=', 1);
-        };
-        
-        $this->testClass::globalScope('global1', $globalScope1);
-        $this->testClass::globalScope('global2', $globalScope2);
-        $this->testClass::scope('local1', $localScope1);
-        
-        $scopes = $this->testClass::getScopes();
-        
-        expect($scopes)->toHaveKey('global');
-        expect($scopes)->toHaveKey('local');
-        expect($scopes['global'])->toHaveCount(2);
-        expect($scopes['local'])->toHaveCount(1);
-        expect($scopes['global'])->toHaveKey('global1');
-        expect($scopes['global'])->toHaveKey('global2');
-        expect($scopes['local'])->toHaveKey('local1');
-        expect($scopes['global']['global1'])->toBe($globalScope1);
-        expect($scopes['local']['local1'])->toBe($localScope1);
+
+    TestScopeable::globalScope('scope2', function () {
+        $this->where('field2', 'value2');
     });
-    
-    it('returns empty arrays when no scopes are registered', function () {
-        $scopes = $this->testClass::getScopes();
-        
-        expect($scopes)->toHaveKey('global');
-        expect($scopes)->toHaveKey('local');
-        expect($scopes['global'])->toHaveCount(0);
-        expect($scopes['local'])->toHaveCount(0);
+
+    TestScopeable::globalScope('scope3', function () {
+        $this->where('field3', 'value3');
     });
-    
-    it('maintains separate scope namespaces for different classes', function () {
-        // Create second test class
-        $testClass2 = new class {
-            use Scopeable;
-        };
-        
-        $testClass2::clearScopes();
-        
-        $this->testClass::globalScope('class1Global', function () {
-            // Class 1 global scope
-        });
-        
-        $testClass2::globalScope('class2Global', function () {
-            // Class 2 global scope
-        });
-        
-        expect($this->testClass::hasScope('class1Global'))->toBeTrue();
-        expect($this->testClass::hasScope('class2Global'))->toBeFalse();
-        
-        expect($testClass2::hasScope('class1Global'))->toBeFalse();
-        expect($testClass2::hasScope('class2Global'))->toBeTrue();
-        
-        // Clean up
-        $testClass2::clearScopes();
+
+    $this->instance->withoutGlobalScopes(['scope1', 'scope3'])->applyGlobalScopes();
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['field2', '=', 'value2']);
+});
+
+test('hasLocalScope returns correct values', function () {
+    TestScopeable::scope('local', function () {});
+
+    expect(TestScopeable::hasLocalScope('local'))->toBeTrue();
+    expect(TestScopeable::hasLocalScope('nonExistent'))->toBeFalse();
+});
+
+test('hasGlobalScope returns correct values', function () {
+    TestScopeable::globalScope('global', function () {});
+
+    expect(TestScopeable::hasGlobalScope('global'))->toBeTrue();
+    expect(TestScopeable::hasGlobalScope('nonExistent'))->toBeFalse();
+});
+
+test('hasScope checks both local and global scopes', function () {
+    TestScopeable::scope('local', function () {});
+    TestScopeable::globalScope('global', function () {});
+
+    expect(TestScopeable::hasScope('local'))->toBeTrue();
+    expect(TestScopeable::hasScope('global'))->toBeTrue();
+    expect(TestScopeable::hasScope('nonExistent'))->toBeFalse();
+});
+
+test('getLocalScope returns scope callback', function () {
+    $callback = function () { return 'local'; };
+    TestScopeable::scope('local', $callback);
+
+    expect(TestScopeable::getLocalScope('local'))->toBe($callback);
+    expect(TestScopeable::getLocalScope('nonExistent'))->toBeNull();
+});
+
+test('getGlobalScope returns scope callback', function () {
+    $callback = function () { return 'global'; };
+    TestScopeable::globalScope('global', $callback);
+
+    expect(TestScopeable::getGlobalScope('global'))->toBe($callback);
+    expect(TestScopeable::getGlobalScope('nonExistent'))->toBeNull();
+});
+
+test('removeScope removes both local and global scopes', function () {
+    TestScopeable::scope('test', function () {});
+    TestScopeable::globalScope('test', function () {});
+
+    expect(TestScopeable::hasScope('test'))->toBeTrue();
+
+    $removed = TestScopeable::removeScope('test');
+
+    expect($removed)->toBeTrue();
+    expect(TestScopeable::hasLocalScope('test'))->toBeFalse();
+    expect(TestScopeable::hasGlobalScope('test'))->toBeFalse();
+});
+
+test('removeScope returns false for non-existent scope', function () {
+    expect(TestScopeable::removeScope('nonExistent'))->toBeFalse();
+});
+
+test('clearScopes removes all scopes', function () {
+    TestScopeable::scope('local1', function () {});
+    TestScopeable::scope('local2', function () {});
+    TestScopeable::globalScope('global1', function () {});
+    TestScopeable::globalScope('global2', function () {});
+
+    TestScopeable::clearScopes();
+
+    $scopes = TestScopeable::getScopes();
+    expect($scopes['local'])->toBeEmpty();
+    expect($scopes['global'])->toBeEmpty();
+});
+
+test('clearLocalScopes removes only local scopes', function () {
+    TestScopeable::scope('local', function () {});
+    TestScopeable::globalScope('global', function () {});
+
+    TestScopeable::clearLocalScopes();
+
+    expect(TestScopeable::hasLocalScope('local'))->toBeFalse();
+    expect(TestScopeable::hasGlobalScope('global'))->toBeTrue();
+});
+
+test('clearGlobalScopes removes only global scopes', function () {
+    TestScopeable::scope('local', function () {});
+    TestScopeable::globalScope('global', function () {});
+
+    TestScopeable::clearGlobalScopes();
+
+    expect(TestScopeable::hasLocalScope('local'))->toBeTrue();
+    expect(TestScopeable::hasGlobalScope('global'))->toBeFalse();
+});
+
+test('getScopes returns all registered scopes', function () {
+    $localCallback = function () { return 'local'; };
+    $globalCallback = function () { return 'global'; };
+
+    TestScopeable::scope('localScope', $localCallback);
+    TestScopeable::globalScope('globalScope', $globalCallback);
+
+    $scopes = TestScopeable::getScopes();
+
+    expect($scopes)->toHaveKey('local');
+    expect($scopes)->toHaveKey('global');
+    expect($scopes['local'])->toHaveKey('localScope');
+    expect($scopes['global'])->toHaveKey('globalScope');
+});
+
+test('getAppliedScopes returns applied scopes', function () {
+    TestScopeable::scope('scope1', function () {});
+    TestScopeable::scope('scope2', function () {});
+
+    $this->instance->withScope('scope1')->withScope('scope2');
+
+    $applied = $this->instance->getAppliedScopes();
+    expect($applied)->toContain('scope1');
+    expect($applied)->toContain('scope2');
+});
+
+test('hasAppliedScope checks if scope is applied', function () {
+    TestScopeable::scope('test', function () {});
+
+    $this->instance->withScope('test');
+
+    expect($this->instance->hasAppliedScope('test'))->toBeTrue();
+    expect($this->instance->hasAppliedScope('other'))->toBeFalse();
+});
+
+test('resetAppliedScopes clears applied scopes', function () {
+    TestScopeable::scope('test', function () {});
+
+    $this->instance->withScope('test');
+    expect($this->instance->getAppliedScopes())->not->toBeEmpty();
+
+    $this->instance->resetAppliedScopes();
+    expect($this->instance->getAppliedScopes())->toBeEmpty();
+});
+
+test('scope with non-closure callable works', function () {
+    $callable = [new class {
+        public function handle($query) {
+            $query->where('callable', true);
+        }
+    }, 'handle'];
+
+    TestScopeable::scope('callableScope', $callable);
+
+    $this->instance->withScope('callableScope');
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['callable', '=', true]);
+});
+
+test('global scope with non-closure callable works', function () {
+    $callable = [new class {
+        public function apply($query) {
+            $query->where('global_callable', true);
+        }
+    }, 'apply'];
+
+    TestScopeable::globalScope('callableGlobal', $callable);
+
+    $this->instance->applyGlobalScopes();
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->conditions[0])->toBe(['global_callable', '=', true]);
+});
+
+test('scope can access instance properties and methods', function () {
+    TestScopeable::scope('complex', function () {
+        $this->where('status', 'active')
+             ->orderBy('created_at', 'desc')
+             ->limit(10);
     });
+
+    $this->instance->withScope('complex');
+
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->orders)->toHaveCount(1);
+    expect($this->instance->limitValue)->toBe(10);
+});
+
+test('multiple parameters in scope', function () {
+    TestScopeable::scope('between', function ($min, $max) {
+        $this->where('value', $min)->where('value', $max);
+    });
+
+    $this->instance->withScope('between', 10, 100);
+
+    expect($this->instance->conditions)->toHaveCount(2);
+    expect($this->instance->conditions[0])->toBe(['value', '=', 10]);
+    expect($this->instance->conditions[1])->toBe(['value', '=', 100]);
+});
+
+test('chaining scope applications', function () {
+    TestScopeable::scope('active', function () {
+        $this->where('active', true);
+    });
+
+    TestScopeable::scope('recent', function () {
+        $this->orderBy('created_at', 'desc');
+    });
+
+    $result = $this->instance->withScope('active')->withScope('recent');
+
+    expect($result)->toBe($this->instance);
+    expect($this->instance->conditions)->toHaveCount(1);
+    expect($this->instance->orders)->toHaveCount(1);
+});
+
+test('applying same scope twice is prevented', function () {
+    TestScopeable::scope('test', function () {
+        $this->where('test', true);
+    });
+
+    $this->instance->withScope('test');
+
+    // Record should prevent duplicate
+    $applied = $this->instance->getAppliedScopes();
+    expect($applied)->toHaveCount(1);
+
+    // Manually calling recordAppliedScope again shouldn't duplicate
+    $reflection = new ReflectionClass($this->instance);
+    $method = $reflection->getMethod('recordAppliedScope');
+    $method->setAccessible(true);
+    $method->invoke($this->instance, 'test');
+
+    $applied = $this->instance->getAppliedScopes();
+    expect($applied)->toHaveCount(1);
+});
+
+test('removing same global scope twice is prevented', function () {
+    $this->instance->withoutGlobalScope('test');
+
+    $applied = $this->instance->getAppliedScopes();
+    expect($applied)->toContain('!test');
+    expect(count(array_filter($applied, fn($s) => $s === '!test')))->toBe(1);
+
+    // Manually calling recordRemovedScope again shouldn't duplicate
+    $reflection = new ReflectionClass($this->instance);
+    $method = $reflection->getMethod('recordRemovedScope');
+    $method->setAccessible(true);
+    $method->invoke($this->instance, 'test');
+
+    $applied = $this->instance->getAppliedScopes();
+    expect(count(array_filter($applied, fn($s) => $s === '!test')))->toBe(1);
 });

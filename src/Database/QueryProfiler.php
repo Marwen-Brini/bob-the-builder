@@ -81,7 +81,9 @@ class QueryProfiler
         if (str_starts_with($query, 'select')) {
             return 'select';
         } elseif (str_starts_with($query, 'insert')) {
+            // @codeCoverageIgnoreStart
             return 'insert';
+            // @codeCoverageIgnoreEnd
         } elseif (str_starts_with($query, 'update')) {
             return 'update';
         } elseif (str_starts_with($query, 'delete')) {

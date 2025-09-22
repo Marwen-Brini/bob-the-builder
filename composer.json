@@ -27,11 +27,14 @@
     "autoload": {
         "psr-4": {
             "Bob\\": "src/"
-        }
+        },
+        "files": [
+            "src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
-            "Bob\\Tests\\": "tests/"
+            "Tests\\": "tests/"
         }
     },
     "bin": [

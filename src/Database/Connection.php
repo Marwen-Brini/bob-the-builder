@@ -51,17 +51,34 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     /**
      * The default fetch mode for select statements.
      */
-    protected int $fetchMode = PDO::FETCH_ASSOC;
+    protected int $fetchMode = PDO::FETCH_OBJ;
 
     protected ?QueryProfiler $profiler = null;
 
+    /**
+     * The name of the connection.
+     */
+    protected ?string $name = null;
+
+    /**
+     * The event listeners for queries.
+     */
+    protected array $listeners = [];
+
     public function __construct(array $config = [])
     {
+        // Validate driver before proceeding
+        $driver = $config['driver'] ?? 'mysql';
+        $supportedDrivers = ['mysql', 'pgsql', 'postgres', 'postgresql', 'sqlite'];
+        if (!in_array($driver, $supportedDrivers)) {
+            throw new \InvalidArgumentException("Database driver [{$driver}] not supported");
+        }
+
         $this->config = $config;
         $this->tablePrefix = $config['prefix'] ?? '';
 
-        // Set fetch mode from config, default to associative arrays
-        $this->fetchMode = $config['fetch'] ?? PDO::FETCH_ASSOC;
+        // Set fetch mode from config, default to objects
+        $this->fetchMode = $config['fetch'] ?? PDO::FETCH_OBJ;
 
         $this->useDefaultQueryGrammar();
         $this->useDefaultPostProcessor();
@@ -173,7 +190,16 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function getName(): string
     {
-        return $this->config['name'] ?? 'default';
+        return $this->name ?? ($this->config['name'] ?? '');
+    }
+
+    /**
+     * Set the connection name.
+     */
+    public function setName(string $name): self
+    {
+        $this->name = $name;
+        return $this;
     }
 
     public function reconnect(): void
@@ -301,6 +327,49 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         $records = $this->select($query, $bindings, $useReadPdo);
 
         return array_shift($records);
+    }
+
+    /**
+     * Execute a query and return the first column of the first row.
+     */
+    public function scalar(string $query, array $bindings = [], bool $useReadPdo = true): mixed
+    {
+        $result = $this->selectOne($query, $bindings, $useReadPdo);
+
+        if (is_null($result)) {
+            return null;
+        }
+
+        // Return the first value from the result
+        if (is_object($result)) {
+            $values = get_object_vars($result);
+            return reset($values);
+        } elseif (is_array($result)) {
+            return reset($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Execute a query and return a generator for the results.
+     */
+    public function cursor(string $query, array $bindings = [], bool $useReadPdo = true): \Generator
+    {
+        if ($this->pretending) {
+            return;
+        }
+
+        $pdo = $this->getPdoForSelect($useReadPdo);
+        $statement = $this->getCachedStatement($query, $pdo);
+
+        $this->run($query, $bindings, function ($query, $bindings) use ($statement) {
+            $statement->execute($bindings);
+        });
+
+        while ($record = $statement->fetch($this->fetchMode)) {
+            yield $record;
+        }
     }
 
     public function insert(string $query, array $bindings = []): bool
@@ -463,7 +532,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $this->getPdo()->rollBack();
             $this->logTransaction('rolled back');
         } elseif ($this->transactions > 1 && $this->queryGrammar->supportsSavepoints()) {
-            $savepoint = 'trans'.$this->transactions;
+            $savepoint = 'trans'.($this->transactions);
             $this->getPdo()->exec(
                 $this->queryGrammar->compileSavepointRollBack($savepoint)
             );
@@ -618,4 +687,23 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
         return $this->profiler->getReport();
     }
+
+    /**
+     * Register a query listener.
+     */
+    public function listen(Closure $callback): void
+    {
+        $this->listeners[] = $callback;
+    }
+
+    /**
+     * Fire the query event listeners.
+     */
+    protected function fireQueryEvent(array $query): void
+    {
+        foreach ($this->listeners as $listener) {
+            $listener($query);
+        }
+    }
+
 }

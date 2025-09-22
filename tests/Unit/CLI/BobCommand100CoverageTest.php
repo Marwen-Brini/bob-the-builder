@@ -2,154 +2,255 @@
 
 use Bob\cli\BobCommand;
 
-it('covers version display lines 92-93 specifically', function () {
-    // Use reflection to test the specific lines directly
-    $command = new BobCommand();
-    
-    // Create mock connection and inject it
-    $connection = Mockery::mock(\Bob\Database\Connection::class);
-    $connection->shouldReceive('getPdo')->andReturn(Mockery::mock(PDO::class));
-    $connection->shouldReceive('selectOne')
-        ->with('SELECT VERSION() as version')
-        ->andReturn(['version' => 'Test Version 1.0']);
-    $connection->shouldReceive('select')
-        ->andReturn([]);
-    
-    // Use reflection to call testConnection with our mock
-    $reflection = new ReflectionClass($command);
-    $method = $reflection->getMethod('testConnection');
-    $method->setAccessible(true);
-    
-    // We need to mock the Connection creation
-    // Since we can't easily override the 'new Connection()' call,
-    // let's test the output methods directly
-    $outputMethod = $reflection->getMethod('info');
-    $outputMethod->setAccessible(true);
-    
-    // Test line 93 directly - this is what we need to cover
-    $version = (object)['version' => 'MySQL 8.0.30'];
-    if ($version) {
+describe('BobCommand 100% Coverage Tests', function () {
+
+    test('BobCommand build with --execute shows actual results (line 209)', function () {
+        // Create a test database with data
+        $dbFile = sys_get_temp_dir() . '/test_bob_exec_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        $connection->statement('CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)');
+        $connection->statement('INSERT INTO users (name) VALUES ("Alice"), ("Bob")');
+
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
+
+            protected function getConnectionConfig($driver, $args): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
+            }
+        };
+
+        $command::$testDb = $dbFile;
+
         ob_start();
-        $outputMethod->invoke($command, 'Database version: '.($version->version ?? 'Unknown'));
+        $result = $command->run(['bob', 'build', 'sqlite', 'select * from users', '--execute']);
         $output = ob_get_clean();
-        expect($output)->toContain('Database version: MySQL 8.0.30');
-    }
-});
 
-it('tests MySQL connection with actual VERSION() query result', function () {
-    // Create a test command that can use a mock connection
-    $command = new class extends BobCommand {
-        public $mockConnection;
+        expect($output)->toContain('Executing query');
+        expect($output)->toContain('Results (2 rows)');
+        expect($output)->toContain('Alice');
+        expect($output)->toContain('Bob');
 
-        protected function getConnectionConfig(string $driver, array $args): array {
-            return ['driver' => 'sqlite', 'database' => ':memory:'];
-        }
-    };
+        // Clean up
+        @unlink($dbFile);
+    });
 
-    // Create mock connection that returns version with 'version' key
-    $mockConnection = Mockery::mock(\Bob\Database\Connection::class);
-    $mockConnection->shouldReceive('getPdo')->andReturn(new PDO('sqlite::memory:'));
-    $mockConnection->shouldReceive('selectOne')
-        ->with('SELECT VERSION() as version')
-        ->once()
-        ->andReturn((object)['version' => '8.0.33']); // Line 92 will be true, line 93 will use 'version' key
+    test('BobCommand execute with colon syntax (line 239)', function () {
+        $dbFile = sys_get_temp_dir() . '/test_bob_colon_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        $connection->statement('CREATE TABLE products (id INTEGER, name TEXT)');
+        $connection->statement('INSERT INTO products VALUES (1, "Widget")');
 
-    $mockConnection->shouldReceive('select')
-        ->once()
-        ->andReturn([
-            (object)['table_name' => 'users'],
-            (object)['table_name' => 'posts']
-        ]);
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
 
-    // Override Connection creation in the command
-    $reflection = new ReflectionClass($command);
-    $method = $reflection->getMethod('testConnection');
-    $methodCode = function (array $args) use ($mockConnection) {
-        $driver = $args[0] ?? null;
-        if (!$driver) {
-            $this->error('Please specify a driver: mysql, pgsql, or sqlite');
-            return 1;
-        }
-        if (!in_array($driver, ['mysql', 'pgsql', 'sqlite'])) {
-            $this->error("Unsupported driver: $driver");
-            return 1;
-        }
-        $this->info("Testing $driver connection...");
-        $connection = $mockConnection;
-        $connection->getPdo();
-        $this->success('Connection successful!');
-
-        // The actual lines we want to test
-        try {
-            $version = $connection->selectOne('SELECT VERSION() as version');
-            if ($version) {  // Line 92
-                $this->info('Database version: '.($version->version ?? 'Unknown')); // Line 93
+            protected function getConnectionConfigWithDefaults($driver): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
-        } catch (Exception $e) {
-            // Continue
-        }
+        };
 
-        // Get tables
-        $tables = $connection->select("SHOW TABLES");
-        if (!empty($tables)) {
-            $this->info('Available tables:');
-            foreach ($tables as $table) {
-                $tableName = array_values((array) $table)[0];
-                $this->info("  - $tableName");
+        $command::$testDb = $dbFile;
+
+        ob_start();
+        $command->run(['bob', 'execute', 'sqlite', 'select:* from:products']);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('Results');
+        expect($output)->toContain('Widget');
+
+        @unlink($dbFile);
+    });
+
+    test('BobCommand schema lists tables (line 287)', function () {
+        $dbFile = sys_get_temp_dir() . '/test_bob_schema_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        $connection->statement('CREATE TABLE table1 (id INTEGER)');
+        $connection->statement('CREATE TABLE table2 (id INTEGER)');
+        $connection->statement('CREATE TABLE table3 (id INTEGER)');
+
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
+
+            protected function getConnectionConfigWithDefaults($driver): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
-        } else {
-            $this->info('No tables found in the database.');
-        }
+        };
 
-        return 0;
-    };
+        $command::$testDb = $dbFile;
 
-    ob_start();
-    $result = $methodCode->call($command, ['mysql']);
-    $output = ob_get_clean();
+        ob_start();
+        $command->run(['bob', 'schema', 'sqlite']);
+        $output = ob_get_clean();
 
-    expect($output)->toContain('Database version: 8.0.33');
-    expect($result)->toBe(0);
-});
+        expect($output)->toContain('Available tables');
+        expect($output)->toContain('- table1');
+        expect($output)->toContain('- table2');
+        expect($output)->toContain('- table3');
 
-it('covers displayDatabaseVersion with null version', function () {
-    $command = new BobCommand();
-    $reflection = new ReflectionClass($command);
-    $method = $reflection->getMethod('displayDatabaseVersion');
-    $method->setAccessible(true);
+        @unlink($dbFile);
+    });
 
-    // Test with null version
-    ob_start();
-    $method->invoke($command, null);
-    $output = ob_get_clean();
+    test('BobCommand export CSV with real data (lines 338-346)', function () {
+        $dbFile = sys_get_temp_dir() . '/test_bob_csv_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        $connection->statement('CREATE TABLE employees (id INTEGER, name TEXT, salary REAL)');
+        $connection->statement('INSERT INTO employees VALUES (1, "John Doe", 50000.50)');
+        $connection->statement("INSERT INTO employees VALUES (2, 'Jane \"Smith\"', 60000.75)");
+        $connection->statement('INSERT INTO employees VALUES (3, "Bob", NULL)');
 
-    expect($output)->toBe(''); // Should output nothing for null
-});
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
 
-it('covers displayDatabaseVersion with version object containing version key', function () {
-    $command = new BobCommand();
-    $reflection = new ReflectionClass($command);
-    $method = $reflection->getMethod('displayDatabaseVersion');
-    $method->setAccessible(true);
+            protected function getConnectionConfigWithDefaults($driver): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
+            }
+        };
 
-    // Test with version object containing 'version' key
-    ob_start();
-    $method->invoke($command, (object)['version' => '8.0.33']);
-    $output = ob_get_clean();
+        $command::$testDb = $dbFile;
 
-    expect($output)->toContain('Database version: 8.0.33');
-});
+        ob_start();
+        $command->run(['bob', 'export', 'sqlite', 'select * from employees', '--format=csv']);
+        $output = ob_get_clean();
 
-it('covers displayDatabaseVersion with version object missing version key', function () {
-    $command = new BobCommand();
-    $reflection = new ReflectionClass($command);
-    $method = $reflection->getMethod('displayDatabaseVersion');
-    $method->setAccessible(true);
+        // Check CSV headers
+        expect($output)->toContain('id,name,salary');
+        // Check data with proper CSV escaping
+        expect($output)->toContain('"John Doe"');
+        expect($output)->toContain('"Jane ""Smith"""'); // Double quotes escaped
+        expect($output)->toContain('50000.5');
+        expect($output)->toContain('Bob');
 
-    // Test with version object missing 'version' key (null coalescing)
-    ob_start();
-    $method->invoke($command, (object)['other_key' => 'value']);
-    $output = ob_get_clean();
+        @unlink($dbFile);
+    });
 
-    expect($output)->toContain('Database version: Unknown');
+    test('BobCommand parseAndBuildQuery with parts without colon (line 409)', function () {
+        $command = new class(['bob']) extends BobCommand {
+            public function testParseAndBuild() {
+                $grammar = $this->createGrammar('mysql');
+                $processor = new \Bob\Query\Processor;
+                $connection = $this->createMockConnection($grammar, $processor);
+                $builder = new \Bob\Query\Builder($connection);
+
+                // Mix parts with and without colons
+                $this->parseAndBuildQuery($builder, 'select:* from:users sometext where:id,1 moretext');
+
+                return $builder->toSql();
+            }
+        };
+
+        $sql = $command->testParseAndBuild();
+        expect($sql)->toContain('select * from `users`');
+        expect($sql)->toContain('where `id` = ?');
+    });
+
+    test('BobCommand export CSV with empty result set', function () {
+        $dbFile = sys_get_temp_dir() . '/test_bob_empty_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        $connection->statement('CREATE TABLE empty_table (id INTEGER, name TEXT)');
+
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
+
+            protected function getConnectionConfigWithDefaults($driver): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
+            }
+        };
+
+        $command::$testDb = $dbFile;
+
+        ob_start();
+        $command->run(['bob', 'export', 'sqlite', 'select * from empty_table', '--format=csv']);
+        $output = ob_get_clean();
+
+        // Should be empty or just newline
+        expect(trim($output))->toBe('');
+
+        @unlink($dbFile);
+    });
+
+    test('BobCommand export JSON format', function () {
+        $dbFile = sys_get_temp_dir() . '/test_bob_json_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        $connection->statement('CREATE TABLE data (id INTEGER, value TEXT)');
+        $connection->statement('INSERT INTO data VALUES (1, "test")');
+
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
+
+            protected function getConnectionConfigWithDefaults($driver): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
+            }
+        };
+
+        $command::$testDb = $dbFile;
+
+        ob_start();
+        $command->run(['bob', 'export', 'sqlite', 'select * from data']);
+        $output = ob_get_clean();
+
+        $json = json_decode($output, true);
+        expect($json)->toBeArray();
+        expect($json[0]['value'])->toBe('test');
+
+        @unlink($dbFile);
+    });
+
+    test('BobCommand schema with no tables', function () {
+        $dbFile = sys_get_temp_dir() . '/test_bob_notables_' . uniqid() . '.db';
+        $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
+        // Don't create any tables
+
+        $command = new class(['bob']) extends BobCommand {
+            public static $testDb;
+
+            protected function getConnectionConfigWithDefaults($driver): array {
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
+            }
+        };
+
+        $command::$testDb = $dbFile;
+
+        ob_start();
+        $command->run(['bob', 'schema', 'sqlite']);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('Available tables');
+        // No table listings
+
+        @unlink($dbFile);
+    });
+
+    test('BobCommand build without --execute and with results', function () {
+        $command = new BobCommand(['bob']);
+
+        ob_start();
+        $result = $command->run(['bob', 'build', 'mysql', 'select * from users']);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('Generated SQL');
+        expect($output)->not->toContain('Executing query');
+        expect($output)->not->toContain('Results (');
+    });
+
+    test('BobCommand parseAndBuildQuery handles all missing cases', function () {
+        $command = new class(['bob']) extends BobCommand {
+            public function testAllCases() {
+                $grammar = $this->createGrammar('mysql');
+                $processor = new \Bob\Query\Processor;
+                $connection = $this->createMockConnection($grammar, $processor);
+                $builder = new \Bob\Query\Builder($connection);
+
+                // Test with only parts without colons (should continue through)
+                $this->parseAndBuildQuery($builder, 'just text without colons');
+
+                // Test with mixed content
+                $this->parseAndBuildQuery($builder, 'some text select:id,name more text from:table even more');
+
+                return $builder->toSql();
+            }
+        };
+
+        $sql = $command->testAllCases();
+        expect($sql)->toContain('select `id`, `name` from `table`');
+    });
+
 });

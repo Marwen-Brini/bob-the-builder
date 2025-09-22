@@ -133,7 +133,9 @@ abstract class Grammar implements GrammarInterface
             return $constraint;
         }
 
-        return $this->{"where{$where['type']}"}($query ?? new Builder($this->connection ?? null), $where);
+        // For non-Column join constraints, delegate to the appropriate where method
+        // This requires a proper builder instance, which should be passed from the caller
+        return $where['boolean'].' '.$where['sql'];
     }
 
     protected function compileGroups(BuilderInterface $query, array $groups): string

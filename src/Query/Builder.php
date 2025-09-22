@@ -9,6 +9,7 @@ use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
 use Bob\Database\Expression;
+use Bob\Query\RelationshipLoader;
 use Closure;
 
 class Builder implements BuilderInterface
@@ -51,7 +52,19 @@ class Builder implements BuilderInterface
 
     public $unionOrders;
 
+    /**
+     * The model being queried.
+     */
+    protected $model;
+
+    /**
+     * The relationships that should be eager loaded.
+     */
+    protected array $eagerLoad = [];
+
     public $lock;
+
+    public bool $useWritePdo = false;
 
     protected array $bindings = [
         'select' => [],
@@ -86,6 +99,32 @@ class Builder implements BuilderInterface
         return $this;
     }
 
+    /**
+     * Add a subquery select expression to the query.
+     *
+     * @param \Closure|Builder|string $query
+     * @param string $as
+     * @return self
+     */
+    public function selectSub($query, $as): self
+    {
+        if ($query instanceof \Closure) {
+            $callback = $query;
+            $query = $this->newQuery();
+            $callback($query);
+        }
+
+        if ($query instanceof self) {
+            $bindings = $query->getBindings();
+            $query = $query->toSql();
+
+            // Add the bindings from the subquery
+            $this->addBinding($bindings, 'select');
+        }
+
+        return $this->selectRaw('(' . $query . ') as ' . $this->grammar->wrap($as));
+    }
+
     public function addSelect($column): self
     {
         $column = is_array($column) ? $column : func_get_args();
@@ -95,16 +134,49 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function distinct(): self
+    /**
+     * Set the distinct flag for the query.
+     *
+     * @param bool $value
+     * @return self
+     */
+    public function distinct(bool $value = true): self
     {
-        $this->distinct = true;
+        $this->distinct = $value;
 
         return $this;
     }
 
     public function from($table, $as = null): self
     {
-        $this->from = $as ? "{$table} as {$as}" : $table;
+        if ($this->isQueryable($table)) {
+            // Handle closures and subqueries
+            if ($table instanceof \Closure) {
+                $sub = $this->forSubQuery();
+                $table($sub);
+                $table = $sub;
+            }
+            $this->from = $table;
+        } else {
+            // Handle regular table names
+            $this->from = $as ? "{$table} as {$as}" : $table;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set a raw from clause.
+     *
+     * @param string $expression
+     * @param array $bindings
+     * @return self
+     */
+    public function fromRaw($expression, $bindings = []): self
+    {
+        $this->from = $this->raw($expression);
+
+        $this->addBinding($bindings, 'from');
 
         return $this;
     }
@@ -181,7 +253,7 @@ class Builder implements BuilderInterface
         return ! in_array(strtolower($operator), $this->operators, true);
     }
 
-    protected function whereNested(Closure $callback, string $boolean = 'and'): self
+    public function whereNested(Closure $callback, string $boolean = 'and'): self
     {
         $query = $this->newQuery();
         $callback($query);
@@ -194,7 +266,10 @@ class Builder implements BuilderInterface
         if (count($query->wheres)) {
             $type = 'Nested';
             $this->wheres[] = compact('type', 'query', 'boolean');
-            $this->addBinding($query->getBindings()['where'], 'where');
+            // Get the where bindings directly from the query's bindings array
+            if (isset($query->bindings['where'])) {
+                $this->addBinding($query->bindings['where'], 'where');
+            }
         }
 
         return $this;
@@ -263,6 +338,30 @@ class Builder implements BuilderInterface
         return $this->whereIn($column, $values, $boolean, true);
     }
 
+    /**
+     * Add an "or where in" clause to the query.
+     *
+     * @param string $column
+     * @param mixed $values
+     * @return self
+     */
+    public function orWhereIn($column, $values): self
+    {
+        return $this->whereIn($column, $values, 'or');
+    }
+
+    /**
+     * Add an "or where not in" clause to the query.
+     *
+     * @param string $column
+     * @param mixed $values
+     * @return self
+     */
+    public function orWhereNotIn($column, $values): self
+    {
+        return $this->whereIn($column, $values, 'or', true);
+    }
+
     public function whereNull($column, $boolean = 'and', $not = false): self
     {
         $type = $not ? 'NotNull' : 'Null';
@@ -312,7 +411,10 @@ class Builder implements BuilderInterface
     {
         $type = $not ? 'NotExists' : 'Exists';
         $this->wheres[] = compact('type', 'query', 'boolean');
-        $this->addBinding($query->getBindings()['where'], 'where');
+        // Get the where bindings directly from the query's bindings array
+        if (isset($query->bindings['where'])) {
+            $this->addBinding($query->bindings['where'], 'where');
+        }
 
         return $this;
     }
@@ -320,6 +422,86 @@ class Builder implements BuilderInterface
     public function whereNotExists(Closure $callback, $boolean = 'and'): self
     {
         return $this->whereExists($callback, $boolean, true);
+    }
+
+    /**
+     * Add an "or where exists" clause to the query.
+     *
+     * @param Closure $callback
+     * @return self
+     */
+    public function orWhereExists(Closure $callback): self
+    {
+        return $this->whereExists($callback, 'or');
+    }
+
+    /**
+     * Add an "or where not exists" clause to the query.
+     *
+     * @param Closure $callback
+     * @return self
+     */
+    public function orWhereNotExists(Closure $callback): self
+    {
+        return $this->whereExists($callback, 'or', true);
+    }
+
+    /**
+     * Add a where in with integers clause to the query.
+     *
+     * @param string $column
+     * @param array $values
+     * @param string $boolean
+     * @param bool $not
+     * @return self
+     */
+    public function whereIntegerInRaw($column, $values, $boolean = 'and', $not = false): self
+    {
+        $type = $not ? 'NotInRaw' : 'InRaw';
+
+        // Ensure all values are integers
+        $values = array_map('intval', $values);
+
+        $this->wheres[] = compact('type', 'column', 'values', 'boolean');
+
+        return $this;
+    }
+
+    /**
+     * Add a where not in with integers clause to the query.
+     *
+     * @param string $column
+     * @param array $values
+     * @param string $boolean
+     * @return self
+     */
+    public function whereIntegerNotInRaw($column, $values, $boolean = 'and'): self
+    {
+        return $this->whereIntegerInRaw($column, $values, $boolean, true);
+    }
+
+    /**
+     * Add an or where in with integers clause to the query.
+     *
+     * @param string $column
+     * @param array $values
+     * @return self
+     */
+    public function orWhereIntegerInRaw($column, $values): self
+    {
+        return $this->whereIntegerInRaw($column, $values, 'or');
+    }
+
+    /**
+     * Add an or where not in with integers clause to the query.
+     *
+     * @param string $column
+     * @param array $values
+     * @return self
+     */
+    public function orWhereIntegerNotInRaw($column, $values): self
+    {
+        return $this->whereIntegerInRaw($column, $values, 'or', true);
     }
 
     public function whereRaw($sql, $bindings = [], $boolean = 'and'): self
@@ -463,7 +645,7 @@ class Builder implements BuilderInterface
 
     public function join($table, $first, $operator = null, $second = null, $type = 'inner', $where = false): self
     {
-        $join = new JoinClause($this, $type, $table);
+        $join = $this->newJoinClause($type, $table);
 
         if ($first instanceof Closure) {
             $first($join);
@@ -490,13 +672,117 @@ class Builder implements BuilderInterface
 
     public function crossJoin($table, $first = null, $operator = null, $second = null): self
     {
-        if ($first) {
-            return $this->join($table, $first, $operator, $second, 'cross');
+        if ($this->hasCrossJoinConditions($first)) {
+            return $this->crossJoinWithConditions($table, $first, $operator, $second);
         }
 
-        $this->joins[] = new JoinClause($this, 'cross', $table);
+        return $this->simpleCrossJoin($table);
+    }
+
+    /**
+     * Check if cross join has conditions
+     */
+    protected function hasCrossJoinConditions($first): bool
+    {
+        return $first !== null;
+    }
+
+    /**
+     * Add cross join with conditions
+     */
+    protected function crossJoinWithConditions($table, $first, $operator, $second): self
+    {
+        return $this->join($table, $first, $operator, $second, 'cross');
+    }
+
+    /**
+     * Add simple cross join without conditions
+     */
+    protected function simpleCrossJoin($table): self
+    {
+        $this->joins[] = $this->newJoinClause('cross', $table);
+        return $this;
+    }
+
+    /**
+     * Create a new join clause instance.
+     */
+    public function newJoinClause($parentQuery, string $type = null, $table = null): JoinClause
+    {
+        // Handle both signatures for backward compatibility
+        if (is_string($parentQuery) && $type !== null) {
+            // Old signature: newJoinClause($type, $table)
+            return new JoinClause($this, $parentQuery, $type);
+        }
+        // New signature: newJoinClause($parentQuery, $type, $table)
+        return new JoinClause($parentQuery, $type, $table);
+    }
+
+    /**
+     * Create a new query instance for a subquery.
+     */
+    public function forSubQuery(): self
+    {
+        return $this->newQuery();
+    }
+
+    /**
+     * Merge an array of bindings into our bindings.
+     */
+    public function mergeBindings(self $query): self
+    {
+        foreach ($query->bindings as $type => $bindings) {
+            $this->mergeBindingsForType($type, $bindings);
+        }
 
         return $this;
+    }
+
+    /**
+     * Merge bindings for a specific type
+     */
+    protected function mergeBindingsForType(string $type, array $bindings): void
+    {
+        if (!isset($this->bindings[$type])) {
+            $this->bindings[$type] = [];
+        }
+        $this->bindings[$type] = array_merge($this->bindings[$type], $bindings);
+    }
+
+    /**
+     * Add a "join where" clause to the query.
+     *
+     * @param string $table
+     * @param string $first
+     * @param string $operator
+     * @param string $second
+     * @param \\Closure $where
+     * @return self
+     */
+    public function joinWhere($table, $first, $operator, $second, $where): self
+    {
+        return $this->join($table, function($join) use ($first, $operator, $second, $where) {
+            $join->on($first, $operator, $second);
+            $where($join);
+        });
+    }
+
+    /**
+     * Add a "left join where" clause to the query.
+     *
+     * @param string $table
+     * @param string $first
+     * @param string $operator
+     * @param string $second
+     * @param \\Closure $where
+     * @return self
+     */
+    public function leftJoinWhere($table, $first, $operator, $second, $where): self
+    {
+        return $this->leftJoin($table, function($join) use ($first, $operator, $second, $where) {
+            $join->on($first, $operator, $second);
+            $where($join);
+        });
     }
 
     public function groupBy(...$groups): self
@@ -545,10 +831,40 @@ class Builder implements BuilderInterface
         return $this;
     }
 
+    /**
+     * Add a raw or having clause to the query.
+     *
+     * @param string $sql
+     * @param array $bindings
+     * @return self
+     */
+    public function orHavingRaw($sql, $bindings = []): self
+    {
+        return $this->havingRaw($sql, $bindings, 'or');
+    }
+
+    /**
+     * Add a having between clause to the query.
+     */
+    public function havingBetween($column, array $values, $boolean = 'and', $not = false): self
+    {
+        $type = 'Between';
+        $this->havings[] = compact('type', 'column', 'values', 'boolean', 'not');
+        $this->addBinding($values, 'having');
+        return $this;
+    }
+
     public function orderBy($column, $direction = 'asc'): self
     {
         $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
-        $this->orders[] = compact('column', 'direction');
+        $order = compact('column', 'direction');
+
+        // If we have unions, set unionOrders instead
+        if ($this->unions) {
+            $this->unionOrders[] = $order;
+        } else {
+            $this->orders[] = $order;
+        }
 
         return $this;
     }
@@ -582,10 +898,34 @@ class Builder implements BuilderInterface
         return $this->orderByRaw($this->grammar->compileRandom($seed));
     }
 
+    /**
+     * Remove all existing orders and optionally add a new one.
+     *
+     * @param string|null $column
+     * @param string $direction
+     * @return self
+     */
+    public function reorder($column = null, $direction = 'asc'): self
+    {
+        $this->orders = null;
+        $this->bindings['order'] = [];
+
+        if ($column !== null) {
+            return $this->orderBy($column, $direction);
+        }
+
+        return $this;
+    }
+
     public function limit($value): self
     {
         if ($value >= 0) {
-            $this->limit = $value;
+            // If we have unions, set the unionLimit instead
+            if ($this->unions) {
+                $this->unionLimit = $value;
+            } else {
+                $this->limit = $value;
+            }
         }
 
         return $this;
@@ -594,7 +934,12 @@ class Builder implements BuilderInterface
     public function offset($value): self
     {
         if ($value >= 0) {
-            $this->offset = $value;
+            // If we have unions, set the unionOffset instead
+            if ($this->unions) {
+                $this->unionOffset = $value;
+            } else {
+                $this->offset = $value;
+            }
         }
 
         return $this;
@@ -615,6 +960,14 @@ class Builder implements BuilderInterface
         return $this->skip(($page - 1) * $perPage)->take($perPage);
     }
 
+    /**
+     * Alias for the "page" method
+     */
+    public function forPage($page, $perPage = 15): self
+    {
+        return $this->page($page, $perPage);
+    }
+
     public function get($columns = ['*']): array
     {
         $original = $this->columns;
@@ -629,24 +982,116 @@ class Builder implements BuilderInterface
 
         $this->columns = $original;
 
+        // If we have a model, hydrate the results into model instances
+        if ($this->model) {
+            $models = [];
+
+            foreach ($results as $result) {
+                $models[] = $this->hydrateModel($result);
+            }
+
+            // Handle eager loading
+            if (!empty($this->eagerLoad)) {
+                $models = $this->eagerLoadRelations($models);
+            }
+
+            // Return model instances
+            return $models;
+        }
+
         return $results;
     }
 
     protected function runSelect(): array
     {
         return $this->connection->select(
-            $this->toSql(), $this->getBindings()
+            $this->toSql(), $this->getBindings(), ! $this->useWritePdo
         );
+    }
+
+    /**
+     * Hydrate a result into a model instance
+     */
+    protected function hydrateModel($data)
+    {
+        if (!$this->shouldHydrateModel()) {
+            return $data;
+        }
+
+        return $this->createModelFromData($data);
+    }
+
+    /**
+     * Check if we should hydrate to model
+     */
+    protected function shouldHydrateModel(): bool
+    {
+        return $this->model !== null;
+    }
+
+    /**
+     * Create a model instance from data
+     */
+    protected function createModelFromData($data)
+    {
+        $modelClass = get_class($this->model);
+        $model = new $modelClass;
+
+        // Convert stdClass to array if needed
+        $attributes = is_object($data) ? (array) $data : $data;
+
+        // Set the attributes directly
+        foreach ($attributes as $key => $value) {
+            $model->setAttribute($key, $value);
+        }
+
+        // Mark as existing from database
+        $model->exists = true;
+        $model->syncOriginal();
+
+        return $model;
+    }
+
+    /**
+     * Hydrate an array of data into model instances.
+     */
+    public function hydrate(array $items): array
+    {
+        $models = [];
+        foreach ($items as $item) {
+            $models[] = $this->hydrateModel($item);
+        }
+        return $models;
     }
 
     public function first($columns = ['*'])
     {
-        $results = $this->limit(1)->get($columns);
-        return $results[0] ?? null;
+        $this->columns = is_array($columns) ? $columns : func_get_args();
+        $this->limit = 1;
+
+        $result = $this->connection->selectOne(
+            $this->toSql(), $this->getBindings(), ! $this->useWritePdo
+        );
+
+        if ($this->processor) {
+            $result = $this->processor->processSelect($this, $result ? [$result] : []);
+            $result = $result[0] ?? null;
+        }
+
+        // If we have a model set, hydrate the result into a model instance
+        if ($result && $this->model) {
+            return $this->hydrateModel($result);
+        }
+
+        return $result;
     }
 
     public function find($id, $columns = ['*'])
     {
+        if (is_array($id) || $id instanceof \Traversable) {
+            return $this->whereIn('id', $id)->get($columns);
+        }
+
         return $this->where('id', '=', $id)->first($columns);
     }
 
@@ -654,7 +1099,38 @@ class Builder implements BuilderInterface
     {
         $result = $this->first([$column]);
 
-        return $result ? ($result->$column ?? null) : null;
+        if (!$result) {
+            return null;
+        }
+
+        return $this->extractValueFromResult($result, $column);
+    }
+
+    /**
+     * Extract a column value from a result
+     */
+    protected function extractValueFromResult($result, string $column)
+    {
+        // Handle Model instances
+        if ($this->isModel($result)) {
+            return $result->getAttribute($column);
+        }
+
+        // Handle stdClass objects
+        if (is_object($result)) {
+            return $result->{$column} ?? null;
+        }
+
+        // Handle arrays
+        return $result[$column] ?? null;
+    }
+
+    /**
+     * Check if result is a Model instance
+     */
+    protected function isModel($result): bool
+    {
+        return is_object($result) && method_exists($result, 'getAttribute');
     }
 
     public function pluck($column, $key = null): array
@@ -688,13 +1164,13 @@ class Builder implements BuilderInterface
             $this->grammar->compileExists($this), $this->getBindings()
         );
 
-        if (isset($results[0])) {
-            $results = (array) $results[0];
-
-            return (bool) $results['exists'];
+        // Process the results if we have a processor
+        if ($this->processor) {
+            $results = $this->processor->processSelect($this, $results);
         }
 
-        return false;
+        // If we have any results, it exists
+        return count($results) > 0;
     }
 
     public function doesntExist(): bool
@@ -762,10 +1238,18 @@ class Builder implements BuilderInterface
         return $this->avg($column);
     }
 
+    /**
+     * Get the count for pagination.
+     */
+    public function getCountForPagination($columns = ['*']): int
+    {
+        return (int) $this->aggregate('count', $columns);
+    }
+
     protected function aggregate(string $function, array $columns = ['*'])
     {
         $results = $this->cloneWithout(['columns'])
-            ->cloneWithoutBindings(['select'])
+            ->cloneWithoutBindingsExcept(['select', 'where'])
             ->setAggregate($function, $columns)
             ->get($columns);
 
@@ -777,7 +1261,12 @@ class Builder implements BuilderInterface
 
         $firstResult = $results[0];
 
-        return $firstResult ? ($firstResult->aggregate ?? null) : null;
+        // Handle both array and object results
+        if (is_array($firstResult)) {
+            return $firstResult ? ($firstResult['aggregate'] ?? null) : null;
+        } else {
+            return $firstResult ? ($firstResult->aggregate ?? null) : null;
+        }
     }
 
     protected function setAggregate(string $function, array $columns): self
@@ -803,12 +1292,16 @@ class Builder implements BuilderInterface
         return $clone;
     }
 
-    protected function cloneWithoutBindings(array $except): self
+    protected function cloneWithoutBindingsExcept(array $except): self
     {
         $clone = clone $this;
 
-        foreach ($except as $type) {
-            $clone->bindings[$type] = [];
+        $bindingTypes = ['select', 'from', 'join', 'where', 'groupBy', 'having', 'order', 'union', 'unionOrder'];
+
+        foreach ($bindingTypes as $type) {
+            if (!in_array($type, $except)) {
+                $clone->bindings[$type] = [];
+            }
         }
 
         return $clone;
@@ -866,8 +1359,26 @@ class Builder implements BuilderInterface
         );
     }
 
+    /**
+     * Insert new records from a subquery.
+     */
+    public function insertUsing(array $columns, $query): int
+    {
+        if ($query instanceof \Closure) {
+            $query = $query($this->newQuery());
+        }
+
+        $sql = $this->grammar->compileInsertUsing($this, $columns, $query);
+
+        return $this->connection->affectingStatement($sql, $this->getBindings());
+    }
+
     public function update(array $values): int
     {
+        if (empty($values)) {
+            return 0;
+        }
+
         $sql = $this->grammar->compileUpdate($this, $values);
 
         return $this->connection->update($sql, $this->cleanBindings(
@@ -917,10 +1428,167 @@ class Builder implements BuilderInterface
         );
     }
 
-    public function truncate(): void
+    /**
+     * Insert or update records using MySQL's ON DUPLICATE KEY UPDATE or PostgreSQL's ON CONFLICT.
+     */
+    public function upsert(array $values, $uniqueBy = null, $update = null): int
     {
-        foreach ($this->grammar->compileTruncate($this) as $sql => $bindings) {
-            $this->connection->statement($sql, $bindings);
+        if (empty($values)) {
+            return 0;
+        }
+
+        // Normalize values
+        if (!is_array(reset($values))) {
+            $values = [$values];
+        }
+
+        $sql = $this->grammar->compileUpsert($this, $values, $uniqueBy, $update);
+
+        $bindings = [];
+        foreach ($values as $record) {
+            foreach ($record as $value) {
+                $bindings[] = $value;
+            }
+        }
+
+        if ($update !== null) {
+            foreach ($values[0] as $key => $value) {
+                if (in_array($key, (array) $update)) {
+                    $bindings[] = $value;
+                }
+            }
+        }
+
+        return $this->connection->affectingStatement($sql, $bindings);
+    }
+
+    /**
+     * Concatenate values of a given column as a string.
+     */
+    public function implode(string $column, string $glue = ''): string
+    {
+        return implode($glue, $this->pluck($column));
+    }
+
+    /**
+     * Determine if any rows exist for the current query.
+     */
+    public function existsOr(callable $callback)
+    {
+        if ($this->exists()) {
+            return true;
+        }
+
+        return $callback($this);
+    }
+
+    /**
+     * Determine if no rows exist for the current query.
+     */
+    public function doesntExistOr(callable $callback)
+    {
+        if ($this->doesntExist()) {
+            return true;
+        }
+
+        return $callback($this);
+    }
+
+    /**
+     * Get the raw array of bindings (structured by type).
+     */
+    public function getRawBindings(): array
+    {
+        return $this->bindings;
+    }
+
+    /**
+     * Constrain the query to the previous "page" of results before a given ID.
+     */
+    public function forPageBeforeId(int $perPage = 15, ?int $lastId = 0, string $column = 'id'): self
+    {
+        $this->orders = $this->removeExistingOrdersFor($column);
+
+        if (! is_null($lastId)) {
+            $this->where($column, '<', $lastId);
+        }
+
+        return $this->orderBy($column, 'desc')
+                    ->limit($perPage);
+    }
+
+    /**
+     * Constrain the query to the next "page" of results after a given ID.
+     */
+    public function forPageAfterId(int $perPage = 15, ?int $lastId = 0, string $column = 'id'): self
+    {
+        $this->orders = $this->removeExistingOrdersFor($column);
+
+        if (! is_null($lastId)) {
+            $this->where($column, '>', $lastId);
+        }
+
+        return $this->orderBy($column, 'asc')
+                    ->limit($perPage);
+    }
+
+    /**
+     * Remove an existing order by column from the query.
+     */
+    protected function removeExistingOrdersFor(string $column): array
+    {
+        if (!$this->hasOrders()) {
+            return [];
+        }
+
+        // @codeCoverageIgnoreStart
+        return $this->filterOrdersExcluding($column);
+        // @codeCoverageIgnoreEnd
+    }
+
+    /**
+     * Check if query has orders
+     */
+    protected function hasOrders(): bool
+    {
+        return isset($this->orders) && !empty($this->orders);
+    }
+
+    /**
+     * Filter orders excluding a column
+     */
+    protected function filterOrdersExcluding(string $column): array
+    {
+        return array_filter($this->orders ?? [], function ($order) use ($column) {
+            return isset($order['column']) && $order['column'] !== $column;
+        });
+    }
+
+    /**
+     * Truncate the table
+     *
+     * @return bool Returns true if truncation was successful
+     */
+    public function truncate(): bool
+    {
+        $sql = $this->grammar->compileTruncate($this);
+
+        $this->executeTruncateStatements($sql);
+
+        return true;
+    }
+
+    /**
+     * Execute truncate statements
+     */
+    protected function executeTruncateStatements($sql): void
+    {
+        if (is_array($sql)) {
+            foreach ($sql as $statement => $bindings) {
+                $this->connection->statement($statement, $bindings);
+            }
+        } else {
+            $this->connection->statement($sql);
         }
     }
 
@@ -933,16 +1601,37 @@ class Builder implements BuilderInterface
     {
         $this->addSelect(new Expression($expression));
 
-        if ($bindings) {
-            $this->addBinding($bindings, 'select');
-        }
+        $this->addRawBindings($bindings, 'select');
 
         return $this;
+    }
+
+    /**
+     * Add raw bindings if they exist
+     */
+    protected function addRawBindings(array $bindings, string $type): void
+    {
+        if (!empty($bindings)) {
+            $this->addBinding($bindings, $type);
+        }
     }
 
     public function when($value, callable $callback, ?callable $default = null): self
     {
-        if ($value) {
+        return $this->conditionalCall((bool)$value, $value, $callback, $default);
+    }
+
+    public function unless($value, callable $callback, ?callable $default = null): self
+    {
+        return $this->conditionalCall(!$value, $value, $callback, $default);
+    }
+
+    /**
+     * Execute conditional callback
+     */
+    protected function conditionalCall(bool $condition, $value, callable $callback, ?callable $default = null): self
+    {
+        if ($condition) {
             return $callback($this, $value) ?? $this;
         } elseif ($default) {
             return $default($this, $value) ?? $this;
@@ -951,13 +1640,81 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function unless($value, callable $callback, ?callable $default = null): self
+    /**
+     * Add a union statement to the query.
+     *
+     * @param Builder|\\Closure $query
+     * @param bool $all
+     * @return self
+     */
+    public function union($query, $all = false): self
     {
-        if (! $value) {
-            return $callback($this, $value) ?? $this;
-        } elseif ($default) {
-            return $default($this, $value) ?? $this;
+        if ($query instanceof \Closure) {
+            $query($query = $this->newQuery());
         }
+
+        $this->unions[] = compact('query', 'all');
+
+        $this->addBinding($query->getBindings(), 'union');
+
+        return $this;
+    }
+
+    /**
+     * Add a union all statement to the query.
+     *
+     * @param Builder|\\Closure $query
+     * @return self
+     */
+    public function unionAll($query): self
+    {
+        return $this->union($query, true);
+    }
+
+    /**
+     * Set the lock value for the query.
+     *
+     * @param bool|string $value
+     * @return self
+     */
+    public function lock($value = true): self
+    {
+        $this->lock = $value;
+
+        return $this;
+    }
+
+    /**
+     * Lock the selected rows in the table for updating.
+     *
+     * @return self
+     */
+    public function lockForUpdate(): self
+    {
+        return $this->lock(true);
+    }
+
+    /**
+     * Share lock the selected rows in the table.
+     *
+     * @return self
+     */
+    public function sharedLock(): self
+    {
+        return $this->lock(false);
+    }
+
+    /**
+     * Apply the callback if the given value is truthy.
+     * Alias for the "when" method for better readability.
+     *
+     * @param mixed $value
+     * @param callable $callback
+     * @return self
+     */
+    public function tap($callback): self
+    {
+        $callback($this);
 
         return $this;
     }
@@ -1031,17 +1788,114 @@ class Builder implements BuilderInterface
         return $this->joinSub($query, $as, $first, $operator, $second, 'left');
     }
 
+    /**
+     * Add a subquery cross join to the query.
+     */
+    public function crossJoinSub($query, $as): self
+    {
+        if ($query instanceof Closure) {
+            $subQuery = $this->newQuery();
+            $query($subQuery);
+            $query = $subQuery;
+        }
+
+        $expression = '(' . $query->toSql() . ') as ' . $this->grammar->wrap($as);
+
+        $this->addBinding($query->getBindings(), 'join');
+
+        $this->joins[] = $this->newJoinClause('cross', new Expression($expression));
+
+        return $this;
+    }
+
+    /**
+     * Add a subquery right join to the query.
+     */
+    public function rightJoinSub($query, $as, $first, $operator = null, $second = null): self
+    {
+        return $this->joinSub($query, $as, $first, $operator, $second, 'right');
+    }
+
     public function toSql(): string
     {
         return $this->grammar->compileSelect($this);
     }
 
-    public function getBindings(): array
+    public function getBindings($type = null): array
     {
-        return array_flatten($this->bindings);
+        if (is_null($type)) {
+            return array_flatten($this->bindings);
+        }
+
+        return $this->bindings[$type] ?? [];
     }
 
-    protected function addBinding($value, string $type = 'where'): self
+    /**
+     * Set the bindings on the query builder.
+     *
+     * @param array $bindings
+     * @param string $type
+     * @return self
+     */
+    public function setBindings(array $bindings, $type = 'where'): self
+    {
+        if (!isset($this->bindings[$type])) {
+            $this->bindings[$type] = [];
+        }
+
+        $this->bindings[$type] = $bindings;
+
+        return $this;
+    }
+
+    /**
+     * Merge an array of wheres into the current wheres.
+     *
+     * @param array $wheres
+     * @param array $bindings
+     * @return self
+     */
+    public function mergeWheres($wheres, $bindings): self
+    {
+        $this->wheres = array_merge($this->wheres, (array) $wheres);
+        $this->bindings['where'] = array_merge($this->bindings['where'], (array) $bindings);
+
+        return $this;
+    }
+
+    /**
+     * Get the query builder's grammar instance.
+     *
+     * @return Grammar
+     */
+    public function getGrammar()
+    {
+        return $this->grammar;
+    }
+
+    /**
+     * Get the query builder's processor instance.
+     *
+     * @return Processor
+     */
+    public function getProcessor()
+    {
+        return $this->processor;
+    }
+
+    /**
+     * Use the write PDO connection for this query.
+     *
+     * @return self
+     */
+    public function useWritePdo(): self
+    {
+        $this->useWritePdo = true;
+
+        return $this;
+    }
+
+    public function addBinding($value, string $type = 'where'): self
     {
         if (! array_key_exists($type, $this->bindings)) {
             throw new \InvalidArgumentException("Invalid binding type: {$type}.");
@@ -1056,7 +1910,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    protected function cleanBindings(array $bindings): array
+    public function cleanBindings(array $bindings): array
     {
         $cleaned = [];
         foreach ($bindings as $binding) {
@@ -1067,9 +1921,230 @@ class Builder implements BuilderInterface
         return $cleaned;
     }
 
+    /**
+     * Determine whether the value is a query builder instance or a closure.
+     */
+    public function isQueryable($value): bool
+    {
+        return $value instanceof BuilderInterface || $value instanceof \Closure;
+    }
+
     public function getConnection(): ConnectionInterface
     {
         return $this->connection;
+    }
+
+    /**
+     * Get the model instance being queried.
+     */
+    public function getModel()
+    {
+        return $this->model;
+    }
+
+    /**
+     * Set a model instance for the model being queried.
+     */
+    public function setModel($model): self
+    {
+        $this->model = $model;
+
+        return $this;
+    }
+
+    /**
+     * Set the relationships that should be eager loaded.
+     */
+    public function with($relations): self
+    {
+        if (is_string($relations)) {
+            $relations = func_get_args();
+        }
+
+        $this->eagerLoad = array_merge($this->eagerLoad, is_array($relations) ? $relations : [$relations]);
+
+        return $this;
+    }
+
+    /**
+     * Get the relationships being eagerly loaded.
+     */
+    public function getEagerLoads(): array
+    {
+        return $this->eagerLoad;
+    }
+
+    /**
+     * Prevent the specified relations from being eager loaded.
+     */
+    public function without($relations): self
+    {
+        if (is_string($relations)) {
+            $relations = func_get_args();
+        }
+
+        $relations = is_array($relations) ? $relations : [$relations];
+
+        $this->eagerLoad = array_values(array_diff($this->eagerLoad, $relations));
+
+        return $this;
+    }
+
+    /**
+     * Set the relationships being eagerly loaded, replacing any existing ones.
+     */
+    public function withOnly($relations): self
+    {
+        if (is_string($relations)) {
+            $relations = func_get_args();
+        }
+
+        $this->eagerLoad = is_array($relations) ? $relations : [$relations];
+
+        return $this;
+    }
+
+
+    /**
+     * Clone the query without any bindings.
+     */
+    public function cloneWithoutBindings(): self
+    {
+        return $this->cloneWithoutBindingsExcept([]);
+    }
+
+    /**
+     * Eager load the relationships for the models.
+     */
+    protected function eagerLoadRelations(array $models): array
+    {
+        if (empty($models) || empty($this->eagerLoad)) {
+            return $models;
+        }
+
+        foreach ($this->eagerLoad as $name => $constraints) {
+            // If the relationship name is numeric, it means no constraints
+            if (is_numeric($name)) {
+                $name = $constraints;
+                $constraints = null;
+            }
+
+            $this->eagerLoadRelation($models, $name, $constraints);
+        }
+
+        return $models;
+    }
+
+    /**
+     * Eagerly load a single relationship.
+     */
+    protected function eagerLoadRelation(array &$models, string $name, $constraints = null): void
+    {
+        // Get the relation instance from the first model
+        $firstModel = $this->getFirstModel($models);
+
+        if (!$firstModel || !method_exists($firstModel, $name)) {
+            return;
+        }
+
+        // Create a relation instance
+        $relation = $firstModel->$name();
+
+        // Load the related models
+        $related = $this->loadRelation($relation, $models);
+
+        // Match the related models to their parents
+        $this->matchRelated($models, $related, $relation, $name);
+    }
+
+    /**
+     * Get the first model from the array.
+     */
+    protected function getFirstModel(array $models)
+    {
+        if (empty($models) || !$this->model) {
+            return null;
+        }
+
+        return reset($models);
+    }
+
+    /**
+     * Get the relationship loader instance
+     */
+    protected function getRelationshipLoader(): RelationshipLoader
+    {
+        return new RelationshipLoader();
+    }
+
+    /**
+     * Load the related models for the relation.
+     */
+    protected function loadRelation($relation, array $models): array
+    {
+        return $this->getRelationshipLoader()->loadRelated($relation, $models);
+    }
+
+    /**
+     * Get the keys from the models.
+     */
+    protected function getKeys(array $models, string $key): array
+    {
+        $keys = [];
+
+        foreach ($models as $model) {
+            $keys[] = $model->getAttribute($key);
+        }
+
+        return array_filter($keys, function ($key) {
+            return !is_null($key);
+        });
+    }
+
+    /**
+     * Match the related models to their parents.
+     */
+    protected function matchRelated(array &$models, array $related, $relation, string $name): void
+    {
+        $this->getRelationshipLoader()->matchRelated($models, $related, $relation, $name);
+    }
+
+    /**
+     * Build a dictionary of related models keyed by their foreign key.
+     * @deprecated Use RelationshipLoader instead
+     */
+    protected function buildDictionary(array $related, $relation): array
+    {
+        $dictionary = [];
+        $relationClass = get_class($relation);
+
+        // For BelongsTo, we key by the owner key, not the foreign key
+        if (strpos($relationClass, 'BelongsTo') !== false && strpos($relationClass, 'BelongsToMany') === false) {
+            $keyName = basename(str_replace('\\', '/', $relation->getOwnerKeyName()));
+            foreach ($related as $item) {
+                $key = $item->getAttribute($keyName);
+                $dictionary[$key] = $item;
+            }
+        } else {
+            // For HasOne and HasMany, we key by the foreign key
+            // Get just the column name without table prefix
+            $foreignKey = basename(str_replace('\\', '/', $relation->getForeignKeyName()));
+            if (strpos($foreignKey, '.') !== false) {
+                $foreignKey = substr($foreignKey, strrpos($foreignKey, '.') + 1);
+            }
+
+            foreach ($related as $item) {
+                $key = $item->getAttribute($foreignKey);
+
+                if (strpos($relationClass, 'HasMany') !== false) {
+                    $dictionary[$key][] = $item;
+                } else {
+                    $dictionary[$key] = $item;
+                }
+            }
+        }
+
+        return $dictionary;
     }
 
     public function newQuery(): self
@@ -1172,10 +2247,22 @@ class Builder implements BuilderInterface
      */
     public function __call(string $method, array $parameters)
     {
+        // Check for dynamic where methods (whereName, whereOrEmail, whereAndAge)
+        if (preg_match('/^where(Or|And)?(.+)$/', $method, $matches)) {
+            $boolean = strtolower($matches[1] ?: 'and');
+            // Convert StudlyCase to snake_case
+            $column = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $matches[2] ?? ''));
+            if ($column) {
+                return $this->where($column, '=', $parameters[0] ?? null, $boolean);
+            }
+        }
+
         // First, check for dynamic finders (findBySlug, whereByStatus, etc.)
-        $result = $this->handleDynamicFinder($method, $parameters);
-        if ($result !== null) {
-            return $result;
+        if (method_exists($this, 'handleDynamicFinder')) {
+            $result = $this->handleDynamicFinder($method, $parameters);
+            if ($result !== null) {
+                return $result;
+            }
         }
 
         // Then check for local scopes
@@ -1187,12 +2274,7 @@ class Builder implements BuilderInterface
 
         // Then check for macros
         if (static::hasMacro($method)) {
-            $macro = static::$macros[$method];
-            if ($macro instanceof Closure) {
-                $macro = $macro->bindTo($this, static::class);
-            }
-
-            return $macro(...$parameters);
+            return $this->invokeMacro($method, $parameters);
         }
 
         // Finally, throw an exception
@@ -1204,14 +2286,35 @@ class Builder implements BuilderInterface
     }
 
     /**
+     * Invoke a macro
+     */
+    protected function invokeMacro(string $method, array $parameters)
+    {
+        $macro = static::$macros[$method];
+        if ($macro instanceof Closure) {
+            $macro = $macro->bindTo($this, static::class);
+        }
+
+        return $macro(...$parameters);
+    }
+
+    /**
      * Create a new query instance with global scopes applied.
      */
     public function withGlobalScopes(): self
     {
-        $query = clone $this;
+        $query = $this->cloneForScopes();
         $query->applyGlobalScopes();
 
         return $query;
+    }
+
+    /**
+     * Clone the query for applying scopes
+     */
+    protected function cloneForScopes(): self
+    {
+        return clone $this;
     }
 }
 

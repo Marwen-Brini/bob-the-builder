@@ -42,7 +42,7 @@ interface BuilderInterface
 
     public function addSelect($column): self;
 
-    public function distinct(): self;
+    public function distinct(bool $value = true): self;
 
     public function from($table, $as = null): self;
 
@@ -152,7 +152,12 @@ interface BuilderInterface
 
     public function delete($id = null): int;
 
-    public function truncate(): void;
+    /**
+     * Truncate the table.
+     *
+     * @return bool Returns true if truncation was successful
+     */
+    public function truncate(): bool;
 
     public function raw($value): ExpressionInterface;
 

@@ -2,271 +2,348 @@
 
 use Bob\Query\Macroable;
 
-describe('Macroable trait', function () {
-    beforeEach(function () {
-        // Create a test class that uses Macroable trait
-        $this->testClass = new class {
-            use Macroable;
-            
-            public $name = 'test';
-            
-            public function getName(): string 
-            {
-                return $this->name;
-            }
-        };
-        
-        // Clear any existing macros before each test
-        $this->testClass::clearMacros();
+// Create a test class that uses the trait
+class TestMacroable
+{
+    use Macroable;
+
+    public string $name = 'test';
+
+    public function existingMethod(): string
+    {
+        return 'existing';
+    }
+
+    protected function protectedMethod(): string
+    {
+        return 'protected';
+    }
+}
+
+// Create a mixin class for testing mixinClass
+class TestMixin
+{
+    public function mixinMethod(): string
+    {
+        return 'from mixin';
+    }
+
+    public function anotherMethod(string $arg): string
+    {
+        return 'mixin: ' . $arg;
+    }
+
+    protected function protectedMixinMethod(): string
+    {
+        return 'protected mixin';
+    }
+
+    public function __construct()
+    {
+        // Constructor should be ignored
+    }
+
+    public function __destruct()
+    {
+        // Destructor should be ignored
+    }
+}
+
+beforeEach(function () {
+    TestMacroable::clearMacros();
+    $this->instance = new TestMacroable();
+});
+
+afterEach(function () {
+    TestMacroable::clearMacros();
+});
+
+test('macro registers a custom method', function () {
+    TestMacroable::macro('customMethod', function () {
+        return 'custom value';
     });
-    
-    afterEach(function () {
-        // Clean up macros after each test
-        $this->testClass::clearMacros();
+
+    expect(TestMacroable::hasMacro('customMethod'))->toBeTrue();
+    expect($this->instance->customMethod())->toBe('custom value');
+});
+
+test('macro with parameters works correctly', function () {
+    TestMacroable::macro('greet', function ($name) {
+        return 'Hello, ' . $name;
     });
-    
-    it('can register and use a basic macro', function () {
-        $this->testClass::macro('customMethod', function () {
-            return 'macro result';
-        });
-        
-        expect($this->testClass->customMethod())->toBe('macro result');
+
+    expect($this->instance->greet('World'))->toBe('Hello, World');
+});
+
+test('macro can access instance properties', function () {
+    TestMacroable::macro('getName', function () {
+        return $this->name;
     });
-    
-    it('can register macro with parameters', function () {
-        $this->testClass::macro('greet', function (string $name) {
-            return "Hello, {$name}!";
-        });
-        
-        expect($this->testClass->greet('World'))->toBe('Hello, World!');
+
+    expect($this->instance->getName())->toBe('test');
+});
+
+test('macro can call instance methods', function () {
+    TestMacroable::macro('callExisting', function () {
+        return $this->existingMethod();
     });
-    
-    it('can access instance properties in macros', function () {
-        $this->testClass::macro('getNameUpper', function () {
-            return strtoupper($this->name);
-        });
-        
-        expect($this->testClass->getNameUpper())->toBe('TEST');
+
+    expect($this->instance->callExisting())->toBe('existing');
+});
+
+test('static macro works correctly', function () {
+    TestMacroable::macro('staticMethod', function () {
+        return 'static result';
     });
-    
-    it('can access instance methods in macros', function () {
-        $this->testClass::macro('getNamePrefixed', function (string $prefix) {
-            return $prefix . ': ' . $this->getName();
-        });
-        
-        expect($this->testClass->getNamePrefixed('Name'))->toBe('Name: test');
+
+    expect(TestMacroable::staticMethod())->toBe('static result');
+});
+
+test('mixin registers multiple macros', function () {
+    TestMacroable::mixin([
+        'method1' => function () { return 'one'; },
+        'method2' => function () { return 'two'; },
+        'method3' => function () { return 'three'; },
+    ]);
+
+    expect(TestMacroable::hasMacro('method1'))->toBeTrue();
+    expect(TestMacroable::hasMacro('method2'))->toBeTrue();
+    expect(TestMacroable::hasMacro('method3'))->toBeTrue();
+    expect($this->instance->method1())->toBe('one');
+    expect($this->instance->method2())->toBe('two');
+    expect($this->instance->method3())->toBe('three');
+});
+
+test('mixinClass registers methods from a class', function () {
+    TestMacroable::mixinClass(new TestMixin());
+
+    expect(TestMacroable::hasMacro('mixinMethod'))->toBeTrue();
+    expect(TestMacroable::hasMacro('anotherMethod'))->toBeTrue();
+    expect(TestMacroable::hasMacro('protectedMixinMethod'))->toBeTrue();
+    expect(TestMacroable::hasMacro('__construct'))->toBeFalse();
+    expect(TestMacroable::hasMacro('__destruct'))->toBeFalse();
+
+    expect($this->instance->mixinMethod())->toBe('from mixin');
+    expect($this->instance->anotherMethod('test'))->toBe('mixin: test');
+});
+
+test('mixinClass with string class name', function () {
+    TestMacroable::mixinClass(TestMixin::class);
+
+    expect(TestMacroable::hasMacro('mixinMethod'))->toBeTrue();
+    expect($this->instance->mixinMethod())->toBe('from mixin');
+});
+
+test('mixinClass with replace false does not override existing macros', function () {
+    TestMacroable::macro('mixinMethod', function () {
+        return 'original';
     });
-    
-    it('can register multiple macros with mixin', function () {
-        $macros = [
-            'first' => function () {
-                return 'first';
-            },
-            'second' => function () {
-                return 'second';
-            }
-        ];
-        
-        $this->testClass::mixin($macros);
-        
-        expect($this->testClass->first())->toBe('first');
-        expect($this->testClass->second())->toBe('second');
+
+    TestMacroable::mixinClass(new TestMixin(), false);
+
+    expect($this->instance->mixinMethod())->toBe('original');
+});
+
+test('mixinClass with replace true overrides existing macros', function () {
+    TestMacroable::macro('mixinMethod', function () {
+        return 'original';
     });
-    
-    it('can check if macro exists with hasMacro', function () {
-        expect($this->testClass::hasMacro('nonexistent'))->toBeFalse();
-        
-        $this->testClass::macro('exists', function () {
-            return true;
-        });
-        
-        expect($this->testClass::hasMacro('exists'))->toBeTrue();
+
+    TestMacroable::mixinClass(new TestMixin(), true);
+
+    expect($this->instance->mixinMethod())->toBe('from mixin');
+});
+
+test('hasMacro returns false for non-existent macro', function () {
+    expect(TestMacroable::hasMacro('nonExistent'))->toBeFalse();
+});
+
+test('removeMacro removes a macro and returns true', function () {
+    TestMacroable::macro('temp', function () { return 'temp'; });
+
+    expect(TestMacroable::hasMacro('temp'))->toBeTrue();
+    expect(TestMacroable::removeMacro('temp'))->toBeTrue();
+    expect(TestMacroable::hasMacro('temp'))->toBeFalse();
+});
+
+test('removeMacro returns false for non-existent macro', function () {
+    expect(TestMacroable::removeMacro('nonExistent'))->toBeFalse();
+});
+
+test('clearMacros removes all macros', function () {
+    TestMacroable::macro('macro1', function () { return '1'; });
+    TestMacroable::macro('macro2', function () { return '2'; });
+
+    expect(TestMacroable::hasMacro('macro1'))->toBeTrue();
+    expect(TestMacroable::hasMacro('macro2'))->toBeTrue();
+
+    TestMacroable::clearMacros();
+
+    expect(TestMacroable::hasMacro('macro1'))->toBeFalse();
+    expect(TestMacroable::hasMacro('macro2'))->toBeFalse();
+});
+
+test('getMacros returns all registered macros', function () {
+    $macro1 = function () { return '1'; };
+    $macro2 = function () { return '2'; };
+
+    TestMacroable::macro('macro1', $macro1);
+    TestMacroable::macro('macro2', $macro2);
+
+    $macros = TestMacroable::getMacros();
+
+    expect($macros)->toHaveCount(2);
+    expect($macros)->toHaveKey('macro1');
+    expect($macros)->toHaveKey('macro2');
+});
+
+test('getMacro returns specific macro', function () {
+    $macro = function () { return 'test'; };
+    TestMacroable::macro('testMacro', $macro);
+
+    expect(TestMacroable::getMacro('testMacro'))->toBe($macro);
+    expect(TestMacroable::getMacro('nonExistent'))->toBeNull();
+});
+
+test('__call throws exception for non-existent method', function () {
+    expect(fn() => $this->instance->nonExistentMethod())
+        ->toThrow(BadMethodCallException::class, 'Method TestMacroable::nonExistentMethod does not exist.');
+});
+
+test('__callStatic throws exception for non-existent static method', function () {
+    expect(fn() => TestMacroable::nonExistentStaticMethod())
+        ->toThrow(BadMethodCallException::class, 'Method TestMacroable::nonExistentStaticMethod does not exist.');
+});
+
+test('macro with non-closure callable works', function () {
+    // Test with a regular callable array
+    $callable = [new TestMixin(), 'mixinMethod'];
+    TestMacroable::macro('callableMethod', $callable);
+
+    expect($this->instance->callableMethod())->toBe('from mixin');
+});
+
+test('static macro with non-closure callable works', function () {
+    $callable = [new TestMixin(), 'mixinMethod'];
+    TestMacroable::macro('staticCallable', $callable);
+
+    expect(TestMacroable::staticCallable())->toBe('from mixin');
+});
+
+test('macro returns various types correctly', function () {
+    // Return null
+    TestMacroable::macro('returnNull', function () { return null; });
+    expect($this->instance->returnNull())->toBeNull();
+
+    // Return array
+    TestMacroable::macro('returnArray', function () { return [1, 2, 3]; });
+    expect($this->instance->returnArray())->toBe([1, 2, 3]);
+
+    // Return object
+    TestMacroable::macro('returnObject', function () { return (object)['key' => 'value']; });
+    $result = $this->instance->returnObject();
+    expect($result)->toBeObject();
+    expect($result->key)->toBe('value');
+
+    // Return boolean
+    TestMacroable::macro('returnBool', function () { return true; });
+    expect($this->instance->returnBool())->toBeTrue();
+});
+
+test('macro with multiple parameters works', function () {
+    TestMacroable::macro('sum', function ($a, $b, $c = 0) {
+        return $a + $b + $c;
     });
-    
-    it('can remove macros with removeMacro', function () {
-        $this->testClass::macro('removable', function () {
-            return 'removable';
-        });
-        
-        expect($this->testClass::hasMacro('removable'))->toBeTrue();
-        
-        $this->testClass::removeMacro('removable');
-        
-        expect($this->testClass::hasMacro('removable'))->toBeFalse();
+
+    expect($this->instance->sum(1, 2))->toBe(3);
+    expect($this->instance->sum(1, 2, 3))->toBe(6);
+});
+
+test('macro can modify instance state', function () {
+    TestMacroable::macro('setName', function ($newName) {
+        $this->name = $newName;
+        return $this;
     });
-    
-    it('can clear all macros with clearMacros', function () {
-        $this->testClass::macro('first', function () {
-            return 'first';
-        });
-        $this->testClass::macro('second', function () {
-            return 'second';
-        });
-        
-        expect(count($this->testClass::getMacros()))->toBe(2);
-        
-        $this->testClass::clearMacros();
-        
-        expect(count($this->testClass::getMacros()))->toBe(0);
+
+    TestMacroable::macro('getName', function () {
+        return $this->name;
     });
-    
-    it('can get all macros with getMacros', function () {
-        $macro1 = function () {
-            return 'first';
-        };
-        $macro2 = function () {
-            return 'second';
-        };
-        
-        $this->testClass::macro('first', $macro1);
-        $this->testClass::macro('second', $macro2);
-        
-        $macros = $this->testClass::getMacros();
-        
-        expect($macros)->toHaveKey('first');
-        expect($macros)->toHaveKey('second');
-        expect($macros['first'])->toBe($macro1);
-        expect($macros['second'])->toBe($macro2);
+
+    $this->instance->setName('changed');
+    expect($this->instance->getName())->toBe('changed');
+});
+
+test('chaining macros works', function () {
+    TestMacroable::macro('chain1', function () {
+        $this->name = 'chain1';
+        return $this;
     });
-    
-    // Lines 83-89: __call method when macro doesn't exist
-    it('throws BadMethodCallException for non-existent macro', function () {
-        expect(fn() => $this->testClass->nonExistentMethod())
-            ->toThrow(BadMethodCallException::class, 'does not exist');
+
+    TestMacroable::macro('chain2', function () {
+        $this->name .= '-chain2';
+        return $this;
     });
-    
-    // Lines 91-97: __call method when macro exists and is Closure
-    it('handles __call method with existing macro', function () {
-        $this->testClass::macro('testCall', function (string $param) {
-            return "called with: {$param}";
-        });
-        
-        $result = $this->testClass->testCall('parameter');
-        expect($result)->toBe('called with: parameter');
+
+    TestMacroable::macro('getResult', function () {
+        return $this->name;
     });
-    
-    // Test closure binding in __call (line 94)
-    it('binds closure context correctly in __call', function () {
-        $this->testClass::macro('accessThis', function () {
-            return $this->name; // Access instance property
-        });
-        
-        $result = $this->testClass->accessThis();
-        expect($result)->toBe('test');
+
+    $result = $this->instance->chain1()->chain2()->getResult();
+    expect($result)->toBe('chain1-chain2');
+});
+
+test('macro with variadic parameters', function () {
+    TestMacroable::macro('concat', function (...$strings) {
+        return implode(' ', $strings);
     });
-    
-    // Lines 109-115: __callStatic method when macro doesn't exist
-    it('throws BadMethodCallException for non-existent static macro', function () {
-        $testClassName = get_class($this->testClass);
-        
-        expect(fn() => $testClassName::nonExistentStaticMethod())
-            ->toThrow(BadMethodCallException::class, 'does not exist');
+
+    expect($this->instance->concat('Hello', 'World'))->toBe('Hello World');
+    expect($this->instance->concat('One', 'Two', 'Three'))->toBe('One Two Three');
+});
+
+test('static macro in static context works', function () {
+    TestMacroable::macro('staticTest', function () {
+        // In PHP, static context still has $this available if called from instance
+        return 'result';
     });
-    
-    // Lines 117-124: __callStatic method when macro exists and is Closure
-    it('handles __callStatic method with existing macro', function () {
-        $this->testClass::macro('staticTest', function (string $param) {
-            return "static called with: {$param}";
-        });
-        
-        $testClassName = get_class($this->testClass);
-        $result = $testClassName::staticTest('static parameter');
-        expect($result)->toBe('static called with: static parameter');
-    });
-    
-    // Test closure binding in __callStatic (line 120)
-    it('binds closure context correctly in __callStatic', function () {
-        $this->testClass::macro('staticClosureTest', function (string $suffix) {
-            return "static: {$suffix}";
-        });
-        
-        $testClassName = get_class($this->testClass);
-        $result = $testClassName::staticClosureTest('test');
-        expect($result)->toBe('static: test');
-    });
-    
-    // Test non-Closure callable (edge case)
-    it('handles non-Closure macros', function () {
-        // Create a test class with an invokable object
-        $invokable = new class {
-            public function __invoke() {
-                return 'invokable result';
-            }
-        };
-        
-        // Register as macro (this would be unusual but possible)
-        $reflection = new ReflectionClass($this->testClass);
-        $macrosProperty = $reflection->getProperty('macros');
-        $macrosProperty->setAccessible(true);
-        
-        $macros = $macrosProperty->getValue();
-        $macros['invokableTest'] = $invokable;
-        $macrosProperty->setValue(null, $macros);
-        
-        // This should work even though it's not a Closure
-        $result = $this->testClass->invokableTest();
-        expect($result)->toBe('invokable result');
-    });
-    
-    it('maintains separate macro namespaces between different classes', function () {
-        // Create second test class
-        $testClass2 = new class {
-            use Macroable;
-        };
-        
-        $testClass2::clearMacros();
-        
-        // Register different macros on each class
-        $this->testClass::macro('classOne', function () {
-            return 'class one';
-        });
-        
-        $testClass2::macro('classTwo', function () {
-            return 'class two';
-        });
-        
-        // Each class should only have its own macro
-        expect($this->testClass::hasMacro('classOne'))->toBeTrue();
-        expect($this->testClass::hasMacro('classTwo'))->toBeFalse();
-        
-        expect($testClass2::hasMacro('classOne'))->toBeFalse();
-        expect($testClass2::hasMacro('classTwo'))->toBeTrue();
-        
-        // Clean up
-        $testClass2::clearMacros();
-    });
-    
-    it('preserves macro parameters and return values', function () {
-        $this->testClass::macro('calculate', function (int $a, int $b, string $operation = 'add') {
-            return match ($operation) {
-                'add' => $a + $b,
-                'multiply' => $a * $b,
-                'subtract' => $a - $b,
-                default => 0
-            };
-        });
-        
-        expect($this->testClass->calculate(5, 3))->toBe(8);
-        expect($this->testClass->calculate(5, 3, 'multiply'))->toBe(15);
-        expect($this->testClass->calculate(5, 3, 'subtract'))->toBe(2);
-    });
-    
-    it('handles macros with complex return types', function () {
-        $this->testClass::macro('returnArray', function () {
-            return ['key' => 'value', 'nested' => ['inner' => 'data']];
-        });
-        
-        $this->testClass::macro('returnObject', function () {
-            return (object) ['property' => 'value'];
-        });
-        
-        $array = $this->testClass->returnArray();
-        expect($array)->toBeArray();
-        expect($array['key'])->toBe('value');
-        expect($array['nested']['inner'])->toBe('data');
-        
-        $object = $this->testClass->returnObject();
-        expect($object)->toBeObject();
-        expect($object->property)->toBe('value');
-    });
+
+    expect(TestMacroable::staticTest())->toBe('result');
+    expect($this->instance->staticTest())->toBe('result');
+});
+
+test('invokeMacro handles closures properly', function () {
+    $reflection = new ReflectionClass($this->instance);
+    $method = $reflection->getMethod('invokeMacro');
+    $method->setAccessible(true);
+
+    $closure = function () {
+        return $this->name ?? 'no instance';
+    };
+
+    $result = $method->invoke($this->instance, $closure, []);
+    expect($result)->toBe('test');
+});
+
+test('invokeStaticMacro handles closures properly', function () {
+    $reflection = new ReflectionClass(TestMacroable::class);
+    $method = $reflection->getMethod('invokeStaticMacro');
+    $method->setAccessible(true);
+
+    $closure = function () {
+        return 'static result';
+    };
+
+    $result = $method->invoke(null, $closure, []);
+    expect($result)->toBe('static result');
+});
+
+test('invokeStaticMacro handles non-closure callables', function () {
+    $reflection = new ReflectionClass(TestMacroable::class);
+    $method = $reflection->getMethod('invokeStaticMacro');
+    $method->setAccessible(true);
+
+    $callable = [new TestMixin(), 'mixinMethod'];
+
+    $result = $method->invoke(null, $callable, []);
+    expect($result)->toBe('from mixin');
 });

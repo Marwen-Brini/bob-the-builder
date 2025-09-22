@@ -127,27 +127,36 @@ class QueryLogger implements LoggerInterface
             return; // @codeCoverageIgnore
         }
 
-        $context = [
+        // Prepare context for internal query log (raw values)
+        $internalContext = [
+            'query' => $query,
+        ];
+
+        // Prepare context for PSR-3 logger (formatted values)
+        $loggerContext = [
             'query' => $query,
         ];
 
         if ($this->logBindings && ! empty($bindings)) {
-            $context['bindings'] = $bindings;
+            $internalContext['bindings'] = $bindings;
+            $loggerContext['bindings'] = $bindings;
         }
 
         if ($this->logTime && $time !== null) {
-            $context['time'] = round($time, 2).'ms';
+            $internalContext['time'] = $time;  // Store raw float value
+            $loggerContext['time'] = round($time, 2).'ms';  // Format for logging
         }
 
         // Determine log level based on execution time
         $level = LogLevel::DEBUG;
         if ($time !== null && $time > $this->slowQueryThreshold) {
             $level = LogLevel::WARNING;
-            $context['slow_query'] = true;
+            $loggerContext['slow_query'] = true;
+            $internalContext['slow_query'] = true;
         }
 
         // Always store in internal query log
-        $this->addToQueryLog($context);
+        $this->addToQueryLog($internalContext);
 
         // Also log to PSR-3 logger if available
         if ($this->logger) {
@@ -155,7 +164,7 @@ class QueryLogger implements LoggerInterface
                 ? 'Slow query detected'
                 : 'Query executed';
 
-            $this->log($level, $message, $context);
+            $this->log($level, $message, $loggerContext);
         }
     }
 
