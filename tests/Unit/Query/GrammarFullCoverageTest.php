@@ -405,7 +405,8 @@ test('Grammar whereNested', function () {
 
     // Mock the compileWheres method using shouldAllowMockingProtectedMethods
     $grammar = m::mock(ConcreteGrammar::class)->makePartial()->shouldAllowMockingProtectedMethods();
-    $grammar->shouldReceive('compileWheres')->with($nestedQuery)->andReturn('"age" > ?');
+    // compileWheres returns 'where ...' which whereNested strips off
+    $grammar->shouldReceive('compileWheres')->with($nestedQuery)->andReturn('where "age" > ?');
 
     $result = $grammar->testWhereNested($this->builder, $where);
 

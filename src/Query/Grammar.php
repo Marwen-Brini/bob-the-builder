@@ -325,9 +325,22 @@ abstract class Grammar implements GrammarInterface
 
     protected function whereNested(BuilderInterface $query, array $where): string
     {
-        $offset = $query === $where['query'] ? 6 : 0;
+        // The nested query ($where['query']) is always a separate query instance created
+        // by whereNested() using newQuery(). Since compileWheres() always returns
+        // 'where ' + conditions, we need to strip the 'where ' prefix (6 characters)
+        // when creating the parenthesized group for nested conditions.
+        $compiled = $this->compileWheres($where['query']);
 
-        return '('.substr($this->compileWheres($where['query']), $offset).')';
+        // Defensive check: compileWheres returns empty string if no wheres
+        // This shouldn't happen as addNestedWhereQuery checks for wheres, but better safe
+        // @codeCoverageIgnoreStart
+        if ($compiled === '') {
+            return '()';
+        }
+        // @codeCoverageIgnoreEnd
+
+        // Remove the 'where ' prefix (6 characters) since we're nesting this in parentheses
+        return '('.substr($compiled, 6).')';
     }
 
     protected function whereColumn(BuilderInterface $query, array $where): string
