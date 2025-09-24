@@ -187,7 +187,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function from($table, $as = null): self
+    public function from($table, ?string $as = null): self
     {
         if ($this->isQueryable($table)) {
             // Handle closures and subqueries
@@ -221,7 +221,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function where($column, $operator = null, $value = null, $boolean = 'and'): self
+    public function where($column, mixed $operator = null, mixed $value = null, string $boolean = 'and'): self
     {
         if (is_array($column)) {
             return $this->addArrayOfWheres($column, $boolean);
@@ -327,7 +327,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function orWhere($column, $operator = null, $value = null): self
+    public function orWhere($column, mixed $operator = null, mixed $value = null): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -558,7 +558,7 @@ class Builder implements BuilderInterface
         return $this->whereRaw($sql, $bindings, 'or');
     }
 
-    public function whereDate($column, $operator, $value = null, $boolean = 'and'): self
+    public function whereDate($column, $operator, mixed $value = null, string $boolean = 'and'): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -577,7 +577,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function whereTime($column, $operator, $value = null, $boolean = 'and'): self
+    public function whereTime($column, $operator, mixed $value = null, string $boolean = 'and'): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -596,7 +596,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function whereDay($column, $operator, $value = null, $boolean = 'and'): self
+    public function whereDay($column, $operator, mixed $value = null, string $boolean = 'and'): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -615,7 +615,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function whereMonth($column, $operator, $value = null, $boolean = 'and'): self
+    public function whereMonth($column, $operator, mixed $value = null, string $boolean = 'and'): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -634,7 +634,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function whereYear($column, $operator, $value = null, $boolean = 'and'): self
+    public function whereYear($column, $operator, mixed $value = null, string $boolean = 'and'): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -701,17 +701,17 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function leftJoin($table, $first, $operator = null, $second = null): self
+    public function leftJoin($table, $first, mixed $operator = null, mixed $second = null): self
     {
         return $this->join($table, $first, $operator, $second, 'left');
     }
 
-    public function rightJoin($table, $first, $operator = null, $second = null): self
+    public function rightJoin($table, $first, mixed $operator = null, mixed $second = null): self
     {
         return $this->join($table, $first, $operator, $second, 'right');
     }
 
-    public function crossJoin($table, $first = null, $operator = null, $second = null): self
+    public function crossJoin($table, mixed $first = null, mixed $operator = null, mixed $second = null): self
     {
         if ($this->hasCrossJoinConditions($first)) {
             return $this->crossJoinWithConditions($table, $first, $operator, $second);
@@ -748,7 +748,7 @@ class Builder implements BuilderInterface
     /**
      * Create a new join clause instance.
      */
-    public function newJoinClause($parentQuery, string $type = null, $table = null): JoinClause
+    public function newJoinClause($parentQuery, ?string $type = null, $table = null): JoinClause
     {
         // Handle both signatures for backward compatibility
         if (is_string($parentQuery) && $type !== null) {
@@ -838,7 +838,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function having($column, $operator = null, $value = null, $boolean = 'and'): self
+    public function having($column, mixed $operator = null, mixed $value = null, string $boolean = 'and'): self
     {
         $type = 'Basic';
         [$value, $operator] = $this->prepareValueAndOperator(
@@ -854,7 +854,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function orHaving($column, $operator = null, $value = null): self
+    public function orHaving($column, mixed $operator = null, mixed $value = null): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -946,7 +946,7 @@ class Builder implements BuilderInterface
      * @param string $direction
      * @return self
      */
-    public function reorder($column = null, $direction = 'asc'): self
+    public function reorder(mixed $column = null, string $direction = 'asc'): self
     {
         $this->orders = null;
         $this->bindings['order'] = [];
@@ -1178,7 +1178,7 @@ class Builder implements BuilderInterface
         return is_object($result) && method_exists($result, 'getAttribute');
     }
 
-    public function pluck($column, $key = null): array
+    public function pluck($column, ?string $key = null): array
     {
         $results = $this->get(is_null($key) ? [$column] : [$column, $key]);
 
@@ -1375,7 +1375,7 @@ class Builder implements BuilderInterface
         );
     }
 
-    public function insertGetId(array $values, $sequence = null)
+    public function insertGetId(array $values, ?string $sequence = null)
     {
         $sql = $this->grammar->compileInsertGetId($this, $values, $sequence);
 
@@ -1466,7 +1466,7 @@ class Builder implements BuilderInterface
         return $this->update($columns);
     }
 
-    public function delete($id = null): int
+    public function delete(mixed $id = null): int
     {
         if (! is_null($id)) {
             $this->where('id', '=', $id);
@@ -1483,7 +1483,7 @@ class Builder implements BuilderInterface
     /**
      * Insert or update records using MySQL's ON DUPLICATE KEY UPDATE or PostgreSQL's ON CONFLICT.
      */
-    public function upsert(array $values, $uniqueBy = null, $update = null): int
+    public function upsert(array $values, mixed $uniqueBy = null, mixed $update = null): int
     {
         if (empty($values)) {
             return 0;
@@ -1783,7 +1783,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function whereJsonLength($column, $operator, $value = null, $boolean = 'and'): self
+    public function whereJsonLength($column, $operator, mixed $value = null, string $boolean = 'and'): self
     {
         [$value, $operator] = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() === 2
@@ -1820,7 +1820,7 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-    public function joinSub($query, $as, $first, $operator = null, $second = null, $type = 'inner'): self
+    public function joinSub($query, $as, $first, mixed $operator = null, mixed $second = null, string $type = 'inner'): self
     {
         if ($query instanceof Closure) {
             $subQuery = $this->newQuery();
@@ -1835,7 +1835,7 @@ class Builder implements BuilderInterface
         return $this->join(new Expression($expression), $first, $operator, $second, $type);
     }
 
-    public function leftJoinSub($query, $as, $first, $operator = null, $second = null): self
+    public function leftJoinSub($query, $as, $first, mixed $operator = null, mixed $second = null): self
     {
         return $this->joinSub($query, $as, $first, $operator, $second, 'left');
     }
@@ -1863,7 +1863,7 @@ class Builder implements BuilderInterface
     /**
      * Add a subquery right join to the query.
      */
-    public function rightJoinSub($query, $as, $first, $operator = null, $second = null): self
+    public function rightJoinSub($query, $as, $first, mixed $operator = null, mixed $second = null): self
     {
         return $this->joinSub($query, $as, $first, $operator, $second, 'right');
     }
@@ -1873,7 +1873,7 @@ class Builder implements BuilderInterface
         return $this->grammar->compileSelect($this);
     }
 
-    public function getBindings($type = null): array
+    public function getBindings(?string $type = null): array
     {
         if (is_null($type)) {
             return array_flatten($this->bindings);
@@ -2177,7 +2177,7 @@ class Builder implements BuilderInterface
     /**
      * Eagerly load a single relationship.
      */
-    protected function eagerLoadRelation(array &$models, string $name, $constraints = null): void
+    protected function eagerLoadRelation(array &$models, string $name, mixed $constraints = null): void
     {
         // Get the relation instance from the first model
         $firstModel = $this->getFirstModel($models);
@@ -2557,12 +2557,12 @@ class JoinClause extends Builder
         $this->table = $table;
     }
 
-    public function on($first, $operator = null, $second = null, $boolean = 'and'): self
+    public function on($first, mixed $operator = null, mixed $second = null, string $boolean = 'and'): self
     {
         return $this->whereColumn($first, $operator, $second, $boolean);
     }
 
-    public function orOn($first, $operator = null, $second = null): self
+    public function orOn($first, mixed $operator = null, mixed $second = null): self
     {
         return $this->on($first, $operator, $second, 'or');
     }

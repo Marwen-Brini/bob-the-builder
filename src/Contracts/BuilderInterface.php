@@ -44,11 +44,11 @@ interface BuilderInterface
 
     public function distinct(bool $value = true): self;
 
-    public function from($table, $as = null): self;
+    public function from($table, ?string $as = null): self;
 
-    public function where($column, $operator = null, $value = null, $boolean = 'and'): self;
+    public function where($column, mixed $operator = null, mixed $value = null, string $boolean = 'and'): self;
 
-    public function orWhere($column, $operator = null, $value = null): self;
+    public function orWhere($column, mixed $operator = null, mixed $value = null): self;
 
     public function whereIn($column, $values, $boolean = 'and', $not = false): self;
 
@@ -68,19 +68,19 @@ interface BuilderInterface
 
     public function whereRaw($sql, $bindings = [], $boolean = 'and'): self;
 
-    public function join($table, $first, $operator = null, $second = null, $type = 'inner', $where = false): self;
+    public function join($table, $first, mixed $operator = null, mixed $second = null, string $type = 'inner', bool $where = false): self;
 
-    public function leftJoin($table, $first, $operator = null, $second = null): self;
+    public function leftJoin($table, $first, mixed $operator = null, mixed $second = null): self;
 
-    public function rightJoin($table, $first, $operator = null, $second = null): self;
+    public function rightJoin($table, $first, mixed $operator = null, mixed $second = null): self;
 
-    public function crossJoin($table, $first = null, $operator = null, $second = null): self;
+    public function crossJoin($table, mixed $first = null, mixed $operator = null, mixed $second = null): self;
 
     public function groupBy(...$groups): self;
 
-    public function having($column, $operator = null, $value = null, $boolean = 'and'): self;
+    public function having($column, mixed $operator = null, mixed $value = null, string $boolean = 'and'): self;
 
-    public function orHaving($column, $operator = null, $value = null): self;
+    public function orHaving($column, mixed $operator = null, mixed $value = null): self;
 
     public function havingRaw($sql, $bindings = [], $boolean = 'and'): self;
 
@@ -114,7 +114,7 @@ interface BuilderInterface
 
     public function value($column);
 
-    public function pluck($column, $key = null): array;
+    public function pluck($column, ?string $key = null): array;
 
     public function chunk($count, callable $callback): bool;
 
@@ -138,7 +138,7 @@ interface BuilderInterface
 
     public function insert(array $values): bool;
 
-    public function insertGetId(array $values, $sequence = null);
+    public function insertGetId(array $values, ?string $sequence = null);
 
     public function insertOrIgnore(array $values): int;
 
@@ -150,7 +150,7 @@ interface BuilderInterface
 
     public function decrement($column, $amount = 1, array $extra = []): int;
 
-    public function delete($id = null): int;
+    public function delete(mixed $id = null): int;
 
     /**
      * Truncate the table.
