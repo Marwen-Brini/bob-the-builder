@@ -68,7 +68,8 @@ describe('Builder Uncovered Lines Tests', function () {
         $builder = new Builder($this->connection);
         $subQuery = m::mock(BuilderInterface::class);
 
-        $subQuery->shouldReceive('getBindings')->andReturn(['where' => [1, 2, 3]]);
+        // getBindings() without parameters returns a flat array
+        $subQuery->shouldReceive('getBindings')->andReturn([1, 2, 3]);
 
         $result = $builder->whereIn('id', $subQuery);
 
@@ -81,7 +82,8 @@ describe('Builder Uncovered Lines Tests', function () {
         $builder = new Builder($this->connection);
         $subQuery = m::mock(BuilderInterface::class);
 
-        $subQuery->shouldReceive('getBindings')->andReturn(['where' => [4, 5, 6]]);
+        // getBindings() without parameters returns a flat array
+        $subQuery->shouldReceive('getBindings')->andReturn([4, 5, 6]);
 
         $result = $builder->whereNotIn('id', $subQuery);
 

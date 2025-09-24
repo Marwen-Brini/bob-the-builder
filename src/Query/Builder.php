@@ -347,7 +347,8 @@ class Builder implements BuilderInterface
         if ($values instanceof BuilderInterface) {
             $type = $not ? 'NotInSub' : 'InSub';
             $this->wheres[] = ['type' => $type, 'column' => $column, 'query' => $values, 'boolean' => $boolean];
-            $this->addBinding($values->getBindings()['where'] ?? [], 'where');
+            // Get all bindings from the subquery
+            $this->addBinding($values->getBindings(), 'where');
 
             return $this;
         }
