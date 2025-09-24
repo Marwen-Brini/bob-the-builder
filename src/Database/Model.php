@@ -1050,7 +1050,7 @@ class Model implements JsonSerializable
      * @param mixed $default
      * @return mixed
      */
-    public function getOriginal($key = null, $default = null)
+    public function getOriginal(?string $key = null, $default = null)
     {
         if (is_null($key)) {
             return $this->original;
@@ -1065,7 +1065,7 @@ class Model implements JsonSerializable
      * @param array|string|null $attributes
      * @return bool
      */
-    public function isDirty($attributes = null): bool
+    public function isDirty(array|string|null $attributes = null): bool
     {
         if (is_null($attributes)) {
             return count($this->getDirty()) > 0;
@@ -1164,7 +1164,7 @@ class Model implements JsonSerializable
     /**
      * Determine if the model or any attributes have been modified.
      */
-    public function isClean($attributes = null): bool
+    public function isClean(array|string|null $attributes = null): bool
     {
         return !$this->isDirty($attributes);
     }
@@ -1172,7 +1172,7 @@ class Model implements JsonSerializable
     /**
      * Determine if the model or given attribute(s) were changed.
      */
-    public function wasChanged($attributes = null): bool
+    public function wasChanged(array|string|null $attributes = null): bool
     {
         if (is_null($attributes)) {
             return count($this->changes) > 0;
