@@ -1443,8 +1443,9 @@ class Builder implements BuilderInterface
 
         $this->applyScopes();
 
+        // Delete only uses WHERE bindings, not all bindings
         return $this->connection->delete(
-            $this->grammar->compileDelete($this), $this->getBindings()
+            $this->grammar->compileDelete($this), $this->getBindings('where')
         );
     }
 
