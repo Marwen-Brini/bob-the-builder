@@ -104,7 +104,22 @@ class Builder implements BuilderInterface
 
     public function select($columns = ['*']): self
     {
-        $this->columns = is_array($columns) ? $columns : func_get_args();
+        $columns = is_array($columns) ? $columns : func_get_args();
+
+        // Process each column to detect aggregate functions
+        $this->columns = array_map(function ($column) {
+            // If it's already an Expression, leave it as is
+            if ($column instanceof Expression) {
+                return $column;
+            }
+
+            // Check if the column contains an aggregate function
+            if (is_string($column) && $this->isAggregateFunction($column)) {
+                return new Expression($column);
+            }
+
+            return $column;
+        }, $columns);
 
         return $this;
     }
@@ -137,9 +152,24 @@ class Builder implements BuilderInterface
 
     public function addSelect($column): self
     {
-        $column = is_array($column) ? $column : func_get_args();
+        $columns = is_array($column) ? $column : func_get_args();
 
-        $this->columns = array_merge((array) $this->columns, $column);
+        // Process each column to detect aggregate functions
+        $processedColumns = array_map(function ($col) {
+            // If it's already an Expression, leave it as is
+            if ($col instanceof Expression) {
+                return $col;
+            }
+
+            // Check if the column contains an aggregate function
+            if (is_string($col) && $this->isAggregateFunction($col)) {
+                return new Expression($col);
+            }
+
+            return $col;
+        }, $columns);
+
+        $this->columns = array_merge((array) $this->columns, $processedColumns);
 
         return $this;
     }
@@ -2344,6 +2374,44 @@ class Builder implements BuilderInterface
     public function getLock()
     {
         return $this->lock;
+    }
+
+    /**
+     * Check if a string contains an aggregate function
+     *
+     * @param string $column
+     * @return bool
+     */
+    protected function isAggregateFunction(string $column): bool
+    {
+        // Common SQL aggregate functions
+        $aggregateFunctions = [
+            'COUNT',
+            'SUM',
+            'AVG',
+            'MIN',
+            'MAX',
+            'GROUP_CONCAT',
+            'STRING_AGG',
+            'ARRAY_AGG',
+            'JSON_AGG',
+            'STDDEV',
+            'VARIANCE',
+        ];
+
+        // Remove extra spaces and convert to uppercase for comparison
+        $normalizedColumn = preg_replace('/\s+/', ' ', strtoupper(trim($column)));
+
+        foreach ($aggregateFunctions as $function) {
+            // Check for function with optional space before parenthesis
+            // This regex matches: FUNCTION( or FUNCTION (
+            $pattern = '/\b' . preg_quote($function, '/') . '\s*\(/';
+            if (preg_match($pattern, $normalizedColumn)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
