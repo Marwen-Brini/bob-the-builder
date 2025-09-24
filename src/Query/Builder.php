@@ -2385,6 +2385,15 @@ class Builder implements BuilderInterface
             return $this->invokeMacro($method, $parameters);
         }
 
+        // Check if model has a scope method
+        if ($this->model !== null) {
+            $scopeMethod = 'scope' . ucfirst($method);
+            if (method_exists($this->model, $scopeMethod)) {
+                // Call the scope method on the model, passing this builder
+                return $this->model->$scopeMethod($this, ...$parameters);
+            }
+        }
+
         // Finally, throw an exception
         throw new BadMethodCallException(sprintf(
             'Method %s::%s does not exist.',

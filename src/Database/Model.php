@@ -703,9 +703,8 @@ class Model implements JsonSerializable
         $scopeMethod = 'scope'.ucfirst($method);
         if (method_exists($instance, $scopeMethod)) {
             $query = static::query();
-            $instance->$scopeMethod($query, ...$arguments);
-
-            return $query;
+            // The scope method should return the builder for chaining
+            return $instance->$scopeMethod($query, ...$arguments);
         }
 
         // Otherwise, forward to the query builder
