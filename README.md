@@ -34,6 +34,28 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
 - 🎁 **Collections** - Powerful collection class for working with result sets
 
+## Recent Updates (v2.0.7)
+
+### WordPress/WooCommerce Integration Fixes
+
+We've resolved 7 critical issues discovered during integration with Quantum ORM for WordPress/WooCommerce:
+
+#### ✅ Fixed Issues
+
+1. **Global Scopes Support** - Added Laravel-style instance-level global scopes with `addGlobalScope()`, `withoutGlobalScope()`, and `withoutGlobalScopes()` methods
+2. **Nested WHERE Closures** - Fixed SQL generation for nested WHERE conditions that was producing invalid "where where" syntax
+3. **Delete Bindings Isolation** - Fixed parameter binding mismatch in delete operations by properly isolating WHERE bindings
+4. **Timestamp Handling** - Verified and tested that `$timestamps = false` property is properly respected for WordPress tables
+5. **Scope Chaining** - Full support for chaining custom scope methods like `Post::published()->byAuthor(1)->recent()->get()`
+6. **Aggregate Functions** - Automatic detection and handling of SQL aggregate functions (COUNT, SUM, AVG, etc.) in select statements
+7. **Subquery Support** - Fixed whereIn() and related methods to properly handle Builder subqueries with correct parameter binding
+
+#### 🔒 PHP 8.4+ Compatibility
+
+- Fixed all implicit nullable parameter deprecation warnings
+- Added explicit nullable types for all parameters with null defaults
+- Full compatibility with PHP 8.1, 8.2, 8.3, and 8.4
+
 ## Requirements
 
 - PHP 8.1, 8.2, 8.3, or 8.4

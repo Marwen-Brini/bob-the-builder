@@ -5,6 +5,25 @@ All notable changes to Bob Query Builder will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.7] - 2025-09-24
+
+### Fixed
+- **Global Scopes**: Added instance-level global scopes support with `addGlobalScope()`, `withoutGlobalScope()`, and `withoutGlobalScopes()` methods for better query filtering
+- **Nested WHERE Closures**: Fixed SQL generation bug that was producing invalid "where where" syntax in nested conditions
+- **Delete Operation Bindings**: Resolved parameter binding mismatch in delete operations by properly isolating WHERE clause bindings
+- **Timestamp Handling**: Verified and improved respect for `$timestamps = false` property, essential for WordPress/WooCommerce compatibility
+- **Scope Chaining**: Implemented full support for chaining custom scope methods (e.g., `Post::published()->byAuthor(1)->recent()->get()`)
+- **Aggregate Functions**: Added automatic detection and proper handling of SQL aggregate functions (COUNT, SUM, AVG, MIN, MAX, etc.) in select statements
+- **Subquery Support**: Fixed `whereIn()` and related methods to properly handle Builder subqueries with correct parameter binding
+
+### Added
+- PHP 8.4 compatibility with explicit nullable type declarations for all parameters
+- Comprehensive test coverage for all fixed issues (7 new test files, 50+ new tests)
+
+### Changed
+- Updated all method signatures to use explicit nullable types (`mixed`, `?string`, etc.) for PHP 8.4+ compliance
+- Improved error handling in nested query operations
+
 ## [2.0.0] - 2025-01-22
 
 ### Added

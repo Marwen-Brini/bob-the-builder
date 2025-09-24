@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.0.7] - 2025-09-24
+
+### Fixed
+- **Global Scopes**: Added instance-level global scopes support with `addGlobalScope()`, `withoutGlobalScope()`, and `withoutGlobalScopes()` methods for better query filtering
+- **Nested WHERE Closures**: Fixed SQL generation bug that was producing invalid "where where" syntax in nested conditions
+- **Delete Operation Bindings**: Resolved parameter binding mismatch in delete operations by properly isolating WHERE clause bindings
+- **Timestamp Handling**: Verified and improved respect for `$timestamps = false` property, essential for WordPress/WooCommerce compatibility
+- **Scope Chaining**: Implemented full support for chaining custom scope methods (e.g., `Post::published()->byAuthor(1)->recent()->get()`)
+- **Aggregate Functions**: Added automatic detection and proper handling of SQL aggregate functions (COUNT, SUM, AVG, MIN, MAX, etc.) in select statements
+- **Subquery Support**: Fixed `whereIn()` and related methods to properly handle Builder subqueries with correct parameter binding
+
+### Added
+- **PHP 8.4 Compatibility**: Full support for PHP 8.4 with explicit nullable type declarations
+- **Test Coverage**: Added 7 new test files with 50+ tests covering all fixed issues
+
+### WordPress/WooCommerce Integration
+This release specifically addresses issues found during integration with Quantum ORM for WordPress/WooCommerce projects, making Bob ORM a perfect fit for WordPress plugin development.
+
+## [2.0.0] - 2025-01-22
+
+### Added
+- **Complete ORM Layer** - Bob is now a full-featured ORM, not just a query builder
+- **Model System** - ActiveRecord pattern implementation with `Bob\Database\Model` base class
+- **Relationships** - Full support for HasOne, HasMany, BelongsTo, BelongsToMany
+- **Eager Loading** - Prevent N+1 queries with `with()` method
+- **Collections** - Powerful collection class for result sets
+
 ## [1.1.0] - 2025-09-13
 
 ### Changed

@@ -18,6 +18,7 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
+            { text: '✨ What\'s New (v2.0.7)', link: '/guide/whats-new' },
             { text: 'Introduction', link: '/guide/getting-started' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Configuration', link: '/guide/configuration' },
@@ -41,7 +42,8 @@ export default defineConfig({
             { text: 'Extending Bob', link: '/guide/extending' },
             { text: 'CLI Tools', link: '/guide/cli' },
             { text: 'Migration Guide', link: '/guide/migration' },
-            { text: 'Troubleshooting', link: '/guide/troubleshooting' }
+            { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+            { text: '📝 Changelog', link: '/guide/CHANGELOG' }
           ]
         }
       ],
