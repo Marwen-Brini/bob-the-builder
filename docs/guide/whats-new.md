@@ -144,7 +144,7 @@ All existing code continues to work, with the added benefit of these bug fixes a
 
 ## 📚 Learn More
 
-- [Global Scopes Documentation](/guide/query-builder#global-scopes)
+- [Query Builder Documentation](/guide/query-builder)
 - [Model Scopes](/guide/models#scopes)
-- [WordPress Integration Guide](/guide/wordpress)
 - [Troubleshooting Guide](/guide/troubleshooting)
+- [Changelog](/guide/CHANGELOG)
