@@ -62,6 +62,16 @@ class Builder implements BuilderInterface
      */
     protected array $eagerLoad = [];
 
+    /**
+     * The instance-level global scopes for this builder.
+     */
+    protected array $instanceGlobalScopes = [];
+
+    /**
+     * The removed global scopes for this builder instance.
+     */
+    protected array $removedScopes = [];
+
     public $lock;
 
     public bool $useWritePdo = false;
@@ -976,6 +986,8 @@ class Builder implements BuilderInterface
             $this->columns = $columns;
         }
 
+        $this->applyScopes();
+
         $results = $this->processor->processSelect(
             $this, $this->runSelect()
         );
@@ -1069,6 +1081,8 @@ class Builder implements BuilderInterface
         $this->columns = is_array($columns) ? $columns : func_get_args();
         $this->limit = 1;
 
+        $this->applyScopes();
+
         $result = $this->connection->selectOne(
             $this->toSql(), $this->getBindings(), ! $this->useWritePdo
         );
@@ -1160,6 +1174,8 @@ class Builder implements BuilderInterface
 
     public function exists(): bool
     {
+        $this->applyScopes();
+
         $results = $this->connection->select(
             $this->grammar->compileExists($this), $this->getBindings()
         );
@@ -1379,6 +1395,8 @@ class Builder implements BuilderInterface
             return 0;
         }
 
+        $this->applyScopes();
+
         $sql = $this->grammar->compileUpdate($this, $values);
 
         return $this->connection->update($sql, $this->cleanBindings(
@@ -1422,6 +1440,8 @@ class Builder implements BuilderInterface
         if (! is_null($id)) {
             $this->where('id', '=', $id);
         }
+
+        $this->applyScopes();
 
         return $this->connection->delete(
             $this->grammar->compileDelete($this), $this->getBindings()
@@ -1948,6 +1968,93 @@ class Builder implements BuilderInterface
     public function setModel($model): self
     {
         $this->model = $model;
+
+        return $this;
+    }
+
+    /**
+     * Register a new global scope.
+     *
+     * @param  string  $identifier
+     * @param  \Closure|object  $scope
+     * @return $this
+     */
+    public function addGlobalScope($identifier, $scope): self
+    {
+        $this->instanceGlobalScopes[$identifier] = $scope;
+
+        return $this;
+    }
+
+    /**
+     * Remove a registered global scope.
+     *
+     * @param  string|object  $scope
+     * @return $this
+     */
+    public function withoutGlobalScope($scope): self
+    {
+        if (! is_string($scope)) {
+            $scope = get_class($scope);
+        }
+
+        unset($this->instanceGlobalScopes[$scope]);
+        $this->removedScopes[] = $scope;
+
+        return $this;
+    }
+
+    /**
+     * Remove all or passed registered global scopes.
+     *
+     * @param  array|null  $scopes
+     * @return $this
+     */
+    public function withoutGlobalScopes(array $scopes = null): self
+    {
+        if (! is_array($scopes)) {
+            $scopes = array_keys($this->instanceGlobalScopes);
+        }
+
+        foreach ($scopes as $scope) {
+            $this->withoutGlobalScope($scope);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get the global scopes for this builder instance.
+     *
+     * @return array
+     */
+    public function getGlobalScopes(): array
+    {
+        return $this->instanceGlobalScopes;
+    }
+
+    /**
+     * Apply the global scopes to the builder.
+     *
+     * @return $this
+     */
+    public function applyScopes(): self
+    {
+        if (! $this->instanceGlobalScopes) {
+            return $this;
+        }
+
+        foreach ($this->instanceGlobalScopes as $identifier => $scope) {
+            if (in_array($identifier, $this->removedScopes, true)) {
+                continue;
+            }
+
+            if ($scope instanceof Closure) {
+                $scope($this);
+            } elseif (is_object($scope) && method_exists($scope, 'apply')) {
+                $scope->apply($this, $this->getModel());
+            }
+        }
 
         return $this;
     }
