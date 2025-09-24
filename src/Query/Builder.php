@@ -1455,7 +1455,7 @@ class Builder implements BuilderInterface
         }
 
         return $this->connection->delete(
-            $this->grammar->compileDelete($this), $this->getBindings()
+            $this->grammar->compileDelete($this), $this->getBindings('where')
         );
     }
 
