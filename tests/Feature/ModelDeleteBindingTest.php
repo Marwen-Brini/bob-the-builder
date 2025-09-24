@@ -142,15 +142,23 @@ test('manual query builder delete with extra bindings', function () {
     // Add the actual where
     $builder->where('id', 4);
 
+    // Check what bindings we have before delete
+    $allBindings = $builder->getBindings();
+    $whereBindings = $builder->getBindings('where');
+
+    expect($allBindings)->toBe([1, 2, 3, 4]); // All bindings flattened
+    expect($whereBindings)->toBe([4]); // Just where binding
+
     $this->connection->enableQueryLog();
 
-    // If getBindings() returns all bindings, this might fail
-    $builder->delete();
+    // Delete should only use WHERE bindings
+    $result = $builder->delete();
+
+    // Verify it actually deleted something (or 0 if no matching record)
+    expect($result)->toBeInt();
 
     $log = $this->connection->getQueryLog();
     $deleteQuery = end($log);
-
-    print_r($deleteQuery);
 
     // Should only have WHERE binding
     expect($deleteQuery['bindings'])->toHaveCount(1);
