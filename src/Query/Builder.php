@@ -2278,22 +2278,27 @@ class Builder implements BuilderInterface
     {
         // Common SQL aggregate functions
         $aggregateFunctions = [
-            'COUNT(',
-            'SUM(',
-            'AVG(',
-            'MIN(',
-            'MAX(',
-            'GROUP_CONCAT(',
-            'STRING_AGG(',
-            'ARRAY_AGG(',
-            'JSON_AGG(',
-            'STDDEV(',
-            'VARIANCE(',
+            'COUNT',
+            'SUM',
+            'AVG',
+            'MIN',
+            'MAX',
+            'GROUP_CONCAT',
+            'STRING_AGG',
+            'ARRAY_AGG',
+            'JSON_AGG',
+            'STDDEV',
+            'VARIANCE',
         ];
 
-        $upperColumn = strtoupper($column);
+        // Remove extra spaces and convert to uppercase for comparison
+        $normalizedColumn = preg_replace('/\s+/', ' ', strtoupper(trim($column)));
+
         foreach ($aggregateFunctions as $function) {
-            if (strpos($upperColumn, $function) !== false) {
+            // Check for function with optional space before parenthesis
+            // This regex matches: FUNCTION( or FUNCTION (
+            $pattern = '/\b' . preg_quote($function, '/') . '\s*\(/';
+            if (preg_match($pattern, $normalizedColumn)) {
                 return true;
             }
         }
