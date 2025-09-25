@@ -36,7 +36,7 @@ class SQLiteGrammar extends Grammar
         return 'select * from ('.$sql.')';
     }
 
-    public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, array $update): string
+    public function compileUpsert(BuilderInterface $query, array $values, ?array $uniqueBy, ?array $update): string
     {
         $sql = $this->compileInsert($query, $values);
 

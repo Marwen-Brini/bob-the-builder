@@ -290,7 +290,7 @@ class Builder implements BuilderInterface
 
     protected function invalidOperator($operator): bool
     {
-        return ! in_array(strtolower($operator), $this->operators, true);
+        return is_null($operator) || ! in_array(strtolower($operator), $this->operators, true);
     }
 
     public function whereNested(Closure $callback, string $boolean = 'and'): self
@@ -684,7 +684,7 @@ class Builder implements BuilderInterface
         return $this->whereColumn($first, $operator, $second, 'or');
     }
 
-    public function join($table, $first, $operator = null, $second = null, $type = 'inner', $where = false): self
+    public function join($table, $first, mixed $operator = null, mixed $second = null, string $type = 'inner', bool $where = false): self
     {
         $join = $this->newJoinClause($type, $table);
 
@@ -2057,7 +2057,7 @@ class Builder implements BuilderInterface
      * @param  array|null  $scopes
      * @return $this
      */
-    public function withoutGlobalScopes(array $scopes = null): self
+    public function withoutGlobalScopes(?array $scopes = null): self
     {
         if (! is_array($scopes)) {
             $scopes = array_keys($this->instanceGlobalScopes);
