@@ -748,11 +748,12 @@ class Builder implements BuilderInterface
     /**
      * Create a new join clause instance.
      */
-    public function newJoinClause($parentQuery, ?string $type = null, $table = null): JoinClause
+    public function newJoinClause($parentQuery, mixed $type = null, $table = null): JoinClause
     {
         // Handle both signatures for backward compatibility
         if (is_string($parentQuery) && $type !== null) {
             // Old signature: newJoinClause($type, $table)
+            // $parentQuery is actually the type, $type is actually the table
             return new JoinClause($this, $parentQuery, $type);
         }
         // New signature: newJoinClause($parentQuery, $type, $table)
@@ -1846,7 +1847,8 @@ class Builder implements BuilderInterface
             $query = $subQuery;
         }
 
-        $expression = '(' . $query->toSql() . ') as ' . $this->grammar->wrap($as);
+        // Don't use wrap() on the alias as it might get prefixed
+        $expression = '(' . $query->toSql() . ') as `' . str_replace('`', '', $as) . '`';
 
         $this->addBinding($query->getBindings(), 'join');
 
@@ -1869,7 +1871,8 @@ class Builder implements BuilderInterface
             $query = $subQuery;
         }
 
-        $expression = '(' . $query->toSql() . ') as ' . $this->grammar->wrap($as);
+        // Don't use wrap() on the alias as it might get prefixed
+        $expression = '(' . $query->toSql() . ') as `' . str_replace('`', '', $as) . '`';
 
         $this->addBinding($query->getBindings(), 'join');
 
@@ -2565,9 +2568,9 @@ class JoinClause extends Builder
 {
     public string $type;
 
-    public string $table;
+    public mixed $table; // Can be string or Expression
 
-    public function __construct(Builder $parentQuery, string $type, string $table)
+    public function __construct(Builder $parentQuery, string $type, mixed $table)
     {
         parent::__construct($parentQuery->connection);
 
