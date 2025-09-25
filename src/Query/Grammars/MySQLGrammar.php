@@ -51,7 +51,7 @@ class MySQLGrammar extends Grammar
         return '\'$.'.str_replace('->', '.', $value).'\'';
     }
 
-    public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, array $update): string
+    public function compileUpsert(BuilderInterface $query, array $values, ?array $uniqueBy, ?array $update): string
     {
         $sql = $this->compileInsert($query, $values);
 

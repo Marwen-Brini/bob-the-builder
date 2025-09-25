@@ -28,7 +28,7 @@ class PostgreSQLGrammar extends Grammar
         return $this->compileInsert($query, $values).' on conflict do nothing';
     }
 
-    public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, array $update): string
+    public function compileUpsert(BuilderInterface $query, array $values, ?array $uniqueBy, ?array $update): string
     {
         $sql = $this->compileInsert($query, $values);
 
