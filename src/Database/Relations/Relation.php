@@ -277,6 +277,32 @@ abstract class Relation
     }
 
     /**
+     * Remove a registered global scope from the relationship query.
+     *
+     * @param  string|object  $scope
+     * @return $this
+     */
+    public function withoutGlobalScope($scope)
+    {
+        $this->query->withoutGlobalScope($scope);
+
+        return $this;
+    }
+
+    /**
+     * Remove all or passed global scopes from the relationship query.
+     *
+     * @param  array|null  $scopes
+     * @return $this
+     */
+    public function withoutGlobalScopes(?array $scopes = null)
+    {
+        $this->query->withoutGlobalScopes($scopes);
+
+        return $this;
+    }
+
+    /**
      * Determine if we should execute the query.
      */
     protected static function shouldExecute(): bool
