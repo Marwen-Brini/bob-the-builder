@@ -1,3 +1,98 @@
+# What's New in v2.1.0
+
+## 🎉 New Features
+
+### Query Caching for exists()
+
+Optimize repeated existence checks with the new opt-in caching mechanism. Perfect for validation logic and conditional workflows where the same existence check happens multiple times:
+
+```php
+// Enable caching with custom TTL (in seconds)
+$builder = $connection->table('users')
+    ->enableExistsCache(300) // Cache for 5 minutes
+    ->where('email', 'user@example.com');
+
+// First call - hits database
+if ($builder->exists()) {
+    // User exists
+}
+
+// Subsequent calls within 5 minutes - uses cache!
+if ($builder->exists()) { // No database query
+    // Still fast!
+}
+
+// Disable caching when needed
+$builder->disableExistsCache();
+
+// Check if caching is enabled
+if ($builder->isExistsCachingEnabled()) {
+    // Caching is active
+}
+```
+
+**Benefits:**
+- Eliminates redundant database queries
+- Configurable TTL per builder instance
+- Integrates with existing QueryCache infrastructure
+- Disabled by default for backward compatibility
+
+## 🛠️ Critical Fixes
+
+### Table Prefix Handling in JOINs
+
+Complete fix for table prefix issues affecting WordPress/WooCommerce installations:
+
+```php
+// All these scenarios now work correctly with prefix 'wp_'
+
+// No more double prefixing
+$builder->from('wp_posts')->join('users', ...);
+// Before: FROM `wp_wp_posts` ❌
+// Now: FROM `wp_posts` ✅
+
+// Database qualified names
+$builder->from('database.posts')->join('database.users', ...);
+// Before: FROM `wp_database`.`posts` ❌
+// Now: FROM `database`.`wp_posts` ✅
+
+// Subquery JOINs with expressions
+$subquery = $builder->newQuery()->from('comments')->select('post_id', DB::raw('COUNT(*) as count'));
+$builder->from('posts')->joinSub($subquery, 'c', 'posts.id', '=', 'c.post_id');
+// Now correctly preserves Expression objects without prefixing
+```
+
+### Global Scopes in Relationships
+
+Relationships now properly inherit and respect global scopes:
+
+```php
+class Post extends Model
+{
+    protected static function booted()
+    {
+        static::addGlobalScope('published', function ($query) {
+            $query->where('status', 'published');
+        });
+    }
+}
+
+// Global scopes automatically apply to relationships
+$user->posts()->get(); // Only returns published posts
+
+// New property to control scope inheritance
+class User extends Model
+{
+    protected bool $applyGlobalScopesToRelationships = true; // Default
+}
+
+// Disable global scopes for specific queries
+$user->posts()->withoutGlobalScopes()->get(); // All posts
+$user->posts()->withoutGlobalScope('published')->get(); // Without specific scope
+```
+
+---
+
 # What's New in v2.0.7
 
 ## WordPress/WooCommerce Integration Fixes

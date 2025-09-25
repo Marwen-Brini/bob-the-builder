@@ -4,7 +4,7 @@ A highly optimized, standalone PHP query builder with Laravel-like fluent syntax
 
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://www.php.net)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-789%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
+[![Tests](https://img.shields.io/badge/tests-1644%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder)
 [![Documentation](https://img.shields.io/badge/docs-vitepress-purple)](https://marwen-brini.github.io/bob-the-builder/)
 
@@ -15,7 +15,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - ✅ **Framework Agnostic** - Use it with Laravel, Symfony, WordPress, or vanilla PHP
 - ✅ **Zero Lock-in** - No framework dependencies, just pure PHP and PDO
 - ✅ **Modern PHP** - Built for PHP 8.1+ with full type safety
-- ✅ **Production Ready** - 789 tests, 100% passing, battle-tested
+- ✅ **Production Ready** - 1644 tests, 100% passing, battle-tested
 - ✅ **High Performance** - <10ms query building overhead, handles 50k+ rows efficiently
 
 ## Features
@@ -26,7 +26,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 🔧 **Database Agnostic** - Support for MySQL, PostgreSQL, SQLite via PDO
 - 🎯 **Zero Dependencies** - Only requires PHP and PDO
 - ⚡ **High Performance** - Query caching, prepared statements, 1M+ rows/second streaming
-- 🧪 **Fully Tested** - 1400+ tests with Pest, 100% code coverage
+- 🧪 **Fully Tested** - 1644 tests with Pest, 100% code coverage
 - 🔒 **Secure** - Automatic SQL injection prevention via parameter binding
 - 📦 **Modular** - Easy integration with ANY PHP project, use as query builder or full ORM
 - 🔄 **Transaction Support** - Including savepoints for nested transactions
@@ -34,27 +34,58 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
 - 🎁 **Collections** - Powerful collection class for working with result sets
 
-## Recent Updates (v2.0.7)
+## Recent Updates (v2.1.0)
 
-### WordPress/WooCommerce Integration Fixes
+### 🚀 New Features
 
-We've resolved 7 critical issues discovered during integration with Quantum ORM for WordPress/WooCommerce:
+#### Query Caching for exists()
+Optimize repeated existence checks with the new opt-in caching mechanism:
 
-#### ✅ Fixed Issues
+```php
+$builder = $connection->table('users')
+    ->enableExistsCache(120) // Cache for 2 minutes
+    ->where('email', 'user@example.com');
 
-1. **Global Scopes Support** - Added Laravel-style instance-level global scopes with `addGlobalScope()`, `withoutGlobalScope()`, and `withoutGlobalScopes()` methods
-2. **Nested WHERE Closures** - Fixed SQL generation for nested WHERE conditions that was producing invalid "where where" syntax
-3. **Delete Bindings Isolation** - Fixed parameter binding mismatch in delete operations by properly isolating WHERE bindings
-4. **Timestamp Handling** - Verified and tested that `$timestamps = false` property is properly respected for WordPress tables
-5. **Scope Chaining** - Full support for chaining custom scope methods like `Post::published()->byAuthor(1)->recent()->get()`
-6. **Aggregate Functions** - Automatic detection and handling of SQL aggregate functions (COUNT, SUM, AVG, etc.) in select statements
-7. **Subquery Support** - Fixed whereIn() and related methods to properly handle Builder subqueries with correct parameter binding
+// First call - hits database
+$exists = $builder->exists();
+
+// Subsequent calls within 2 minutes - uses cache
+$exists = $builder->exists(); // No database query!
+```
+
+### 🛠️ Critical Fixes
+
+#### Table Prefix Handling in JOINs
+Complete fix for WordPress/WooCommerce table prefix issues:
+- No more double prefixing (`wp_wp_posts` bug fixed)
+- Proper handling of database qualified names
+- Subquery JOINs now work correctly with prefixes
+- Alias tracking prevents incorrect prefixing
+
+#### Global Scopes in Relationships
+Relationships now properly inherit global scopes:
+```php
+// Global scopes automatically apply to relationships
+$user->posts()->get(); // Includes global scopes from Post model
+
+// Or disable for specific queries
+$user->posts()->withoutGlobalScopes()->get();
+```
+
+### Previous Updates (v2.0.7)
+
+- **Global Scopes Support** - Laravel-style instance-level global scopes
+- **Nested WHERE Closures** - Fixed SQL generation for nested conditions
+- **Delete Bindings Isolation** - Fixed parameter binding in delete operations
+- **Timestamp Handling** - Properly respects `$timestamps = false`
+- **Scope Chaining** - Full support for chaining custom scope methods
+- **Aggregate Functions** - Automatic detection and handling
+- **Subquery Support** - Fixed whereIn() with Builder subqueries
 
 #### 🔒 PHP 8.4+ Compatibility
 
-- Fixed all implicit nullable parameter deprecation warnings
-- Added explicit nullable types for all parameters with null defaults
 - Full compatibility with PHP 8.1, 8.2, 8.3, and 8.4
+- All implicit nullable parameter warnings fixed
 
 ## Requirements
 
@@ -814,7 +845,7 @@ For bugs and feature requests, please use the [GitHub issues](https://github.com
 - [x] Slow query detection
 - [x] Memory-efficient streaming (cursor/chunk)
 - [x] CLI tools for testing and query building
-- [x] Comprehensive test suite (789 tests)
+- [x] Comprehensive test suite (1644 tests)
 - [x] Performance benchmarks
 
 ### Planned Features

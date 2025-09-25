@@ -46,6 +46,46 @@ $connection->clearStatementCache();
 
 Cache query results to avoid hitting the database for frequently accessed data.
 
+### Existence Check Caching (New in v2.1.0)
+
+Optimize repeated existence checks with the new `exists()` caching feature:
+
+```php
+use Bob\Database\Connection;
+
+$connection = new Connection($config);
+
+// Enable query cache for the connection
+$connection->enableQueryCache(1000, 3600); // Max 1000 items, 1 hour TTL
+
+// Enable exists caching for specific queries
+$builder = $connection->table('users')
+    ->enableExistsCache(120) // Cache exists() results for 2 minutes
+    ->where('email', 'user@example.com');
+
+// First call - hits database
+if ($builder->exists()) {
+    echo "User exists!";
+}
+
+// Subsequent calls within 2 minutes - uses cache
+if ($builder->exists()) { // No database query!
+    echo "Still exists (cached)!";
+}
+
+// Different query conditions = different cache key
+$builder->where('status', 'active'); // Cache key changes
+if ($builder->exists()) { // New database query
+    echo "Active user exists!";
+}
+```
+
+**Use Cases:**
+- Validation checks in loops
+- Conditional logic based on existence
+- Permission checks
+- Duplicate detection
+
 ### Basic Usage
 
 ```php
