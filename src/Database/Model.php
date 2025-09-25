@@ -75,6 +75,12 @@ class Model implements JsonSerializable
     protected static bool $ignoreTouch = false;
 
     /**
+     * Indicates if relationships should apply global scopes from the related model.
+     * Set to false to prevent global scope inheritance in relationships.
+     */
+    protected bool $applyGlobalScopesToRelationships = true;
+
+    /**
      * Set the global connection for all models
      */
     public static function setConnection(?ConnectionInterface $connection): void
@@ -109,10 +115,7 @@ class Model implements JsonSerializable
     {
         $instance = new static;
 
-        $builder = static::getConnection()->table($instance->getTable());
-        $builder->setModel($instance);
-
-        return $builder;
+        return $instance->newQuery();
     }
 
     /**
@@ -769,7 +772,7 @@ class Model implements JsonSerializable
         $foreignKey = $foreignKey ?: $this->getForeignKey();
         $localKey = $localKey ?: $this->getKeyName();
 
-        return new Relations\HasOne($instance->newQuery(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
+        return new Relations\HasOne($instance->newQueryForRelationship(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
     }
 
     /**
@@ -782,7 +785,7 @@ class Model implements JsonSerializable
         $foreignKey = $foreignKey ?: $this->getForeignKey();
         $localKey = $localKey ?: $this->getKeyName();
 
-        return new Relations\HasMany($instance->newQuery(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
+        return new Relations\HasMany($instance->newQueryForRelationship(), $this, $instance->getTable().'.'.$foreignKey, $localKey);
     }
 
     /**
@@ -803,7 +806,7 @@ class Model implements JsonSerializable
         $ownerKey = $ownerKey ?: $instance->getKeyName();
 
         return new Relations\BelongsTo(
-            $instance->newQuery(), $this, $foreignKey, $ownerKey, $relation
+            $instance->newQueryForRelationship(), $this, $foreignKey, $ownerKey, $relation
         );
     }
 
@@ -836,7 +839,7 @@ class Model implements JsonSerializable
         $relatedKey = $relatedKey ?: $instance->getKeyName();
 
         return new Relations\BelongsToMany(
-            $instance->newQuery(),
+            $instance->newQueryForRelationship(),
             $this,
             $table,
             $foreignPivotKey,
@@ -1127,6 +1130,23 @@ class Model implements JsonSerializable
      */
     public function newQuery(): Builder
     {
+        $builder = static::getConnection()->table($this->getTable());
+        $builder->setModel($this);
+
+        return $builder;
+    }
+
+    /**
+     * Get a new query builder for relationships.
+     * This method respects the applyGlobalScopesToRelationships setting.
+     */
+    public function newQueryForRelationship(): Builder
+    {
+        if ($this->applyGlobalScopesToRelationships) {
+            return $this->newQuery();
+        }
+
+        // Create a query without global scopes
         $builder = static::getConnection()->table($this->getTable());
         $builder->setModel($this);
 
