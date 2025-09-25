@@ -283,8 +283,8 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
     // Line 1634: doesntExistOr
     test('doesntExistOr executes callback when records exist', function () {
         $this->grammar->shouldReceive('compileExists')->andReturn('select exists');
-        $this->connection->shouldReceive('select')->andReturn([1]);
-        $this->processor->shouldReceive('processSelect')->andReturn([1]);
+        $this->connection->shouldReceive('select')->andReturn([['exists' => 1]]);
+        $this->processor->shouldReceive('processSelect')->andReturn([['exists' => 1]]);
 
         $called = false;
         $result = $this->builder->from('users')->doesntExistOr(function () use (&$called) {

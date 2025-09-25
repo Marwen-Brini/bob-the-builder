@@ -128,8 +128,8 @@ test('countBy pattern calls where and count', function () {
 
 test('existsBy pattern calls where and exists', function () {
     $this->grammar->shouldReceive('compileExists')->once()->andReturn('select exists(select * from users where email = ?)');
-    $this->processor->shouldReceive('processSelect')->once()->andReturn([1]);
-    $this->connection->shouldReceive('select')->once()->andReturn([1]);
+    $this->processor->shouldReceive('processSelect')->once()->andReturn([['exists' => 1]]);
+    $this->connection->shouldReceive('select')->once()->andReturn([['exists' => 1]]);
 
     $this->builder->from('users');
     $result = $this->builder->existsByEmail('test@example.com');

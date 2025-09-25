@@ -410,7 +410,7 @@ test('value returns single column value', function () {
 test('exists returns boolean', function () {
     $this->connection->shouldReceive('select')
         ->once()
-        ->andReturn(['result']);
+        ->andReturn([['exists' => 1]]);
 
     $this->grammar->shouldReceive('compileExists')->andReturn('select exists(select * from users)');
     $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($b, $r) => $r);
