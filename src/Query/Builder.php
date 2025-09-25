@@ -76,6 +76,16 @@ class Builder implements BuilderInterface
 
     public bool $useWritePdo = false;
 
+    /**
+     * Enable caching for exists() queries to avoid repeated checks.
+     */
+    protected bool $existsCaching = false;
+
+    /**
+     * TTL for exists() query cache in seconds.
+     */
+    protected int $existsCacheTtl = 60;
+
     protected array $bindings = [
         'select' => [],
         'from' => [],
@@ -1211,6 +1221,39 @@ class Builder implements BuilderInterface
     {
         $this->applyScopes();
 
+        // Check if we should use caching
+        if ($this->existsCaching && $this->connection->getQueryCache()) {
+            $queryCache = $this->connection->getQueryCache();
+
+            // Generate cache key from the SQL and bindings
+            $sql = $this->grammar->compileExists($this);
+            $bindings = $this->getBindings();
+            $cacheKey = 'exists_' . md5($sql . serialize($bindings));
+
+            // Check if we have a cached result
+            $cached = $queryCache->get($cacheKey);
+            if ($cached !== null) {
+                return $cached;
+            }
+
+            // Execute the query
+            $results = $this->connection->select($sql, $bindings);
+
+            // Process the results if we have a processor
+            if ($this->processor) {
+                $results = $this->processor->processSelect($this, $results);
+            }
+
+            // Determine the result
+            $exists = $this->parseExistsResult($results);
+
+            // Cache the result
+            $queryCache->put($cacheKey, $exists, $this->existsCacheTtl);
+
+            return $exists;
+        }
+
+        // No caching - execute normally
         $results = $this->connection->select(
             $this->grammar->compileExists($this), $this->getBindings()
         );
@@ -1220,6 +1263,17 @@ class Builder implements BuilderInterface
             $results = $this->processor->processSelect($this, $results);
         }
 
+        return $this->parseExistsResult($results);
+    }
+
+    /**
+     * Parse the result of an exists query.
+     *
+     * @param  array  $results
+     * @return bool
+     */
+    protected function parseExistsResult(array $results): bool
+    {
         // Handle empty result set
         if (empty($results)) {
             return false;
@@ -2023,6 +2077,42 @@ class Builder implements BuilderInterface
         $this->model = $model;
 
         return $this;
+    }
+
+    /**
+     * Enable caching for exists() queries.
+     *
+     * @param  int  $ttl  Cache TTL in seconds
+     * @return $this
+     */
+    public function enableExistsCache(int $ttl = 60): self
+    {
+        $this->existsCaching = true;
+        $this->existsCacheTtl = $ttl;
+
+        return $this;
+    }
+
+    /**
+     * Disable caching for exists() queries.
+     *
+     * @return $this
+     */
+    public function disableExistsCache(): self
+    {
+        $this->existsCaching = false;
+
+        return $this;
+    }
+
+    /**
+     * Check if exists caching is enabled.
+     *
+     * @return bool
+     */
+    public function isExistsCachingEnabled(): bool
+    {
+        return $this->existsCaching;
     }
 
     /**
