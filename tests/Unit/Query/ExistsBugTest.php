@@ -191,6 +191,20 @@ test('exists() with processor that modifies results', function () {
 });
 
 // Integration test with real SQLite to demonstrate the bug
+test('exists() handles unexpected result format', function () {
+    // Test the fallback case where result is neither array nor object
+    // This covers line 1235: return false;
+
+    $this->connection->shouldReceive('select')
+        ->once()
+        ->andReturn(['unexpected_string_value']);  // Not an array or object
+
+    $result = $this->builder->from('users')->exists();
+
+    // Should handle gracefully and return false for unexpected format
+    expect($result)->toBeFalse();
+});
+
 test('exists() bug demonstration with real database', function () {
     // Create a real SQLite connection for integration testing
     $pdo = new \PDO('sqlite::memory:');
