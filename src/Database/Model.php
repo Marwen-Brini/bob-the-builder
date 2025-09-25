@@ -351,7 +351,15 @@ class Model implements JsonSerializable
             return false;
         }
 
-        return $this->performDelete();
+        $result = $this->performDelete();
+
+        // Clear model state after successful deletion
+        if ($result) {
+            $this->original = [];
+            unset($this->attributes[$this->primaryKey]);
+        }
+
+        return $result;
     }
 
     /**
