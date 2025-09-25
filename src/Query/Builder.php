@@ -1216,8 +1216,23 @@ class Builder implements BuilderInterface
             $results = $this->processor->processSelect($this, $results);
         }
 
-        // If we have any results, it exists
-        return count($results) > 0;
+        // Handle empty result set
+        if (empty($results)) {
+            return false;
+        }
+
+        // Get the first row - it contains the EXISTS result
+        $firstRow = $results[0];
+
+        // Handle both array and object results
+        if (is_array($firstRow)) {
+            return (bool) ($firstRow['exists'] ?? false);
+        } elseif (is_object($firstRow)) {
+            return (bool) ($firstRow->exists ?? false);
+        }
+
+        // Fallback to false if unexpected format
+        return false;
     }
 
     public function doesntExist(): bool
