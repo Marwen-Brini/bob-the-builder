@@ -1109,7 +1109,10 @@ class Builder implements BuilderInterface
 
     public function first($columns = ['*'])
     {
-        $this->columns = is_array($columns) ? $columns : func_get_args();
+        // Only set columns if no columns have been explicitly set yet
+        if (is_null($this->columns)) {
+            $this->columns = is_array($columns) ? $columns : func_get_args();
+        }
         $this->limit = 1;
 
         $this->applyScopes();
