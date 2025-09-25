@@ -13,8 +13,16 @@ abstract class Grammar implements GrammarInterface
 
     protected array $operators = [];
 
+    /**
+     * Track table aliases to avoid prefixing them
+     */
+    protected array $tableAliases = [];
+
     public function compileSelect(BuilderInterface $query): string
     {
+        // Extract aliases from the query for reference
+        $this->extractAliases($query);
+
         if ($query->getUnions() && $query->getAggregate()) {
             return $this->compileUnionAggregate($query);
         }
@@ -24,6 +32,42 @@ abstract class Grammar implements GrammarInterface
         ));
 
         return $sql;
+    }
+
+    /**
+     * Extract table aliases from the query to avoid prefixing them
+     */
+    protected function extractAliases(BuilderInterface $query): void
+    {
+        $this->tableAliases = [];
+
+        // Extract from FROM clause - it might be stored as "table as alias"
+        $from = $query->getFrom();
+        if ($from) {
+            if (strpos($from, ' as ') !== false) {
+                $parts = preg_split('/\s+as\s+/i', $from);
+                if (isset($parts[1])) {
+                    $this->tableAliases[] = trim($parts[1], '`"\' ');
+                }
+            }
+        }
+
+        // Also check if the FROM was set with from('table', 'alias') which gets stored differently
+        // This is handled in Builder's from() method
+
+        // Extract from JOIN clauses
+        $joins = $query->getJoins();
+        if ($joins) {
+            foreach ($joins as $join) {
+                $table = $join->table;
+                if (strpos($table, ' as ') !== false) {
+                    $parts = preg_split('/\s+as\s+/i', $table);
+                    if (isset($parts[1])) {
+                        $this->tableAliases[] = trim($parts[1], '`"\' ');
+                    }
+                }
+            }
+        }
     }
 
     protected function compileComponents(BuilderInterface $query): array
@@ -104,7 +148,23 @@ abstract class Grammar implements GrammarInterface
         $sql = [];
 
         foreach ($joins as $join) {
-            $table = $this->wrapTable($join->table);
+            // Check if the table is an Expression object
+            if ($this->isExpression($join->table)) {
+                $table = $this->getValue($join->table);
+                // Extract alias from expression like "(subquery) as alias"
+                if (preg_match('/\s+as\s+`?([^`]+)`?$/i', $table, $matches)) {
+                    $this->tableAliases[] = $matches[1];
+                }
+            } else {
+                $table = $this->wrapTable($join->table);
+                // Check for alias in regular table names like "table as alias"
+                if (strpos($join->table, ' as ') !== false) {
+                    $parts = preg_split('/\s+as\s+/i', $join->table);
+                    if (count($parts) === 2) {
+                        $this->tableAliases[] = trim($parts[1], '`');
+                    }
+                }
+            }
 
             $clauses = [];
 
@@ -133,9 +193,22 @@ abstract class Grammar implements GrammarInterface
             return $constraint;
         }
 
-        // For non-Column join constraints, delegate to the appropriate where method
-        // This requires a proper builder instance, which should be passed from the caller
-        return $where['boolean'].' '.$where['sql'];
+        // Handle Basic where constraints in joins
+        if ($where['type'] === 'Basic') {
+            $constraint = $this->wrap($where['column']).' '.$where['operator'].' ?';
+            // Always include the boolean for non-first constraints
+            return $where['boolean'].' '.$constraint;
+        }
+
+        // For other types, try to compile them
+        if (isset($where['sql'])) {
+            return $where['boolean'].' '.$where['sql'];
+        }
+
+        // Default - this shouldn't normally happen
+        // @codeCoverageIgnoreStart
+        return '';
+        // @codeCoverageIgnoreEnd
     }
 
     protected function compileGroups(BuilderInterface $query, array $groups): string
@@ -492,6 +565,11 @@ abstract class Grammar implements GrammarInterface
             return $this->getValue($value);
         }
 
+        // Handle null or empty values
+        if ($value === null || $value === '') {
+            return '';
+        }
+
         if (strpos(strtolower($value), ' as ') !== false) {
             return $this->wrapAliasedValue($value);
         }
@@ -509,9 +587,15 @@ abstract class Grammar implements GrammarInterface
     protected function wrapSegments(array $segments): string
     {
         return collect($segments)->map(function ($segment, $key) use ($segments) {
-            return $key == 0 && count($segments) > 1
-                ? $this->wrapTable($segment)
-                : $this->wrapValue($segment);
+            // First segment in multi-segment identifier (could be table or alias)
+            if ($key == 0 && count($segments) > 1) {
+                // Check if this is a known alias - if so, don't prefix it
+                if (in_array($segment, $this->tableAliases)) {
+                    return $this->wrapValue($segment);
+                }
+                return $this->wrapTable($segment);
+            }
+            return $this->wrapValue($segment);
         })->implode('.');
     }
 
@@ -532,6 +616,31 @@ abstract class Grammar implements GrammarInterface
     public function wrapTable($table): string
     {
         if (! $this->isExpression($table)) {
+            // Check if table already has the prefix to avoid double-prefixing (simple case)
+            if ($this->tablePrefix && !strpos($table, '.') && strpos($table, $this->tablePrefix) === 0) {
+                return $this->wrap($table);
+            }
+
+            // Handle database.table format
+            if (strpos($table, '.') !== false) {
+                $segments = explode('.', $table);
+
+                // Check if the last segment (table name) already has the prefix
+                $lastIndex = count($segments) - 1;
+                if ($this->tablePrefix && strpos($segments[$lastIndex], $this->tablePrefix) !== 0) {
+                    // Add prefix to table name
+                    $segments[$lastIndex] = $this->tablePrefix . $segments[$lastIndex];
+                }
+
+                // Manually wrap each segment to avoid recursion issues
+                $wrapped = [];
+                foreach ($segments as $i => $segment) {
+                    $wrapped[] = $this->wrapValue($segment);
+                }
+                return implode('.', $wrapped);
+            }
+
+            // Simple table name - add prefix and wrap
             return $this->wrap($this->tablePrefix.$table);
         }
 
