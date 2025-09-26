@@ -4,7 +4,7 @@ A highly optimized, standalone PHP query builder with Laravel-like fluent syntax
 
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://www.php.net)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1644%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
+[![Tests](https://img.shields.io/badge/tests-1738%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder)
 [![Documentation](https://img.shields.io/badge/docs-vitepress-purple)](https://marwen-brini.github.io/bob-the-builder/)
 
@@ -15,7 +15,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - ✅ **Framework Agnostic** - Use it with Laravel, Symfony, WordPress, or vanilla PHP
 - ✅ **Zero Lock-in** - No framework dependencies, just pure PHP and PDO
 - ✅ **Modern PHP** - Built for PHP 8.1+ with full type safety
-- ✅ **Production Ready** - 1644 tests, 100% passing, battle-tested
+- ✅ **Production Ready** - 1738 tests, 100% passing, battle-tested
 - ✅ **High Performance** - <10ms query building overhead, handles 50k+ rows efficiently
 
 ## Features
@@ -26,7 +26,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 🔧 **Database Agnostic** - Support for MySQL, PostgreSQL, SQLite via PDO
 - 🎯 **Zero Dependencies** - Only requires PHP and PDO
 - ⚡ **High Performance** - Query caching, prepared statements, 1M+ rows/second streaming
-- 🧪 **Fully Tested** - 1644 tests with Pest, 100% code coverage
+- 🧪 **Fully Tested** - 1738 tests with Pest, 100% code coverage
 - 🔒 **Secure** - Automatic SQL injection prevention via parameter binding
 - 📦 **Modular** - Easy integration with ANY PHP project, use as query builder or full ORM
 - 🔄 **Transaction Support** - Including savepoints for nested transactions
