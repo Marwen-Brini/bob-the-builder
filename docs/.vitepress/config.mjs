@@ -18,7 +18,7 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: '✨ What\'s New (v2.0.7)', link: '/guide/whats-new' },
+            { text: '✨ What\'s New (v2.2.0)', link: '/guide/whats-new' },
             { text: 'Introduction', link: '/guide/getting-started' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Configuration', link: '/guide/configuration' },
@@ -71,7 +71,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024 Marwen Brini'
+      copyright: 'Copyright © 2025 Marwen Brini'
     },
 
     search: {
