@@ -18,6 +18,11 @@ abstract class Grammar implements GrammarInterface
      */
     protected array $tableAliases = [];
 
+    /**
+     * Track joined table names to avoid double prefixing in WHERE clauses
+     */
+    protected array $joinedTables = [];
+
     public function compileSelect(BuilderInterface $query): string
     {
         // Extract aliases from the query for reference
@@ -35,11 +40,12 @@ abstract class Grammar implements GrammarInterface
     }
 
     /**
-     * Extract table aliases from the query to avoid prefixing them
+     * Extract table aliases and joined tables from the query to avoid prefixing them
      */
     protected function extractAliases(BuilderInterface $query): void
     {
         $this->tableAliases = [];
+        $this->joinedTables = [];
 
         // Extract from FROM clause - it might be stored as "table as alias"
         $from = $query->getFrom();
@@ -60,11 +66,21 @@ abstract class Grammar implements GrammarInterface
         if ($joins) {
             foreach ($joins as $join) {
                 $table = $join->table;
+
+                // Handle table with alias
                 if (strpos($table, ' as ') !== false) {
                     $parts = preg_split('/\s+as\s+/i', $table);
+                    if (isset($parts[0])) {
+                        // Track the actual table name (without prefix)
+                        $this->joinedTables[] = trim($parts[0], '`"\' ');
+                    }
                     if (isset($parts[1])) {
+                        // Track the alias
                         $this->tableAliases[] = trim($parts[1], '`"\' ');
                     }
+                } else {
+                    // Regular table without alias - track it to avoid double prefixing
+                    $this->joinedTables[] = trim($table, '`"\' ');
                 }
             }
         }
@@ -593,6 +609,21 @@ abstract class Grammar implements GrammarInterface
                 if (in_array($segment, $this->tableAliases)) {
                     return $this->wrapValue($segment);
                 }
+
+                // Check if this is a joined table - if so, it already has the prefix from JOIN clause
+                if (in_array($segment, $this->joinedTables)) {
+                    // The table was joined, so it already has the prefix applied
+                    // Check if it already starts with the prefix to avoid double-prefixing
+                    if ($this->tablePrefix && strpos($segment, $this->tablePrefix) === 0) {
+                        // Already has prefix, just wrap it
+                        return $this->wrapValue($segment);
+                    } else {
+                        // Doesn't have prefix yet, add it
+                        return $this->wrapValue($this->tablePrefix . $segment);
+                    }
+                }
+
+                // Otherwise, it's a regular table reference that needs prefixing
                 return $this->wrapTable($segment);
             }
             return $this->wrapValue($segment);
