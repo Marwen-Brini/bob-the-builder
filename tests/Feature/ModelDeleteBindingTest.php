@@ -56,7 +56,8 @@ class TestBindingPostWithScopes extends Model {
     protected string $table = 'posts';
     protected bool $timestamps = false;
 
-    public static function boot() {
+    protected static function boot(): void {
+        parent::boot();
         // This could add bindings that shouldn't be in delete
         static::addGlobalScope('published', function (Builder $builder) {
             $builder->where('status', 'published');

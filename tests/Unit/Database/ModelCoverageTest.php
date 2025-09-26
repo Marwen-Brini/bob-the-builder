@@ -290,6 +290,7 @@ describe('Model Coverage Tests', function () {
 
         $connection->shouldReceive('table')->once()->with('test_models')->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
+        $builder->shouldReceive('withoutGlobalScopes')->once()->andReturn($builder);
         $builder->shouldReceive('where')->once()->with('id', 1)->andReturn($builder);
         $builder->shouldReceive('delete')->once()->andReturn(1);
 
@@ -769,7 +770,7 @@ describe('Model Coverage Tests', function () {
 
         $connection->shouldReceive('table')->once()->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
-        $builder->shouldReceive('where')->once()->with('id', 1)->andReturn($builder);
+        $builder->shouldReceive('where')->once()->with('test_models.id', 1)->andReturn($builder);
         $builder->shouldReceive('first')->once()->andReturn($foundModel);
 
         Model::setConnection($connection);
@@ -785,7 +786,7 @@ describe('Model Coverage Tests', function () {
 
         $connection->shouldReceive('table')->once()->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
-        $builder->shouldReceive('where')->once()->with('id', 999)->andReturn($builder);
+        $builder->shouldReceive('where')->once()->with('test_models.id', 999)->andReturn($builder);
         $builder->shouldReceive('first')->once()->andReturn(null);
 
         Model::setConnection($connection);
@@ -1385,6 +1386,7 @@ describe('Model Coverage Tests', function () {
 
         $connection->shouldReceive('table')->once()->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
+        $builder->shouldReceive('withoutGlobalScopes')->once()->andReturn($builder);
         $builder->shouldReceive('where')->once()->with('id', 1)->andReturn($builder);
         $builder->shouldReceive('delete')->once()->andReturn(1);
 
