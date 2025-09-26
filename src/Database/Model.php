@@ -5,8 +5,10 @@ namespace Bob\Database;
 use Bob\Contracts\ConnectionInterface;
 use Bob\Query\Builder;
 use Bob\Database\Relations;
+use Bob\Database\Eloquent\Scope;
 use Bob\Support\Collection;
 use JsonSerializable;
+use Closure;
 
 /**
  * Base Model class that provides ActiveRecord-like functionality
@@ -79,6 +81,27 @@ class Model implements JsonSerializable
      * Set to false to prevent global scope inheritance in relationships.
      */
     protected bool $applyGlobalScopesToRelationships = true;
+
+    /**
+     * The array of global scopes for each model class.
+     *
+     * @var array<string, array<string, \Closure|Scope>>
+     */
+    protected static array $globalScopes = [];
+
+    /**
+     * The array of booted models.
+     *
+     * @var array<class-string, bool>
+     */
+    protected static array $booted = [];
+
+    /**
+     * The array of trait boot methods that have been called.
+     *
+     * @var array<class-string, array>
+     */
+    protected static array $bootedMethods = [];
 
     /**
      * Set the global connection for all models
@@ -165,8 +188,84 @@ class Model implements JsonSerializable
      */
     public function __construct(array $attributes = [])
     {
+        $this->bootIfNotBooted();
         $this->fill($attributes);
         // Don't set original here as hydrate handles it
+    }
+
+    /**
+     * Check if the model needs to be booted and boot it if necessary.
+     *
+     * @return void
+     */
+    protected function bootIfNotBooted(): void
+    {
+        if (! isset(static::$booted[static::class])) {
+            static::booting();
+            static::boot();
+            static::booted();
+            static::$booted[static::class] = true;
+        }
+    }
+
+    /**
+     * Perform any actions required before the model boots.
+     *
+     * @return void
+     */
+    protected static function booting(): void
+    {
+        //
+    }
+
+    /**
+     * The "boot" method of the model.
+     * Override this in child classes to add global scopes.
+     *
+     * @return void
+     */
+    protected static function boot(): void
+    {
+        // Boot all traits that have boot methods
+        static::bootTraits();
+    }
+
+    /**
+     * Perform any actions required after the model boots.
+     *
+     * @return void
+     */
+    protected static function booted(): void
+    {
+        //
+    }
+
+    /**
+     * Boot all of the bootable traits on the model.
+     *
+     * @return void
+     */
+    protected static function bootTraits(): void
+    {
+        $class = static::class;
+
+        $traits = class_uses($class);
+        // @codeCoverageIgnoreStart
+        if ($traits === false) {
+            return;
+        }
+        // @codeCoverageIgnoreEnd
+
+        foreach ($traits as $trait) {
+            // Get just the trait name without namespace
+            $traitName = substr($trait, strrpos($trait, '\\') + 1);
+            $method = 'boot' . $traitName;
+
+            if (method_exists($class, $method) && ! in_array($method, static::$bootedMethods[$class] ?? [])) {
+                forward_static_call([$class, $method]);
+                static::$bootedMethods[$class][] = $method;
+            }
+        }
     }
 
     /**
@@ -391,7 +490,9 @@ class Model implements JsonSerializable
      */
     protected function performDelete(): bool
     {
+        // For delete operations, we don't want global scopes since we're deleting by primary key
         return (bool) static::query()
+            ->withoutGlobalScopes()
             ->where($this->primaryKey, $this->getAttribute($this->primaryKey))
             ->delete();
     }
@@ -423,6 +524,60 @@ class Model implements JsonSerializable
     }
 
     /**
+     * Register a global scope for this model.
+     *
+     * @param  string|\Closure|Scope  $scope
+     * @param  \Closure|Scope|null  $implementation
+     * @return void
+     */
+    public static function addGlobalScope($scope, $implementation = null): void
+    {
+        if (is_string($scope) && $implementation !== null) {
+            static::$globalScopes[static::class][$scope] = $implementation;
+        } elseif ($scope instanceof Closure) {
+            static::$globalScopes[static::class][spl_object_hash((object) $scope)] = $scope;
+        } elseif ($scope instanceof Scope) {
+            static::$globalScopes[static::class][get_class($scope)] = $scope;
+        }
+    }
+
+    /**
+     * Determine if a model has a global scope.
+     *
+     * @param  string|Scope  $scope
+     * @return bool
+     */
+    public static function hasGlobalScope($scope): bool
+    {
+        return ! is_null(static::getGlobalScope($scope));
+    }
+
+    /**
+     * Get a global scope registered with the model.
+     *
+     * @param  string|Scope  $scope
+     * @return \Closure|Scope|null
+     */
+    public static function getGlobalScope($scope)
+    {
+        if (is_string($scope)) {
+            return static::$globalScopes[static::class][$scope] ?? null;
+        }
+
+        return static::$globalScopes[static::class][get_class($scope)] ?? null;
+    }
+
+    /**
+     * Get all of the global scopes for the model.
+     *
+     * @return array<string, \Closure|Scope>
+     */
+    public static function getGlobalScopes(): array
+    {
+        return static::$globalScopes[static::class] ?? [];
+    }
+
+    /**
      * Create a new model instance and save it
      */
     public static function create(array $attributes): ?self
@@ -438,8 +593,10 @@ class Model implements JsonSerializable
     public static function find($id): ?self
     {
         $instance = new static;
+        // Use qualified column name to avoid ambiguity with JOINs
+        $qualifiedKey = $instance->getTable() . '.' . $instance->primaryKey;
         return static::query()
-            ->where($instance->primaryKey, $id)
+            ->where($qualifiedKey, $id)
             ->first();
     }
 
@@ -1146,7 +1303,35 @@ class Model implements JsonSerializable
         $builder = static::getConnection()->table($this->getTable());
         $builder->setModel($this);
 
+        // Apply global scopes
+        $this->registerGlobalScopes($builder);
+
         return $builder;
+    }
+
+    /**
+     * Get a new query builder without any global scopes.
+     */
+    public function newQueryWithoutScopes(): Builder
+    {
+        $builder = static::getConnection()->table($this->getTable());
+        $builder->setModel($this);
+
+        return $builder;
+    }
+
+    /**
+     * Register global scopes with the builder.
+     * They will be applied when the query is executed.
+     *
+     * @param  Builder  $builder
+     * @return void
+     */
+    protected function registerGlobalScopes(Builder $builder): void
+    {
+        foreach (static::getGlobalScopes() as $identifier => $scope) {
+            $builder->withGlobalScope($identifier, $scope);
+        }
     }
 
     /**

@@ -2080,6 +2080,33 @@ class Builder implements BuilderInterface
     }
 
     /**
+     * Check if a global scope has been removed.
+     *
+     * @param  string  $scope
+     * @return bool
+     */
+    public function hasRemovedGlobalScope(string $scope): bool
+    {
+        return in_array($scope, $this->removedScopes, true);
+    }
+
+    /**
+     * Register a global scope with the builder (from Model).
+     * This is different from addGlobalScope which is for instance scopes.
+     *
+     * @param  string  $identifier
+     * @param  \Closure|object  $scope
+     * @return $this
+     */
+    public function withGlobalScope(string $identifier, $scope): self
+    {
+        $this->instanceGlobalScopes[$identifier] = $scope;
+
+        return $this;
+    }
+
+
+    /**
      * Enable caching for exists() queries.
      *
      * @param  int  $ttl  Cache TTL in seconds
@@ -2156,7 +2183,11 @@ class Builder implements BuilderInterface
     public function withoutGlobalScopes(?array $scopes = null): self
     {
         if (! is_array($scopes)) {
+            // Get scopes from both instance and model
             $scopes = array_keys($this->instanceGlobalScopes);
+            if ($this->model) {
+                $scopes = array_merge($scopes, array_keys($this->model::getGlobalScopes()));
+            }
         }
 
         foreach ($scopes as $scope) {
@@ -2188,7 +2219,7 @@ class Builder implements BuilderInterface
         }
 
         foreach ($this->instanceGlobalScopes as $identifier => $scope) {
-            if (in_array($identifier, $this->removedScopes, true)) {
+            if ($this->hasRemovedGlobalScope($identifier)) {
                 continue;
             }
 

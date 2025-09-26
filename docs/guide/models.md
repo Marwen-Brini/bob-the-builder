@@ -839,6 +839,210 @@ $array = $users->toArray();
 $json = $users->toJson();
 ```
 
+## Global Scopes
+
+Global scopes allow you to add constraints to all queries for a given model. They are useful for implementing features like multi-tenancy, soft deletes, or filtering by default status.
+
+### Defining Global Scopes
+
+#### Using Closures
+
+The simplest way to define a global scope is using a closure in the model's `boot` method:
+
+```php
+class Post extends Model
+{
+    protected string $table = 'posts';
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Only show published posts by default
+        static::addGlobalScope('published', function (Builder $builder) {
+            $builder->where('status', 'published');
+        });
+    }
+}
+
+// All queries will automatically filter for published posts
+$posts = Post::all(); // Only published posts
+$post = Post::find(1); // Returns null if post 1 is not published
+```
+
+#### Using Scope Classes
+
+For more complex or reusable scopes, create a class implementing the `Scope` interface:
+
+```php
+use Bob\Database\Eloquent\Scope;
+use Bob\Query\Builder;
+use Bob\Database\Model;
+
+class ActiveScope implements Scope
+{
+    public function apply(Builder $builder, Model $model): void
+    {
+        $builder->where('active', true);
+    }
+}
+
+class User extends Model
+{
+    protected string $table = 'users';
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::addGlobalScope(new ActiveScope);
+    }
+}
+```
+
+### Removing Global Scopes
+
+Sometimes you need to query without global scopes. Bob provides several methods for this:
+
+#### Remove a Specific Scope
+
+```php
+// Remove by name (for closure scopes)
+$allPosts = Post::query()
+    ->withoutGlobalScope('published')
+    ->get();
+
+// Remove by class (for scope classes)
+$allUsers = User::query()
+    ->withoutGlobalScope(ActiveScope::class)
+    ->get();
+```
+
+#### Remove Multiple Scopes
+
+```php
+// Remove specific scopes
+$posts = Post::query()
+    ->withoutGlobalScopes(['published', 'recent'])
+    ->get();
+
+// Remove all scopes
+$allPosts = Post::query()
+    ->withoutGlobalScopes()
+    ->get();
+```
+
+### Soft Deletes
+
+Bob includes a `SoftDeletes` trait that uses global scopes to automatically filter out "deleted" records:
+
+```php
+use Bob\Database\Model;
+use Bob\Database\Eloquent\SoftDeletes;
+
+class User extends Model
+{
+    use SoftDeletes;
+
+    protected string $table = 'users';
+}
+
+// Soft delete a user (sets deleted_at timestamp)
+$user = User::find(1);
+$user->delete();
+
+// User is now hidden from normal queries
+$users = User::all(); // Does not include user 1
+
+// Include soft deleted users
+$allUsers = User::withTrashed()->get();
+
+// Only soft deleted users
+$deletedUsers = User::onlyTrashed()->get();
+
+// Restore a soft deleted user
+$user = User::withTrashed()->find(1);
+$user->restore();
+```
+
+### Multi-Tenancy Example
+
+Global scopes are perfect for implementing multi-tenancy:
+
+```php
+class Product extends Model
+{
+    protected string $table = 'products';
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Automatically filter by current tenant
+        static::addGlobalScope('tenant', function (Builder $builder) {
+            if (auth()->check()) {
+                $builder->where('tenant_id', auth()->user()->tenant_id);
+            }
+        });
+
+        // Automatically set tenant_id on creation
+        static::creating(function (Product $product) {
+            if (auth()->check()) {
+                $product->tenant_id = auth()->user()->tenant_id;
+            }
+        });
+    }
+}
+
+// All queries automatically scoped to current tenant
+$products = Product::all(); // Only products for current tenant
+
+// Admin can see all products
+$allProducts = Product::query()
+    ->withoutGlobalScope('tenant')
+    ->get();
+```
+
+### Multiple Global Scopes
+
+Models can have multiple global scopes that work together:
+
+```php
+class Article extends Model
+{
+    protected string $table = 'articles';
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Only published articles
+        static::addGlobalScope('published', function (Builder $builder) {
+            $builder->where('published', true);
+        });
+
+        // Only articles from the last year
+        static::addGlobalScope('recent', function (Builder $builder) {
+            $builder->where('created_at', '>=',
+                now()->subYear()->format('Y-m-d'));
+        });
+
+        // Order by most recent
+        static::addGlobalScope('ordered', function (Builder $builder) {
+            $builder->orderBy('created_at', 'desc');
+        });
+    }
+}
+
+// All three scopes are applied
+$articles = Article::all(); // Published, recent, ordered articles
+
+// Remove just the recent scope
+$allTimeArticles = Article::query()
+    ->withoutGlobalScope('recent')
+    ->get(); // Published and ordered, but from all time
+```
+
 ## Summary
 
 Bob's Model class in v2.0 provides:

@@ -51,6 +51,10 @@ test('model exists() returns false after successful deletion', function () {
     expect($model->exists())->toBeTrue();
 
     // Mock the delete query
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 123)
@@ -75,6 +79,10 @@ test('model primary key is cleared after deletion', function () {
     $model->syncOriginal();
 
     // Mock the delete query
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 456)
@@ -104,6 +112,10 @@ test('model original data is cleared after deletion', function () {
     expect($original)->toHaveKey('email');
 
     // Mock the delete query
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 789)
@@ -142,6 +154,10 @@ test('failed deletion does not clear model state', function () {
     $model->syncOriginal();
 
     // Mock the delete query to fail
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 999)
@@ -168,6 +184,10 @@ test('can attempt to delete already deleted model returns false', function () {
     $model->syncOriginal();
 
     // Mock first successful deletion
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 321)
@@ -196,6 +216,10 @@ test('other attributes remain accessible after deletion except primary key', fun
     $model->syncOriginal();
 
     // Mock the delete query
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 654)
@@ -227,6 +251,10 @@ test('isDirty behavior after deletion', function () {
     expect($model->isDirty('name'))->toBeTrue();
 
     // Mock the delete query
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 111)
@@ -252,6 +280,10 @@ test('wasDeleted flag or method to check deletion status', function () {
     $model->syncOriginal();
 
     // Mock the delete query
+    $this->builder->shouldReceive('withoutGlobalScopes')
+        ->once()
+        ->andReturn($this->builder);
+
     $this->builder->shouldReceive('where')
         ->once()
         ->with('id', 222)
