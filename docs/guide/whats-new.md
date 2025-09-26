@@ -1,8 +1,39 @@
-# What's New in v2.1.0
+# What's New
 
-## 🎉 New Features
+## v2.1.1 - Critical Bug Fixes
 
-### Query Caching for exists()
+### 🛠️ Fixed Issues
+
+#### Table Prefix Handling in JOIN Clauses
+Fixed critical table prefix issues that affected production environments:
+
+- **Double prefix bug fixed**: JOIN WHERE clauses no longer duplicate prefixes
+- **Global scopes with JOINs**: Now work correctly without prefix duplication
+- **Table aliases**: Proper handling in SELECT statements with JOINs
+- **Subqueries**: `whereIn()` with subquery builders handles prefixes correctly
+
+#### New Model Method: forceFill()
+Added Laravel-compatible `forceFill()` method for bypassing mass assignment:
+
+```php
+// Hydrate models from database without checking fillable/guarded
+$model = new User();
+$model->forceFill([
+    'id' => 1,
+    'name' => 'John Doe',
+    'admin' => true,  // Bypasses guarded
+    'role' => 'superadmin'  // Bypasses guarded
+]);
+
+// Chain with syncOriginal() for clean state
+$model->forceFill($databaseRow)->syncOriginal();
+```
+
+## v2.1.0 - Query Caching & Improvements
+
+### 🎉 New Features
+
+#### Query Caching for exists()
 
 Optimize repeated existence checks with the new opt-in caching mechanism. Perfect for validation logic and conditional workflows where the same existence check happens multiple times:
 

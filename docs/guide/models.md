@@ -166,10 +166,17 @@ $user->name = 'Updated Name';
 $user->email = 'newemail@example.com';
 $user->save();
 
-// Update multiple attributes
+// Update multiple attributes (respects mass assignment)
 $user->fill([
     'name' => 'New Name',
     'email' => 'new@example.com'
+])->save();
+
+// Force fill attributes (bypasses mass assignment) - v2.1.1+
+$user->forceFill([
+    'name' => 'New Name',
+    'email' => 'new@example.com',
+    'admin' => true  // Even if guarded!
 ])->save();
 ```
 

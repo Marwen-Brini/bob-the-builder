@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: Bob ORM v2.1.0
+  name: Bob ORM v2.1.1
   text: Complete ORM & Query Builder for PHP
-  tagline: A full-featured ORM with models, relationships, and Laravel-like query builder - now with query caching and enhanced WordPress support
+  tagline: A full-featured ORM with models, relationships, and Laravel-like query builder - now with enhanced table prefix handling and forceFill() method
   image:
     src: /logo.svg
     alt: Bob Query Builder

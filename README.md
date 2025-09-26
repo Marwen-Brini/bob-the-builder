@@ -34,7 +34,25 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
 - 🎁 **Collections** - Powerful collection class for working with result sets
 
-## Recent Updates (v2.1.0)
+## Recent Updates (v2.1.1)
+
+### 🛠️ Critical Bug Fixes
+
+#### Table Prefix Handling in JOIN Clauses
+Fixed all table prefix issues reported in production environments:
+- ✅ **Double prefix bug fixed** - No more duplicate prefixes in JOIN WHERE clauses
+- ✅ **Global scopes with JOINs** - Global scopes containing JOINs now work correctly
+- ✅ **Table aliases** - Proper handling of aliases in SELECT statements with JOINs
+- ✅ **Subqueries** - `whereIn()` with subquery builders handles prefixes correctly
+
+#### New Model Method: forceFill()
+Added Laravel-compatible `forceFill()` method for bypassing mass assignment:
+```php
+// Hydrate models from database without checking fillable/guarded
+$model->forceFill($databaseRow); // Bypasses mass assignment protection
+```
+
+## Previous Updates (v2.1.0)
 
 ### 🚀 New Features
 
@@ -52,15 +70,6 @@ $exists = $builder->exists();
 // Subsequent calls within 2 minutes - uses cache
 $exists = $builder->exists(); // No database query!
 ```
-
-### 🛠️ Critical Fixes
-
-#### Table Prefix Handling in JOINs
-Complete fix for WordPress/WooCommerce table prefix issues:
-- No more double prefixing (`wp_wp_posts` bug fixed)
-- Proper handling of database qualified names
-- Subquery JOINs now work correctly with prefixes
-- Alias tracking prevents incorrect prefixing
 
 #### Global Scopes in Relationships
 Relationships now properly inherit global scopes:

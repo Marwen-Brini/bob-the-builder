@@ -5,6 +5,31 @@ All notable changes to Bob Query Builder will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-09-26
+
+### Added
+- **forceFill() Method**: Added Laravel-compatible `forceFill()` method to Model class
+  - Bypasses mass assignment protection (fillable/guarded)
+  - Essential for hydrating models from trusted database results
+  - Returns model instance for method chaining
+  - Full compatibility with `syncOriginal()` pattern
+
+### Fixed
+- **Table Prefix Issues in JOIN Clauses**: Complete fix for table prefix handling in complex queries
+  - Fixed double prefix application in JOIN WHERE clauses
+  - Fixed global scopes containing JOINs causing prefix duplication
+  - Fixed table aliases in SELECT statements with JOINs
+  - Fixed `whereIn()` with subquery objects and table prefixes
+  - Improved joined table tracking in Grammar class with new `$joinedTables` array
+  - Enhanced `extractAliases()` to track both aliases and joined table names
+  - Updated `wrapSegments()` to prevent double-prefixing of already-prefixed tables
+
+### Internal
+- Added comprehensive test suite for table prefix JOIN scenarios
+- Added forceFill() test coverage with 6 test cases
+- All reported production issues resolved
+- 100% backward compatibility maintained
+
 ## [2.1.0] - 2025-09-25
 
 ### Added
