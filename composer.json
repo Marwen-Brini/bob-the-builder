@@ -1,7 +1,7 @@
 {
     "name": "marwen-brini/bob-the-builder",
     "description": "A complete ORM and query builder for PHP with Laravel-like fluent syntax, models, and relationships",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "type": "library",
     "keywords": ["orm", "database", "query-builder", "sql", "mysql", "postgresql", "sqlite", "pdo", "laravel", "eloquent", "activerecord", "relationships", "model"],
     "license": "MIT",
