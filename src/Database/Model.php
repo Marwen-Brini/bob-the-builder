@@ -185,6 +185,19 @@ class Model implements JsonSerializable
     }
 
     /**
+     * Force fill the model with attributes, bypassing mass assignment protection
+     */
+    public function forceFill(array $attributes): self
+    {
+        foreach ($attributes as $key => $value) {
+            // Directly set attributes without checking fillable/guarded
+            $this->setAttribute($key, $value);
+        }
+
+        return $this;
+    }
+
+    /**
      * Determine if the given attribute may be mass assigned
      */
     protected function isFillable(string $key): bool
