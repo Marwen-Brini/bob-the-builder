@@ -1,0 +1,166 @@
+<?php
+
+namespace Tests\Feature;
+
+use Bob\Database\Connection;
+use Bob\Database\Model;
+
+/**
+ * Test for Issue #15: Direct Property Assignment Not Persisted
+ *
+ * The problem: When you assign a property directly and call save(),
+ * save() returns true but the value is not actually persisted to the database.
+ */
+
+class CategoryForIssue15 extends Model
+{
+    protected string $table = 'categories';
+    protected string $primaryKey = 'id';
+    public bool $timestamps = false;
+
+    // Test with different fillable configurations
+    protected array $fillable = ['name', 'slug']; // 'parent' is NOT fillable
+}
+
+class CategoryFillableParent extends Model
+{
+    protected string $table = 'categories';
+    protected string $primaryKey = 'id';
+    public bool $timestamps = false;
+
+    protected array $fillable = ['name', 'slug', 'parent']; // 'parent' IS fillable
+}
+
+beforeEach(function () {
+    $this->connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+    ]);
+
+    // Create test table
+    $this->connection->unprepared('
+        CREATE TABLE categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL,
+            parent INTEGER DEFAULT 0,
+            description TEXT
+        )
+    ');
+
+    // Insert test data
+    $this->connection->table('categories')->insert([
+        ['id' => 1, 'name' => 'Technology', 'slug' => 'technology', 'parent' => 0],
+        ['id' => 2, 'name' => 'PHP', 'slug' => 'php', 'parent' => 0],
+    ]);
+
+    Model::setConnection($this->connection);
+});
+
+test('ISSUE #15: Direct property assignment should persist when field is fillable', function () {
+    $category = CategoryFillableParent::find(1);
+
+    // Verify initial state
+    expect($category->parent)->toBe(0);
+
+    // Assign new value
+    $category->parent = 5;
+
+    // Check that the model detects the change
+    expect($category->isDirty())->toBeTrue();
+    expect($category->isDirty('parent'))->toBeTrue();
+    expect($category->getDirty())->toHaveKey('parent');
+    expect($category->getDirty()['parent'])->toBe(5);
+
+    // Save should return true AND actually persist
+    $result = $category->save();
+    expect($result)->toBeTrue();
+
+    // Verify persistence by reloading
+    $reloaded = CategoryFillableParent::find(1);
+    expect($reloaded->parent)->toBe(5);
+});
+
+test('ISSUE #15: Direct property assignment fails silently when field is not fillable', function () {
+    $category = CategoryForIssue15::find(1);
+
+    // Verify initial state
+    expect($category->parent)->toBe(0);
+
+    // Assign new value to non-fillable field
+    $category->parent = 5;
+
+    // Debug: Check if the assignment worked in memory
+    echo "\nAfter assignment - in memory value: " . $category->parent . "\n";
+    echo "Is dirty: " . ($category->isDirty() ? 'true' : 'false') . "\n";
+    echo "Is parent dirty: " . ($category->isDirty('parent') ? 'true' : 'false') . "\n";
+    echo "Dirty fields: " . json_encode($category->getDirty()) . "\n";
+
+    // THIS IS THE BUG: save() returns true but doesn't persist
+    $result = $category->save();
+    echo "Save result: " . ($result ? 'true' : 'false') . "\n";
+
+    // The problem: save() returns true but value is not saved
+    expect($result)->toBeTrue(); // This passes (save() lies)
+
+    // But the value is not actually persisted
+    $reloaded = CategoryForIssue15::find(1);
+    expect($reloaded->parent)->toBe(0); // Still the old value!
+
+    // This is SILENT DATA LOSS - the worst kind of bug
+});
+
+test('ISSUE #15: Debug - Check Model dirty tracking behavior', function () {
+    $category = CategoryForIssue15::find(1);
+
+    echo "\n=== DEBUGGING DIRTY TRACKING ===\n";
+    echo "Initial state:\n";
+    echo "- parent value: " . $category->parent . "\n";
+    echo "- isDirty(): " . ($category->isDirty() ? 'true' : 'false') . "\n";
+    echo "- getOriginal(): " . json_encode($category->getOriginal()) . "\n";
+    echo "- getAttributes(): " . json_encode($category->getAttributes()) . "\n";
+
+    // Assign value
+    $category->parent = 5;
+
+    echo "\nAfter assignment:\n";
+    echo "- parent value: " . $category->parent . "\n";
+    echo "- isDirty(): " . ($category->isDirty() ? 'true' : 'false') . "\n";
+    echo "- isDirty('parent'): " . ($category->isDirty('parent') ? 'true' : 'false') . "\n";
+    echo "- getDirty(): " . json_encode($category->getDirty()) . "\n";
+    echo "- getAttributes(): " . json_encode($category->getAttributes()) . "\n";
+    echo "- getOriginal(): " . json_encode($category->getOriginal()) . "\n";
+
+    // Test save
+    $result = $category->save();
+    echo "\nAfter save():\n";
+    echo "- save() returned: " . ($result ? 'true' : 'false') . "\n";
+    echo "- isDirty(): " . ($category->isDirty() ? 'true' : 'false') . "\n";
+
+    // Check what was actually saved
+    $rawData = $this->connection->table('categories')->where('id', 1)->first();
+    echo "- Database parent value: " . $rawData->parent . "\n";
+});
+
+test('ISSUE #15: Direct property assignment should throw exception or provide clear feedback', function () {
+    $category = CategoryForIssue15::find(1);
+
+    // Current behavior: silent failure
+    $category->parent = 5;
+    $result = $category->save();
+
+    // What should happen:
+    // Option 1: Throw exception during assignment
+    // Option 2: Throw exception during save()
+    // Option 3: Return false from save() with clear error
+    // Option 4: Always save direct assignments (ignore fillable for direct access)
+
+    // Current broken behavior:
+    expect($result)->toBeTrue(); // save() lies
+
+    $reloaded = CategoryForIssue15::find(1);
+    expect($reloaded->parent)->toBe(0); // Value not saved
+
+    // This test documents the broken behavior
+    // The fix should make this test fail and be updated with correct expectations
+});
