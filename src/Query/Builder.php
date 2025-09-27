@@ -72,6 +72,11 @@ class Builder implements BuilderInterface
      */
     protected array $removedScopes = [];
 
+    /**
+     * Whether global scopes have been applied to this builder.
+     */
+    protected bool $scopesApplied = false;
+
     public $lock;
 
     public bool $useWritePdo = false;
@@ -1945,7 +1950,10 @@ class Builder implements BuilderInterface
 
     public function toSql(): string
     {
-        return $this->grammar->compileSelect($this);
+        // Clone the builder to avoid modifying the original when applying scopes
+        $query = clone $this;
+        $query->applyScopes();
+        return $query->grammar->compileSelect($query);
     }
 
     public function getBindings(?string $type = null): array
@@ -2214,6 +2222,11 @@ class Builder implements BuilderInterface
      */
     public function applyScopes(): self
     {
+        // Prevent double application of scopes
+        if ($this->scopesApplied) {
+            return $this;
+        }
+
         if (! $this->instanceGlobalScopes) {
             return $this;
         }
@@ -2229,6 +2242,8 @@ class Builder implements BuilderInterface
                 $scope->apply($this, $this->getModel());
             }
         }
+
+        $this->scopesApplied = true;
 
         return $this;
     }
