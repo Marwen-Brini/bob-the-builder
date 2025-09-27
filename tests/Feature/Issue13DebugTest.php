@@ -5,14 +5,14 @@ namespace Tests\Feature;
 use Bob\Database\Connection;
 use Bob\Database\Model;
 
-class Post extends Model
+class Issue13Post extends Model
 {
     protected string $table = 'posts';
     protected string $primaryKey = 'ID';
     public bool $timestamps = false;
 }
 
-class Term extends Model
+class Issue13Term extends Model
 {
     protected string $table = 'terms';
     protected string $primaryKey = 'term_id';
@@ -21,7 +21,7 @@ class Term extends Model
     public function posts()
     {
         // Let's debug what's happening
-        $related = Post::class;
+        $related = Issue13Post::class;
         $table = 'term_relationships';
         $foreignPivotKey = 'term_taxonomy_id';
         $relatedPivotKey = 'object_id';
@@ -99,7 +99,7 @@ beforeEach(function () {
 });
 
 test('Debug: Check the parent model attributes', function () {
-    $term = Term::find(1);
+    $term = Issue13Term::find(1);
 
     // Debug: What attributes does the term have?
     echo "\nTerm attributes:\n";
@@ -134,7 +134,7 @@ test('Debug: Correct relationship setup', function () {
         public function posts()
         {
             return $this->belongsToMany(
-                Post::class,
+                Issue13Post::class,
                 'term_relationships',  // pivot table
                 'term_taxonomy_id',    // foreign key in pivot
                 'object_id',           // related key in pivot
