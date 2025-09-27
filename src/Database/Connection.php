@@ -377,6 +377,31 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         return $this->statement($query, $bindings);
     }
 
+    /**
+     * Get the last insert ID from the database.
+     *
+     * @param string|null $sequence The sequence name (for PostgreSQL)
+     * @return int|string The last insert ID
+     */
+    public function lastInsertId(?string $sequence = null): int|string
+    {
+        return $this->getPdo()->lastInsertId($sequence);
+    }
+
+    /**
+     * Insert a record and get the ID.
+     *
+     * @param string $table The table to insert into
+     * @param array $values The values to insert
+     * @param string|null $sequence The sequence name (for PostgreSQL)
+     * @return int|string The inserted ID
+     */
+    public function insertGetId(string $table, array $values, ?string $sequence = null): int|string
+    {
+        $this->table($table)->insert($values);
+        return $this->lastInsertId($sequence);
+    }
+
     public function update(string $query, array $bindings = []): int
     {
         return $this->affectingStatement($query, $bindings);

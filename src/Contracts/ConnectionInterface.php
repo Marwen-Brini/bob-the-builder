@@ -34,6 +34,10 @@ interface ConnectionInterface
 
     public function insert(string $query, array $bindings = []): bool;
 
+    public function lastInsertId(?string $sequence = null): int|string;
+
+    public function insertGetId(string $table, array $values, ?string $sequence = null): int|string;
+
     public function update(string $query, array $bindings = []): int;
 
     public function delete(string $query, array $bindings = []): int;
