@@ -4,7 +4,7 @@ A highly optimized, standalone PHP query builder with Laravel-like fluent syntax
 
 [![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://www.php.net)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-1738%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
+[![Tests](https://img.shields.io/badge/tests-1773%20passing-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder/actions)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Marwen-Brini/bob-the-builder)
 [![Documentation](https://img.shields.io/badge/docs-vitepress-purple)](https://marwen-brini.github.io/bob-the-builder/)
 
@@ -15,7 +15,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - ✅ **Framework Agnostic** - Use it with Laravel, Symfony, WordPress, or vanilla PHP
 - ✅ **Zero Lock-in** - No framework dependencies, just pure PHP and PDO
 - ✅ **Modern PHP** - Built for PHP 8.1+ with full type safety
-- ✅ **Production Ready** - 1738 tests, 100% passing, battle-tested
+- ✅ **Production Ready** - 1773 tests, 100% passing, battle-tested
 - ✅ **High Performance** - <10ms query building overhead, handles 50k+ rows efficiently
 
 ## Features
@@ -26,7 +26,7 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 🔧 **Database Agnostic** - Support for MySQL, PostgreSQL, SQLite via PDO
 - 🎯 **Zero Dependencies** - Only requires PHP and PDO
 - ⚡ **High Performance** - Query caching, prepared statements, 1M+ rows/second streaming
-- 🧪 **Fully Tested** - 1738 tests with Pest, 100% code coverage
+- 🧪 **Fully Tested** - 1773 tests with Pest, 100% code coverage
 - 🔒 **Secure** - Automatic SQL injection prevention via parameter binding
 - 📦 **Modular** - Easy integration with ANY PHP project, use as query builder or full ORM
 - 🔄 **Transaction Support** - Including savepoints for nested transactions
@@ -34,32 +34,32 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
 - 🎁 **Collections** - Powerful collection class for working with result sets
 
-## Recent Updates (v2.2.1)
+## Recent Updates (v2.2.2)
 
-### 🛠️ Bug Fix
+### 🎯 100% Code Coverage Achieved!
+
+The test suite now has **complete 100% code coverage** across all components:
+- ✅ **1773 tests passing** with 4387 assertions
+- ✅ **Model class**: Full coverage including edge cases for existing ID updates
+- ✅ **All test failures resolved**: Fixed naming conflicts and relationship configurations
+- ✅ **Enhanced test reliability**: Better handling of complex scenarios
+
+### 🛠️ Test Suite Improvements
+
+- Fixed class naming conflicts in Issue #13 debug tests
+- Updated Issue #15 test expectations to reflect corrected behavior
+- Improved BelongsToMany relationship tests for WordPress-style tables
+- Added comprehensive tests for models with existing database IDs
+
+## Previous Updates (v2.2.1)
+
+### 🛠️ Bug Fixes
 
 #### Global Scope Field References in WHERE Clauses
 Fixed an important issue with global scopes and field references:
 - ✅ **Global scopes now apply in toSql()** - SQL generation now includes global scope modifications
 - ✅ **Prevents duplicate scope application** - Added tracking to ensure scopes apply only once
 - ✅ **No side effects** - Clone builder in toSql() to avoid modifying original instance
-
-```php
-// Fields from JOINed tables in global scopes can now be referenced without table prefix:
-class Category extends Model {
-    protected static function booted() {
-        static::addGlobalScope('taxonomy', function ($builder) {
-            $builder->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
-                   ->select('terms.*', 'term_taxonomy.parent', 'term_taxonomy.count')
-                   ->where('term_taxonomy.taxonomy', 'category');
-        });
-    }
-}
-
-// These now work correctly:
-$categories = Category::where('parent', 0)->get(); // ✅ Works without table prefix!
-$categories = Category::where('count', '>', 5)->get(); // ✅ Works without table prefix!
-```
 
 ## Previous Updates (v2.1.1)
 

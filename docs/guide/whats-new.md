@@ -1,5 +1,31 @@
 # What's New
 
+## v2.2.2 - 100% Test Coverage Achieved
+
+### 🎯 Major Milestone
+
+Bob ORM has achieved **100% code coverage** across the entire codebase! This release focuses on test suite improvements and reliability enhancements.
+
+### ✅ Test Suite Improvements
+
+- **1773 tests passing** with 4387 assertions (up from 1738 tests)
+- **Model class**: Full 100% coverage including edge cases for existing ID updates
+- **Fixed test failures**: Resolved all remaining test issues for complete stability
+- **Enhanced reliability**: Better handling of complex scenarios and edge cases
+
+### 🛠️ Fixed Issues
+
+- **Class naming conflicts**: Fixed duplicate class declarations in Issue #13 debug tests
+- **Test expectations**: Updated Issue #15 tests to reflect corrected behavior
+- **BelongsToMany relationships**: Improved configuration for WordPress-style tables
+- **Model ID handling**: Added comprehensive tests for models with existing database IDs
+
+### 📊 Coverage Details
+
+- All core components now at 100% coverage
+- Added strategic tests for previously uncovered edge cases
+- Improved test organization and maintainability
+
 ## v2.2.1 - Bug Fixes
 
 ### 🛠️ Fixed Issues
