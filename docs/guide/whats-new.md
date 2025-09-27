@@ -1,11 +1,39 @@
 # What's New
 
-## v2.1.1 - Critical Bug Fixes
+## v2.2.1 - Bug Fixes
+
+### 🛠️ Fixed Issues
+
+#### Global Scope Field References
+Fixed issue where fields selected from JOINed tables in global scopes could not be referenced in WHERE clauses without table prefixes:
+
+```php
+// Define a model with a global scope that adds JOINs
+class Category extends Model {
+    protected static function booted() {
+        static::addGlobalScope('withMetadata', function ($builder) {
+            $builder->join('category_meta', 'categories.id', '=', 'category_meta.category_id')
+                   ->select('categories.*', 'category_meta.parent', 'category_meta.count');
+        });
+    }
+}
+
+// Now you can reference JOINed fields directly
+$rootCategories = Category::where('parent', 0)->get(); // ✅ Works!
+$popularCategories = Category::where('count', '>', 100)->get(); // ✅ Works!
+```
+
+**Technical Details:**
+- Global scopes are now properly applied in the `toSql()` method
+- Added tracking to prevent duplicate scope application
+- Builder is cloned in `toSql()` to avoid side effects
+
+## v2.1.1 - Bug Fixes
 
 ### 🛠️ Fixed Issues
 
 #### Table Prefix Handling in JOIN Clauses
-Fixed critical table prefix issues that affected production environments:
+Fixed table prefix issues in production environments:
 
 - **Double prefix bug fixed**: JOIN WHERE clauses no longer duplicate prefixes
 - **Global scopes with JOINs**: Now work correctly without prefix duplication

@@ -34,7 +34,34 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
 - 🎁 **Collections** - Powerful collection class for working with result sets
 
-## Recent Updates (v2.1.1)
+## Recent Updates (v2.2.1)
+
+### 🛠️ Bug Fix
+
+#### Global Scope Field References in WHERE Clauses
+Fixed an important issue with global scopes and field references:
+- ✅ **Global scopes now apply in toSql()** - SQL generation now includes global scope modifications
+- ✅ **Prevents duplicate scope application** - Added tracking to ensure scopes apply only once
+- ✅ **No side effects** - Clone builder in toSql() to avoid modifying original instance
+
+```php
+// Fields from JOINed tables in global scopes can now be referenced without table prefix:
+class Category extends Model {
+    protected static function booted() {
+        static::addGlobalScope('taxonomy', function ($builder) {
+            $builder->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
+                   ->select('terms.*', 'term_taxonomy.parent', 'term_taxonomy.count')
+                   ->where('term_taxonomy.taxonomy', 'category');
+        });
+    }
+}
+
+// These now work correctly:
+$categories = Category::where('parent', 0)->get(); // ✅ Works without table prefix!
+$categories = Category::where('count', '>', 5)->get(); // ✅ Works without table prefix!
+```
+
+## Previous Updates (v2.1.1)
 
 ### 🛠️ Critical Bug Fixes
 
