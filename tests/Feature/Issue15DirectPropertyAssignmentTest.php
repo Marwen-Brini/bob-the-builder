@@ -103,11 +103,11 @@ test('ISSUE #15: Direct property assignment fails silently when field is not fil
     // The problem: save() returns true but value is not saved
     expect($result)->toBeTrue(); // This passes (save() lies)
 
-    // But the value is not actually persisted
+    // The value SHOULD be persisted now (bug is fixed!)
     $reloaded = CategoryForIssue15::find(1);
-    expect($reloaded->parent)->toBe(0); // Still the old value!
+    expect($reloaded->parent)->toBe(5); // The new value is saved!
 
-    // This is SILENT DATA LOSS - the worst kind of bug
+    // Bug is FIXED - direct assignment now works correctly
 });
 
 test('ISSUE #15: Debug - Check Model dirty tracking behavior', function () {
@@ -155,12 +155,12 @@ test('ISSUE #15: Direct property assignment should throw exception or provide cl
     // Option 3: Return false from save() with clear error
     // Option 4: Always save direct assignments (ignore fillable for direct access)
 
-    // Current broken behavior:
-    expect($result)->toBeTrue(); // save() lies
+    // Fixed behavior:
+    expect($result)->toBeTrue(); // save() works correctly now
 
     $reloaded = CategoryForIssue15::find(1);
-    expect($reloaded->parent)->toBe(0); // Value not saved
+    expect($reloaded->parent)->toBe(5); // Value IS saved now!
 
-    // This test documents the broken behavior
-    // The fix should make this test fail and be updated with correct expectations
+    // This test now documents the FIXED behavior
+    // Direct property assignment works correctly
 });
