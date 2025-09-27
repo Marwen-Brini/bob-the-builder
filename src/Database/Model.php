@@ -72,6 +72,11 @@ class Model implements JsonSerializable
     protected array $relations = [];
 
     /**
+     * Indicates if the model was recently created.
+     */
+    protected bool $wasRecentlyCreated = false;
+
+    /**
      * Indicates if we should ignore touch events.
      */
     protected static bool $ignoreTouch = false;
@@ -190,6 +195,7 @@ class Model implements JsonSerializable
     {
         $this->bootIfNotBooted();
         $this->fill($attributes);
+        $this->wasRecentlyCreated = false;
         // Don't set original here as hydrate handles it
     }
 
@@ -343,6 +349,10 @@ class Model implements JsonSerializable
             return $this->exists();
         }
 
+        if ($key === 'wasRecentlyCreated') {
+            return $this->wasRecentlyCreated;
+        }
+
         // Check attributes first
         if (isset($this->attributes[$key])) {
             return $this->attributes[$key];
@@ -373,6 +383,24 @@ class Model implements JsonSerializable
      */
     public function save(): bool
     {
+        // If model has an ID but empty original, check if it actually exists in DB
+        if (isset($this->attributes[$this->primaryKey]) &&
+            !empty($this->attributes[$this->primaryKey]) &&
+            empty($this->original)) {
+
+            // Check database to see if record with this ID actually exists
+            $existing = static::query()
+                ->where($this->primaryKey, $this->getAttribute($this->primaryKey))
+                ->first();
+
+            if ($existing) {
+                // Record exists in DB, populate original and update
+                $this->original = $existing->getAttributes();
+                return $this->update();
+            }
+            // Record doesn't exist, treat as new (but keep the provided ID)
+        }
+
         if ($this->exists()) {
             return $this->update();
         }
@@ -397,6 +425,7 @@ class Model implements JsonSerializable
             $this->setAttribute($this->primaryKey, $id);
             $this->syncChanges();
             $this->original = $this->attributes;
+            $this->wasRecentlyCreated = true;
 
             return true;
         }
@@ -451,6 +480,7 @@ class Model implements JsonSerializable
         if ($updated) {
             $this->syncChanges();
             $this->original = $this->attributes;
+            $this->wasRecentlyCreated = false;
             return true;
         }
 
