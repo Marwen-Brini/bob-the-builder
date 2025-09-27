@@ -5,17 +5,30 @@ namespace Tests\Integration;
 use Bob\Database\Connection;
 use PDO;
 
+uses()->group('mysql');
+
 beforeAll(function () {
-    // Check if MySQL tests should run
-    if (!isset($_SERVER['MYSQL_TEST_HOST'])) {
-        // Try to load from config file if it exists
+    // Detect if we're in GitHub Actions CI environment
+    $isGitHubCI = isset($_SERVER['GITHUB_ACTIONS']) && $_SERVER['GITHUB_ACTIONS'] === 'true';
+
+    if ($isGitHubCI) {
+        // GitHub Actions CI environment - use CI MySQL service
+        // These match the settings in .github/workflows/tests.yml
+        $_SERVER['MYSQL_TEST_HOST'] = $_ENV['MYSQL_HOST'] ?? '127.0.0.1';
+        $_SERVER['MYSQL_TEST_USERNAME'] = $_ENV['MYSQL_USERNAME'] ?? 'root';
+        $_SERVER['MYSQL_TEST_PASSWORD'] = $_ENV['MYSQL_PASSWORD'] ?? 'password';
+        $_SERVER['MYSQL_TEST_DATABASE'] = $_ENV['MYSQL_DATABASE'] ?? 'bob_test';
+        $_SERVER['MYSQL_TEST_PORT'] = $_ENV['MYSQL_PORT'] ?? 3306;
+    } elseif (!isset($_SERVER['MYSQL_TEST_HOST'])) {
+        // Local environment - try to load from config file
         $configFile = __DIR__ . '/../../tests/config/database.php';
         if (file_exists($configFile)) {
             $config = require $configFile;
-            $_SERVER['MYSQL_TEST_HOST'] = $config['host'] ?? 'localhost';
-            $_SERVER['MYSQL_TEST_USERNAME'] = $config['username'] ?? 'marwen';
-            $_SERVER['MYSQL_TEST_PASSWORD'] = $config['password'] ?? 'Marwanism123';
-            $_SERVER['MYSQL_TEST_DATABASE'] = $config['database'] ?? 'bob_test';
+            $_SERVER['MYSQL_TEST_HOST'] = $config['host'] ?? null;
+            $_SERVER['MYSQL_TEST_USERNAME'] = $config['username'] ?? null;
+            $_SERVER['MYSQL_TEST_PASSWORD'] = $config['password'] ?? null;
+            $_SERVER['MYSQL_TEST_DATABASE'] = $config['database'] ?? null;
+            $_SERVER['MYSQL_TEST_PORT'] = $config['port'] ?? 3306;
         }
     }
 });
@@ -30,6 +43,7 @@ beforeEach(function () {
         $this->connection = new Connection([
             'driver' => 'mysql',
             'host' => $_SERVER['MYSQL_TEST_HOST'],
+            'port' => $_SERVER['MYSQL_TEST_PORT'] ?? 3306,
             'database' => $_SERVER['MYSQL_TEST_DATABASE'],
             'username' => $_SERVER['MYSQL_TEST_USERNAME'],
             'password' => $_SERVER['MYSQL_TEST_PASSWORD'],
