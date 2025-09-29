@@ -1,0 +1,578 @@
+<?php
+
+// =============================================================================
+// CONVERTED TO PEST - Original PHPUnit code commented below for reference
+// =============================================================================
+
+use Bob\Database\Connection;
+use Bob\Schema\Blueprint;
+use Bob\Schema\Fluent;
+use Bob\Schema\Grammars\SQLiteGrammar;
+
+beforeEach(function () {
+    $this->grammar = new SQLiteGrammar();
+    $this->connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => ':memory:'
+    ]);
+});
+
+test('compile create', function () {
+    $blueprint = new Blueprint('users');
+    $blueprint->create();
+    $blueprint->id();
+    $blueprint->string('name');
+
+    $command = new Fluent(['name' => 'create']);
+    $sql = $this->grammar->compileCreate($blueprint, $command, $this->connection);
+
+    expect($sql)->toContain('create table "users"');
+    expect($sql)->toContain('"id" integer');
+    expect($sql)->toContain('primary key autoincrement');
+    expect($sql)->toContain('"name" text not null');
+});
+
+test('compile create temporary', function () {
+    $blueprint = new Blueprint('temp_users');
+    $blueprint->temporary = true;
+    $blueprint->create();
+    $blueprint->string('name');
+
+    $command = new Fluent(['name' => 'create']);
+    $sql = $this->grammar->compileCreate($blueprint, $command, $this->connection);
+
+    expect($sql)->toContain('create temporary table "temp_users"');
+});
+
+test('compile create with foreign keys', function () {
+    $blueprint = new Blueprint('posts');
+    $blueprint->create();
+    $blueprint->id();
+    $blueprint->unsignedBigInteger('user_id');
+    $blueprint->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+
+    $command = new Fluent(['name' => 'create']);
+    $sql = $this->grammar->compileCreate($blueprint, $command, $this->connection);
+
+    expect($sql)->toContain('foreign key("user_id") references "users"("id")');
+    expect($sql)->toContain('on delete cascade');
+});
+
+test('compile create with primary key', function () {
+    $blueprint = new Blueprint('test');
+    $blueprint->create();
+    $blueprint->string('code');
+    $blueprint->string('name');
+    $blueprint->primary(['code', 'name']);
+
+    $command = new Fluent(['name' => 'create']);
+    $sql = $this->grammar->compileCreate($blueprint, $command, $this->connection);
+
+    expect($sql)->toContain('primary key ("code", "name")');
+});
+
+test('add foreign keys', function () {
+    $blueprint = new Blueprint('posts');
+    $blueprint->foreign('user_id')->references('id')->on('users');
+    $blueprint->foreign('category_id')->references('id')->on('categories')->onUpdate('restrict');
+
+    $foreignKeys = $this->callProtectedMethod('addForeignKeys', [$blueprint]);
+
+    expect($foreignKeys)->toContain('foreign key("user_id") references "users"("id")');
+    expect($foreignKeys)->toContain('foreign key("category_id") references "categories"("id")');
+    expect($foreignKeys)->toContain('on update restrict');
+});
+
+test('get foreign key', function () {
+    $foreign = new Fluent([
+        'name' => 'foreign',
+        'columns' => ['user_id'],
+        'on' => 'users',
+        'references' => ['id'],
+        'onDelete' => 'cascade',
+        'onUpdate' => 'restrict'
+    ]);
+
+    $sql = $this->callProtectedMethod('getForeignKey', [$foreign]);
+
+    expect($sql)->toBe(', foreign key("user_id") references "users"("id") on delete cascade on update restrict');
+});
+
+test('get foreign key without actions', function () {
+    $foreign = new Fluent([
+        'name' => 'foreign',
+        'columns' => ['user_id'],
+        'on' => 'users',
+        'references' => ['id']
+    ]);
+
+    $sql = $this->callProtectedMethod('getForeignKey', [$foreign]);
+
+    expect($sql)->toBe(', foreign key("user_id") references "users"("id")');
+});
+
+test('addPrimaryKeys()
+    {
+        $blueprint = new Blueprint('test');
+        $blueprint->primary(['id', 'code']);
+
+        $primaryKeys = $this->callProtectedMethod('addPrimaryKeys', [$blueprint]);
+
+        $this->assertEquals(', primary key ("id", "code")', $primaryKeys);
+    }
+
+test('addPrimaryKeysWithNoPrimary()
+    {
+        $blueprint = new Blueprint('test');
+
+        $primaryKeys = $this->callProtectedMethod('addPrimaryKeys', [$blueprint]);
+
+        $this->assertEquals('', $primaryKeys);
+    }
+
+test('CompileAdd()
+    {
+        $blueprint = new Blueprint('users');
+        $blueprint->string('email');
+        $blueprint->integer('age')->nullable();
+
+        $command = new Fluent(['name' => 'add']);
+        $result = $this->grammar->compileAdd($blueprint, $command, $this->connection);
+
+        $this->assertIsArray($result);
+        $this->assertCount(2, $result);
+        $this->assertEquals('alter table "users" add column "email" text not null', $result[0]);
+        $this->assertEquals('alter table "users" add column "age" integer', $result[1]);
+    }
+
+test('CompileChange()
+    {
+        $blueprint = new Blueprint('users');
+        $blueprint->string('name', 100)->change();
+
+        $command = new Fluent(['name' => 'change']);
+        $sql = $this->grammar->compileChange($blueprint, $command, $this->connection);
+
+        // Should contain table recreation statements
+        $this->assertStringContainsString('pragma foreign_keys = off', $sql);
+        $this->assertStringContainsString('pragma foreign_keys = on', $sql);
+        $this->assertStringContainsString('__temp__users', $sql);
+    }
+
+test('CompileDrop()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'drop']);
+        $sql = $this->grammar->compileDrop($blueprint, $command, $this->connection);
+
+        $this->assertEquals('drop table "users"', $sql);
+    }
+
+test('CompileDropIfExists()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'dropIfExists']);
+        $sql = $this->grammar->compileDropIfExists($blueprint, $command, $this->connection);
+
+        $this->assertEquals('drop table if exists "users"', $sql);
+    }
+
+test('CompileDropColumnWithNewSQLite()
+    {
+        // Mock connection to return newer SQLite version
+        $connection = $this->createMock(Connection::class);
+        $connection->method('select')
+            ->willReturn([(object) ['version' => '3.36.0']]);
+
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'dropColumn', 'columns' => ['name', 'email']]);
+        $result = $this->grammar->compileDropColumn($blueprint, $command, $connection);
+
+        $this->assertIsArray($result);
+        $this->assertCount(2, $result);
+        $this->assertEquals('alter table "users" drop column "name"', $result[0]);
+        $this->assertEquals('alter table "users" drop column "email"', $result[1]);
+    }
+
+test('CompileDropColumnWithOldSQLite()
+    {
+        // Mock connection to return older SQLite version
+        $connection = $this->createMock(Connection::class);
+        $connection->method('select')
+            ->willReturn([(object) ['version' => '3.30.0']]);
+
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'dropColumn', 'columns' => ['name']]);
+        $result = $this->grammar->compileDropColumn($blueprint, $command, $connection);
+
+        // Should return table recreation statements
+        $this->assertIsArray($result);
+        $this->assertContains('pragma foreign_keys = off', $result);
+        $this->assertContains('pragma foreign_keys = on', $result);
+    }
+
+test('CompileRename()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'rename', 'to' => 'customers']);
+        $sql = $this->grammar->compileRename($blueprint, $command, $this->connection);
+
+        $this->assertEquals('alter table "users" rename to "customers"', $sql);
+    }
+
+test('CompileRenameColumnWithNewSQLite()
+    {
+        // Mock connection to return newer SQLite version
+        $connection = $this->createMock(Connection::class);
+        $connection->method('select')
+            ->willReturn([(object) ['version' => '3.26.0']]);
+
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'renameColumn', 'from' => 'name', 'to' => 'full_name']);
+        $sql = $this->grammar->compileRenameColumn($blueprint, $command, $connection);
+
+        $this->assertEquals('alter table "users" rename column "name" to "full_name"', $sql);
+    }
+
+test('CompileRenameColumnWithOldSQLite()
+    {
+        // Mock connection to return older SQLite version
+        $connection = $this->createMock(Connection::class);
+        $connection->method('select')
+            ->willReturn([(object) ['version' => '3.20.0']]);
+
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'renameColumn', 'from' => 'name', 'to' => 'full_name']);
+        $result = $this->grammar->compileRenameColumn($blueprint, $command, $connection);
+
+        // Should return table recreation statements as a joined string
+        $this->assertIsString($result);
+        $this->assertStringContainsString('pragma foreign_keys = off', $result);
+        $this->assertStringContainsString('pragma foreign_keys = on', $result);
+    }
+
+test('RecreateTable()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['name' => 'change']);
+
+        $statements = $this->callProtectedMethod('recreateTable', [$blueprint, $command, $this->connection]);
+
+        $this->assertIsArray($statements);
+        $this->assertCount(6, $statements);
+        $this->assertEquals('pragma foreign_keys = off', $statements[0]);
+        $this->assertStringContainsString('create table "__temp__users"', $statements[1]);
+        $this->assertStringContainsString('insert into "__temp__users" select * from "users"', $statements[2]);
+        $this->assertEquals('drop table "users"', $statements[3]);
+        $this->assertStringContainsString('rename to "users"', $statements[4]);
+        $this->assertEquals('pragma foreign_keys = on', $statements[5]);
+    }
+
+test('GetCreateTableSql()
+    {
+        $blueprint = new Blueprint('users');
+        $tempTable = '"__temp__users"';
+
+        $sql = $this->callProtectedMethod('getCreateTableSql', [$blueprint, $tempTable, $this->connection]);
+
+        $this->assertEquals('create table "__temp__users" as select * from "users" where 0', $sql);
+    }
+
+test('CompileEnableForeignKeyConstraints()
+    {
+        $sql = $this->grammar->compileEnableForeignKeyConstraints();
+        $this->assertEquals('PRAGMA foreign_keys = ON', $sql);
+    }
+
+test('CompileDisableForeignKeyConstraints()
+    {
+        $sql = $this->grammar->compileDisableForeignKeyConstraints();
+        $this->assertEquals('PRAGMA foreign_keys = OFF', $sql);
+    }
+
+test('CompileTableExists()
+    {
+        $sql = $this->grammar->compileTableExists();
+        $expected = "select * from sqlite_master where type = 'table' and name = ? union all select * from sqlite_temp_master where type = 'table' and name = ?";
+        $this->assertEquals($expected, $sql);
+    }
+
+test('CompileColumnListing()
+    {
+        $sql = $this->grammar->compileColumnListing('users');
+        $this->assertEquals('pragma table_info(users)', $sql);
+    }
+
+test('CompileColumnType()
+    {
+        $sql = $this->grammar->compileColumnType('users', 'name');
+        $this->assertEquals("select type from pragma_table_info('users') where name = ?", $sql);
+    }
+
+test('AllColumnTypes()
+    {
+        $blueprint = new Blueprint('test_table');
+
+        // Test all SQLite column types
+        $blueprint->char('char_col', 10);
+        $blueprint->string('string_col');
+        $blueprint->tinyText('tinytext_col');
+        $blueprint->text('text_col');
+        $blueprint->mediumText('mediumtext_col');
+        $blueprint->longText('longtext_col');
+        $blueprint->integer('int_col');
+        $blueprint->bigInteger('bigint_col');
+        $blueprint->mediumInteger('mediumint_col');
+        $blueprint->tinyInteger('tinyint_col');
+        $blueprint->smallInteger('smallint_col');
+        $blueprint->float('float_col');
+        $blueprint->double('double_col');
+        $blueprint->decimal('decimal_col', 10, 2);
+        $blueprint->boolean('bool_col');
+        $blueprint->enum('enum_col', ['yes', 'no']);
+        $blueprint->set('set_col', ['a', 'b', 'c']);
+        $blueprint->json('json_col');
+        $blueprint->jsonb('jsonb_col');
+        $blueprint->date('date_col');
+        $blueprint->dateTime('datetime_col');
+        $blueprint->dateTimeTz('datetimetz_col');
+        $blueprint->time('time_col');
+        $blueprint->timeTz('timetz_col');
+        $blueprint->timestamp('timestamp_col');
+        $blueprint->timestampTz('timestamptz_col');
+        $blueprint->year('year_col');
+        $blueprint->binary('binary_col');
+        $blueprint->uuid('uuid_col');
+        $blueprint->ipAddress('ip_col');
+        $blueprint->macAddress('mac_col');
+        $blueprint->geometry('geometry_col');
+        $blueprint->point('point_col');
+        $blueprint->lineString('linestring_col');
+        $blueprint->polygon('polygon_col');
+        $blueprint->geometryCollection('geomcollection_col');
+        $blueprint->multiPoint('multipoint_col');
+        $blueprint->multiLineString('multilinestring_col');
+        $blueprint->multiPolygon('multipolygon_col');
+        $blueprint->computed('computed_col', 'price * quantity');
+
+        $command = new Fluent(['name' => 'create']);
+        $sql = $this->grammar->compileCreate($blueprint, $command, $this->connection);
+
+        $this->assertIsString($sql);
+        $this->assertStringContainsString('create table', $sql);
+        $this->assertStringContainsString('"enum_col" text check ("enum_col" in (\'yes\', \'no\'))', $sql);
+        $this->assertStringContainsString('"computed_col" text as (price * quantity)', $sql);
+    }
+
+test('ColumnModifiers()
+    {
+        $blueprint = new Blueprint('test_table');
+        $blueprint->string('name')->nullable()->default('test');
+        $blueprint->integer('count')->autoIncrement();
+        $blueprint->timestamp('created_at')->useCurrent();
+
+        $command = new Fluent(['name' => 'create']);
+        $sql = $this->grammar->compileCreate($blueprint, $command, $this->connection);
+
+        $this->assertStringContainsString('"name" text default \'test\'', $sql);
+        $this->assertStringContainsString('"count" integer', $sql);
+        $this->assertStringContainsString('primary key autoincrement', $sql);
+        $this->assertStringContainsString('"created_at" datetime', $sql);
+        $this->assertStringContainsString('default current_timestamp', $sql);
+    }
+
+test('ModifyNullableForAutoIncrement()
+    {
+        $blueprint = new Blueprint('test');
+        $column = new Fluent(['type' => 'integer', 'autoIncrement' => true]);
+
+        $modifier = $this->callProtectedMethod('modifyNullable', [$blueprint, $column]);
+        $this->assertEquals('', $modifier);
+    }
+
+test('ModifyNullableForRegularColumn()
+    {
+        $blueprint = new Blueprint('test');
+        $nullableColumn = new Fluent(['type' => 'string', 'nullable' => true]);
+        $notNullColumn = new Fluent(['type' => 'string', 'nullable' => false]);
+
+        $this->assertEquals('', $this->callProtectedMethod('modifyNullable', [$blueprint, $nullableColumn]));
+        $this->assertEquals(' not null', $this->callProtectedMethod('modifyNullable', [$blueprint, $notNullColumn]));
+    }
+
+test('ModifyDefaultWithUseCurrent()
+    {
+        $blueprint = new Blueprint('test');
+        $column = new Fluent(['type' => 'timestamp', 'useCurrent' => true]);
+
+        $modifier = $this->callProtectedMethod('modifyDefault', [$blueprint, $column]);
+        $this->assertEquals(' default current_timestamp', $modifier);
+    }
+
+test('ModifyIncrementForSerialTypes()
+    {
+        $blueprint = new Blueprint('test');
+        $types = ['bigInteger', 'integer', 'mediumInteger', 'smallInteger', 'tinyInteger'];
+
+        foreach ($types as $type) {
+            $column = new Fluent(['type' => $type, 'autoIncrement' => true]);
+            $modifier = $this->callProtectedMethod('modifyIncrement', [$blueprint, $column]);
+            $this->assertEquals(' primary key autoincrement', $modifier);
+        }
+    }
+
+test('CompilePrimary()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['columns' => ['id']]);
+
+        $sql = $this->grammar->compilePrimary($blueprint, $command);
+        $this->assertEquals('', $sql);
+    }
+
+test('CompileUnique()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['columns' => ['email'], 'index' => 'users_email_unique']);
+
+        $sql = $this->grammar->compileUnique($blueprint, $command);
+        $this->assertEquals('create unique index "users_email_unique" on "users" ("email")', $sql);
+    }
+
+test('CompileIndex()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['columns' => ['name'], 'index' => 'users_name_index']);
+
+        $sql = $this->grammar->compileIndex($blueprint, $command);
+        $this->assertEquals('create index "users_name_index" on "users" ("name")', $sql);
+    }
+
+test('CompileFulltextThrowsException()
+    {
+        $blueprint = new Blueprint('posts');
+        $command = new Fluent(['columns' => ['content']]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SQLite does not support fulltext indexes. Use FTS virtual tables instead.');
+
+        $this->grammar->compileFulltext($blueprint, $command);
+    }
+
+test('CompileSpatialIndexThrowsException()
+    {
+        $blueprint = new Blueprint('places');
+        $command = new Fluent(['columns' => ['location']]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SQLite does not support spatial indexes.');
+
+        $this->grammar->compileSpatialIndex($blueprint, $command);
+    }
+
+test('CompileForeign()
+    {
+        $blueprint = new Blueprint('posts');
+        $command = new Fluent(['columns' => ['user_id']]);
+
+        $sql = $this->grammar->compileForeign($blueprint, $command);
+        $this->assertEquals('', $sql);
+    }
+
+test('CompileDropPrimaryThrowsException()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent([]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SQLite does not support dropping primary keys.');
+
+        $this->grammar->compileDropPrimary($blueprint, $command);
+    }
+
+test('CompileDropUnique()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['index' => 'users_email_unique']);
+
+        $sql = $this->grammar->compileDropUnique($blueprint, $command);
+        $this->assertEquals('drop index "users_email_unique"', $sql);
+    }
+
+test('CompileDropIndex()
+    {
+        $blueprint = new Blueprint('users');
+        $command = new Fluent(['index' => 'users_name_index']);
+
+        $sql = $this->grammar->compileDropIndex($blueprint, $command);
+        $this->assertEquals('drop index "users_name_index"', $sql);
+    }
+
+test('CompileDropForeignThrowsException()
+    {
+        $blueprint = new Blueprint('posts');
+        $command = new Fluent(['index' => 'posts_user_id_foreign']);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SQLite does not support dropping foreign keys.');
+
+        $this->grammar->compileDropForeign($blueprint, $command);
+    }
+
+test('GetCommandByName()
+    {
+        $blueprint = new Blueprint('users');
+        $blueprint->primary(['id']);
+        $blueprint->unique(['email']);
+
+        $primaryCommand = $this->callProtectedMethod('getCommandByName', [$blueprint, 'primary']);
+        $uniqueCommand = $this->callProtectedMethod('getCommandByName', [$blueprint, 'unique']);
+        $nonExistentCommand = $this->callProtectedMethod('getCommandByName', [$blueprint, 'nonexistent']);
+
+        $this->assertInstanceOf(Fluent::class, $primaryCommand);
+        $this->assertEquals('primary', $primaryCommand->name);
+        $this->assertInstanceOf(Fluent::class, $uniqueCommand);
+        $this->assertEquals('unique', $uniqueCommand->name);
+        $this->assertNull($nonExistentCommand);
+    }
+
+test('WrapValue()
+    {
+        $this->assertEquals('*', $this->callProtectedMethod('wrapValue', ['*']));
+        $this->assertEquals('"column"', $this->callProtectedMethod('wrapValue', ['column']));
+        $this->assertEquals('"""quoted"""', $this->callProtectedMethod('wrapValue', ['"quoted"']));
+    }
+
+test('SupportsSchemaTransactions()
+    {
+        $this->assertFalse($this->grammar->supportsSchemaTransactions());
+    }
+
+test('WrapArray()
+    {
+        $values = ['column1', 'column2', 'table.column3'];
+        $expected = ['"column1"', '"column2"', '"table"."column3"'];
+
+        $result = $this->callProtectedMethod('wrapArray', [$values]);
+        $this->assertEquals($expected, $result);
+    }
+
+test('TablePrefix()
+    {
+        $this->grammar->setTablePrefix('app_');
+        $blueprint = new Blueprint('users');
+
+        $this->assertEquals('"app_users"', $this->grammar->wrapTable($blueprint));
+    }
+
+    /**
+     * Call a protected method on the grammar for testing
+     */
+    protected function callProtectedMethod(string $method, array $args = [])
+    {
+        $reflection = new \ReflectionClass($this->grammar);
+        $method = $reflection->getMethod($method);
+        $method->setAccessible(true);
+        return $method->invokeArgs($this->grammar, $args);
+    }
+}

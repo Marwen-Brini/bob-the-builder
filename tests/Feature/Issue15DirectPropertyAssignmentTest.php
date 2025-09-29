@@ -91,14 +91,9 @@ test('ISSUE #15: Direct property assignment fails silently when field is not fil
     $category->parent = 5;
 
     // Debug: Check if the assignment worked in memory
-    echo "\nAfter assignment - in memory value: " . $category->parent . "\n";
-    echo "Is dirty: " . ($category->isDirty() ? 'true' : 'false') . "\n";
-    echo "Is parent dirty: " . ($category->isDirty('parent') ? 'true' : 'false') . "\n";
-    echo "Dirty fields: " . json_encode($category->getDirty()) . "\n";
 
     // THIS IS THE BUG: save() returns true but doesn't persist
     $result = $category->save();
-    echo "Save result: " . ($result ? 'true' : 'false') . "\n";
 
     // The problem: save() returns true but value is not saved
     expect($result)->toBeTrue(); // This passes (save() lies)
@@ -113,33 +108,16 @@ test('ISSUE #15: Direct property assignment fails silently when field is not fil
 test('ISSUE #15: Debug - Check Model dirty tracking behavior', function () {
     $category = CategoryForIssue15::find(1);
 
-    echo "\n=== DEBUGGING DIRTY TRACKING ===\n";
-    echo "Initial state:\n";
-    echo "- parent value: " . $category->parent . "\n";
-    echo "- isDirty(): " . ($category->isDirty() ? 'true' : 'false') . "\n";
-    echo "- getOriginal(): " . json_encode($category->getOriginal()) . "\n";
-    echo "- getAttributes(): " . json_encode($category->getAttributes()) . "\n";
 
     // Assign value
     $category->parent = 5;
 
-    echo "\nAfter assignment:\n";
-    echo "- parent value: " . $category->parent . "\n";
-    echo "- isDirty(): " . ($category->isDirty() ? 'true' : 'false') . "\n";
-    echo "- isDirty('parent'): " . ($category->isDirty('parent') ? 'true' : 'false') . "\n";
-    echo "- getDirty(): " . json_encode($category->getDirty()) . "\n";
-    echo "- getAttributes(): " . json_encode($category->getAttributes()) . "\n";
-    echo "- getOriginal(): " . json_encode($category->getOriginal()) . "\n";
 
     // Test save
     $result = $category->save();
-    echo "\nAfter save():\n";
-    echo "- save() returned: " . ($result ? 'true' : 'false') . "\n";
-    echo "- isDirty(): " . ($category->isDirty() ? 'true' : 'false') . "\n";
 
     // Check what was actually saved
     $rawData = $this->connection->table('categories')->where('id', 1)->first();
-    echo "- Database parent value: " . $rawData->parent . "\n";
 });
 
 test('ISSUE #15: Direct property assignment should throw exception or provide clear feedback', function () {

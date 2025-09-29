@@ -1434,9 +1434,19 @@ class Builder implements BuilderInterface
 
     public function insert(array $values): bool
     {
+        // Handle special case of empty array - insert row with all default values
+        if ($values === []) {
+            return $this->connection->insert(
+                $this->grammar->compileInsert($this, []),
+                []
+            );
+        }
+
+        // @codeCoverageIgnoreStart
         if (empty($values)) {
             return true;
         }
+        // @codeCoverageIgnoreEnd
 
         if (! is_array(reset($values))) {
             $values = [$values];

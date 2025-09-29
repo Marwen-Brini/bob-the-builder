@@ -148,6 +148,11 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $pdo = new PDO($dsn, $username, $password, $options);
             $this->logConnection('established', $this->config);
 
+            // Enable foreign keys for SQLite
+            if ($driver === 'sqlite') {
+                $pdo->exec('PRAGMA foreign_keys = ON');
+            }
+
             return $pdo;
         } catch (\PDOException $e) {
             $this->logConnection('failed', $this->config);
@@ -247,6 +252,14 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     public function getTablePrefix(): string
     {
         return $this->tablePrefix;
+    }
+
+    /**
+     * Get the driver name for the connection.
+     */
+    public function getDriverName(): string
+    {
+        return $this->config['driver'] ?? 'mysql';
     }
 
     public function getConfig(?string $key = null)
@@ -374,6 +387,10 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function insert(string $query, array $bindings = []): bool
     {
+        // Skip empty queries
+        if (empty($query)) {
+            return true;
+        }
         return $this->statement($query, $bindings);
     }
 
@@ -414,6 +431,11 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function statement(string $query, array $bindings = []): bool
     {
+        // Skip empty queries
+        if (empty($query)) {
+            return true;
+        }
+
         return $this->run($query, $bindings, function ($query, $bindings) {
             if ($this->pretending) {
                 return true;
@@ -427,6 +449,11 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function affectingStatement(string $query, array $bindings = []): int
     {
+        // Skip empty queries
+        if (empty($query)) {
+            return 0;
+        }
+
         return $this->run($query, $bindings, function ($query, $bindings) {
             if ($this->pretending) {
                 return 0;

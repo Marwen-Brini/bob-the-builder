@@ -645,6 +645,26 @@ class Model implements JsonSerializable
     }
 
     /**
+     * Eager load relationships on the model
+     *
+     * @param string|array $relations
+     * @return $this
+     */
+    public function load($relations): self
+    {
+        $relations = is_array($relations) ? $relations : func_get_args();
+
+        foreach ($relations as $relation) {
+            // Load the relationship if it hasn't been loaded yet
+            if (! isset($this->relations[$relation])) {
+                $this->relations[$relation] = $this->$relation()->get();
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Get all models from the database
      */
     public static function all(): array
