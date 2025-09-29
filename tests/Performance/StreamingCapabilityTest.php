@@ -70,7 +70,6 @@ test('can stream 10,000+ rows using cursor', function () {
         // Show progress every 5000 rows
         if ($rowCount % 5000 === 0) {
             $memoryUsed = ($currentMemory - $startMemory) / 1024 / 1024;
-            echo "Processed $rowCount rows, Memory: ".round($memoryUsed, 2)."MB\n";
         }
     }
 
@@ -80,11 +79,6 @@ test('can stream 10,000+ rows using cursor', function () {
     expect($rowCount)->toBe(15000);
     expect($totalMemory)->toBeLessThan(10); // Should use less than 10MB for streaming
 
-    echo "\nStreaming Results:\n";
-    echo "- Rows processed: $rowCount\n";
-    echo '- Time taken: '.round($totalTime, 2)." seconds\n";
-    echo '- Peak memory: '.round($totalMemory, 2)."MB\n";
-    echo '- Rows per second: '.round($rowCount / $totalTime)."\n";
 });
 
 test('can stream 10,000+ rows with filtering', function () {
@@ -120,9 +114,6 @@ test('can stream 10,000+ rows with filtering', function () {
     expect($rowCount)->toBeGreaterThan(1000); // Should have filtered results
     expect($totalTime)->toBeLessThan(5); // Should complete within 5 seconds
 
-    echo "\nFiltered Streaming Results:\n";
-    echo "- Rows processed: $rowCount\n";
-    echo '- Time taken: '.round($totalTime, 2)." seconds\n";
 });
 
 test('can chunk process 10,000+ rows', function () {
@@ -163,7 +154,6 @@ test('can chunk process 10,000+ rows', function () {
             $peakMemory = $currentMemory;
         }
 
-        echo "Chunk $chunkCount: Processed ".count($rows)." rows\n";
     });
 
     $totalTime = microtime(true) - $startTime;
@@ -173,11 +163,6 @@ test('can chunk process 10,000+ rows', function () {
     expect($chunkCount)->toBe(20); // 10000 / 500 = 20 chunks
     expect($totalMemory)->toBeLessThan(15); // Should use reasonable memory
 
-    echo "\nChunk Processing Results:\n";
-    echo "- Total rows: $totalRows\n";
-    echo "- Chunks processed: $chunkCount\n";
-    echo '- Time taken: '.round($totalTime, 2)." seconds\n";
-    echo '- Peak memory: '.round($totalMemory, 2)."MB\n";
 });
 
 test('can handle 50,000+ rows with cursor efficiently', function () {
@@ -229,11 +214,6 @@ test('can handle 50,000+ rows with cursor efficiently', function () {
     expect($totalMemory)->toBeLessThan(35); // Reasonable memory usage for 50k rows (includes object overhead)
     expect($rowsPerSecond)->toBeGreaterThan(1000); // Should process at least 1000 rows/second
 
-    echo "\n50K Rows Streaming Results:\n";
-    echo "- Rows processed: $rowCount\n";
-    echo '- Time taken: '.round($totalTime, 2)." seconds\n";
-    echo '- Peak memory: '.round($totalMemory, 2)."MB\n";
-    echo '- Throughput: '.round($rowsPerSecond)." rows/second\n";
 });
 
 test('cursor vs chunk vs get memory comparison for 10,000 rows', function () {
@@ -297,9 +277,7 @@ test('cursor vs chunk vs get memory comparison for 10,000 rows', function () {
     ];
 
     // Display comparison
-    echo "\n=== 10,000 ROWS METHOD COMPARISON ===\n";
     echo str_pad('Method', 10).str_pad('Memory (MB)', 15).str_pad('Time (s)', 12).str_pad('Rows', 10)."\n";
-    echo str_repeat('-', 47)."\n";
 
     foreach ($results as $method => $data) {
         echo str_pad($method, 10);
@@ -352,9 +330,6 @@ test('can handle concurrent streaming operations', function () {
     expect($results['all_users'])->toBe(5000);
     expect($totalTime)->toBeLessThan(10); // All operations should complete quickly
 
-    echo "\nConcurrent Streaming Results:\n";
     foreach ($results as $name => $count) {
-        echo "- $name: $count rows\n";
     }
-    echo 'Total time: '.round($totalTime, 2)." seconds\n";
 });

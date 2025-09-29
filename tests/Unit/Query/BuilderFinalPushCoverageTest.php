@@ -43,8 +43,15 @@ describe('Builder Final Push Coverage Tests', function () {
 
     // Line 1313: insert with empty values returns true
     test('insert returns true for empty values', function () {
+        // Create the users table first so the default values insert can work
+        $this->connection->statement('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT DEFAULT "Guest")');
+
         $result = $this->builder->from('users')->insert([]);
         expect($result)->toBeTrue();
+
+        // Verify a row was actually inserted with default values
+        $count = $this->builder->from('users')->count();
+        expect($count)->toBe(1);
     });
 
     // Line 1368: insertUsing with Closure

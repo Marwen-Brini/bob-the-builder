@@ -102,20 +102,15 @@ test('Debug: Check the parent model attributes', function () {
     $term = Issue13Term::find(1);
 
     // Debug: What attributes does the term have?
-    echo "\nTerm attributes:\n";
     var_dump($term->getAttributes());
 
-    echo "\nLooking for term_taxonomy_id: " . $term->getAttribute('term_taxonomy_id') . "\n";
-    echo "Looking for term_id: " . $term->getAttribute('term_id') . "\n";
 
     // The issue is that we're looking for term_taxonomy_id on the terms table,
     // but that field doesn't exist on terms - it's only in term_taxonomy!
 
     $sql = $term->posts()->toSql();
-    echo "\nGenerated SQL:\n$sql\n";
 
     $bindings = $term->posts()->getBindings();
-    echo "\nBindings:\n";
     var_dump($bindings);
 });
 

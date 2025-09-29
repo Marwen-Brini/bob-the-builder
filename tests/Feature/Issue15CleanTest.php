@@ -61,26 +61,17 @@ test('ISSUE #15: Assigning non-existent column should fail gracefully', function
         $result = $model->save();
 
         $queries = $this->connection->getQueryLog();
-        echo "\nSave returned: " . ($result ? 'true' : 'false') . "\n";
-        echo "Queries executed: " . count($queries) . "\n";
 
         if (!empty($queries)) {
-            echo "SQL: " . $queries[0]['query'] . "\n";
-            echo "Bindings: " . json_encode($queries[0]['bindings']) . "\n";
         }
 
         // If we get here, save() didn't throw - check what actually happened
         $reloaded = SimpleModel::find(1);
-        echo "Original name: " . $model->name . "\n";
-        echo "Reloaded name: " . $reloaded->name . "\n";
 
         // This is the bug: save() returns true but the extra_field update failed silently
         expect($result)->toBeFalse(); // This is what SHOULD happen
 
     } catch (\Exception $e) {
-        echo "\nException thrown (this is good!):\n";
-        echo "Type: " . get_class($e) . "\n";
-        echo "Message: " . $e->getMessage() . "\n";
 
         // This is actually the preferred behavior
         expect($e)->toBeInstanceOf(\Exception::class);
@@ -103,7 +94,6 @@ test('ISSUE #15: Save should only update existing columns', function () {
 
         if (!empty($queries)) {
             $sql = $queries[0]['query'];
-            echo "\nGenerated SQL: " . $sql . "\n";
 
             // The SQL should only include valid columns
             expect($sql)->toContain('name');
@@ -115,7 +105,6 @@ test('ISSUE #15: Save should only update existing columns', function () {
         expect($reloaded->name)->toBe('Updated Name');
 
     } catch (\Exception $e) {
-        echo "\nException: " . $e->getMessage() . "\n";
         // Either approach is acceptable - throw or filter
     }
 });

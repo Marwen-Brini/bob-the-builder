@@ -41,7 +41,6 @@ test('query building overhead is less than 10ms for simple queries', function ()
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo "\nSimple SELECT: Avg: ".round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead is less than 10ms for complex queries', function () {
@@ -75,7 +74,6 @@ test('query building overhead is less than 10ms for complex queries', function (
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'Complex SELECT: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead for INSERT queries', function () {
@@ -102,7 +100,6 @@ test('query building overhead for INSERT queries', function () {
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'INSERT: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead for UPDATE queries', function () {
@@ -128,7 +125,6 @@ test('query building overhead for UPDATE queries', function () {
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'UPDATE: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead for DELETE queries', function () {
@@ -153,7 +149,6 @@ test('query building overhead for DELETE queries', function () {
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'DELETE: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead for JOIN queries', function () {
@@ -191,7 +186,6 @@ test('query building overhead for JOIN queries', function () {
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'JOIN: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead for aggregate queries', function () {
@@ -216,7 +210,6 @@ test('query building overhead for aggregate queries', function () {
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'AGGREGATE: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('query building overhead for subqueries', function () {
@@ -247,7 +240,6 @@ test('query building overhead for subqueries', function () {
     expect($avgTime)->toBeLessThan(10.0);
     expect($maxTime)->toBeLessThan(10.0);
 
-    echo 'SUBQUERY: Avg: '.round($avgTime, 3).'ms, Max: '.round($maxTime, 3)."ms\n";
 });
 
 test('overall query building performance meets requirements', function () {
@@ -291,13 +283,10 @@ test('overall query building performance meets requirements', function () {
         expect($avg)->toBeLessThan(10.0, "Query type '$type' exceeded 10ms threshold");
     }
 
-    echo "\n=== QUERY BUILDING OVERHEAD SUMMARY ===\n";
     foreach ($results as $type => $avgTime) {
-        echo str_pad($type, 20).': '.round($avgTime, 3)."ms\n";
     }
 
     $overallAvg = array_sum($results) / count($results);
-    echo 'Overall Average: '.round($overallAvg, 3)."ms\n";
 
     expect($overallAvg)->toBeLessThan(10.0);
 });

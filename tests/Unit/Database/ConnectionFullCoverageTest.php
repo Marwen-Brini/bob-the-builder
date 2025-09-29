@@ -823,3 +823,43 @@ test('Connection setMaxCachedStatements with overflow (line 634)', function () {
 
     expect($connection->getStatementCacheSize())->toBe(1);
 });
+
+test('insert returns true for empty query', function () {
+    $pdo = Mockery::mock(PDO::class);
+
+    $config = [
+        'driver' => 'mysql',
+        'database' => 'test',
+    ];
+
+    $connection = new Connection($config);
+    $connection->setPdo($pdo);
+
+    // Test that empty query returns true without executing
+    $result = $connection->insert('');
+
+    expect($result)->toBeTrue();
+
+    // PDO should not have been called
+    $pdo->shouldNotHaveReceived('prepare');
+});
+
+test('affectingStatement returns 0 for empty query', function () {
+    $pdo = Mockery::mock(PDO::class);
+
+    $config = [
+        'driver' => 'mysql',
+        'database' => 'test',
+    ];
+
+    $connection = new Connection($config);
+    $connection->setPdo($pdo);
+
+    // Test that empty query returns 0 without executing
+    $result = $connection->affectingStatement('');
+
+    expect($result)->toBe(0);
+
+    // PDO should not have been called
+    $pdo->shouldNotHaveReceived('prepare');
+});
