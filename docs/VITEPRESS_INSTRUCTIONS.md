@@ -11,7 +11,7 @@ cd docs
 npx vitepress dev
 ```
 
-Then open: **http://localhost:5173/bob-the-builder/**
+Then open: `http://localhost:5173/bob-the-builder/`
 
 Important: Note the `/bob-the-builder/` path - this is required for local development!
 
@@ -30,8 +30,8 @@ npx vitepress dev
    - Or open DevTools (F12) and right-click refresh button → "Empty Cache and Hard Reload"
 
 3. **Check the correct URL:**
-   - ✅ Correct: `http://localhost:5173/bob-the-builder/`
-   - ❌ Wrong: `http://localhost:5173/` (will show blank or broken)
+   - ✅ Correct: `http://localhost:5173/bob-the-builder/` (with base path)
+   - ❌ Wrong: `http://localhost:5173/` (without base path - will show blank or broken)
 
 ### Alternative: Local Development Without Base Path
 
