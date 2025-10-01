@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: Bob ORM v2.2.2
-  text: Complete ORM & Query Builder for PHP
-  tagline: A full-featured ORM with models, relationships, and Laravel-like query builder - now with 100% test coverage and enhanced reliability
+  name: Bob ORM v3.0.0
+  text: Complete Database Toolkit for PHP
+  tagline: Full-featured ORM with models, relationships, migrations, and schema builder - Your complete database solution for PHP
   image:
     src: /logo.svg
     alt: Bob Query Builder
@@ -17,7 +17,19 @@ hero:
       link: https://github.com/Marwen-Brini/bob-the-builder
 
 features:
+  - icon: 🗄️
+    title: Database Migrations
+    details: Version control for your database with dependency resolution, rollbacks, and batch tracking
   - icon: 🏗️
+    title: Schema Builder
+    details: Fluent interface for creating and modifying tables across MySQL, PostgreSQL, and SQLite
+  - icon: 🌐
+    title: WordPress Schema Helpers
+    details: Pre-built helpers for WordPress and WooCommerce table structures - instant compatibility
+  - icon: 🔍
+    title: Schema Inspector
+    details: Reverse engineer existing databases and auto-generate migration files
+  - icon: 🎯
     title: Full ORM with Models
     details: ActiveRecord pattern with Model base class, CRUD operations, and attribute handling
   - icon: 🔗
@@ -26,27 +38,15 @@ features:
   - icon: ⚡
     title: Blazing Fast
     details: Optimized for performance with prepared statement caching, connection pooling, and minimal overhead
-  - icon: 🎯
-    title: Laravel-like Syntax
-    details: Familiar fluent interface and Eloquent-style models that PHP developers already know and love
-  - icon: 🗄️
-    title: Multi-Database Support
-    details: MySQL, PostgreSQL, and SQLite support out of the box with PDO
-  - icon: 🔧
-    title: Framework Agnostic
-    details: Works with any PHP project - WordPress, Laravel, Symfony, or standalone applications
+  - icon: 🎪
+    title: Event System
+    details: Hook into migration lifecycle for logging, monitoring, and custom workflows
   - icon: 📦
     title: Collections
     details: Powerful collection class for working with arrays of models and data
-  - icon: 🔌
-    title: Highly Extensible
-    details: Add custom methods, scopes, and finders through macros and model extensions
-  - icon: 📊
-    title: Query Profiling
-    details: Built-in query profiling and logging for debugging and optimization
-  - icon: 🚀
-    title: Modern PHP
-    details: Built for PHP 8.1+ with type hints, attributes, and modern best practices
+  - icon: 🔧
+    title: Framework Agnostic
+    details: Works with any PHP project - WordPress, Laravel, Symfony, or standalone applications
   - icon: 🧪
     title: 100% Test Coverage
     details: Over 1773 tests ensuring reliability and stability
