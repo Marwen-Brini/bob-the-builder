@@ -148,7 +148,7 @@ test('spatial index command (covers line 785)', function () {
     $blueprint->spatialIndex(['lat', 'lng'], 'location_spatial');
 
     $commands = $blueprint->getCommands();
-    $spatialCommands = array_filter($commands, fn($cmd) => $cmd['name'] === 'spatialIndex');
+    $spatialCommands = array_filter($commands, fn ($cmd) => $cmd['name'] === 'spatialIndex');
     expect($spatialCommands)->toHaveCount(2);
 
     $spatialCommandsArray = array_values($spatialCommands);

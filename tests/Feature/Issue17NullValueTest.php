@@ -10,18 +10,21 @@ use Bob\Database\Model;
  *
  * Testing if the parameter binding error occurs when parentKey value is NULL
  */
-
 class NullTestPost extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'ID';
+
     public bool $timestamps = false;
 }
 
 class NullTestTerm extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     public function posts()

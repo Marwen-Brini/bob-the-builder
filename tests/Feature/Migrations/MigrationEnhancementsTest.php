@@ -21,10 +21,10 @@ beforeEach(function () {
     ]);
 
     $this->repository = new MigrationRepository($this->connection, 'migrations');
-    $this->migrationPath = __DIR__ . '/test_migrations';
+    $this->migrationPath = __DIR__.'/test_migrations';
 
     // Create test migration directory
-    if (!is_dir($this->migrationPath)) {
+    if (! is_dir($this->migrationPath)) {
         mkdir($this->migrationPath, 0777, true);
     }
 
@@ -38,14 +38,14 @@ beforeEach(function () {
 afterEach(function () {
     // Clean up test migrations
     if (is_dir($this->migrationPath)) {
-        array_map('unlink', glob($this->migrationPath . '/*.php'));
+        array_map('unlink', glob($this->migrationPath.'/*.php'));
         rmdir($this->migrationPath);
     }
 });
 
 function createTestMigration(string $className, string $migrationPath): void
 {
-    $file = $migrationPath . '/' . strtolower($className) . '.php';
+    $file = $migrationPath.'/'.strtolower($className).'.php';
     $content = "<?php
 use Bob\Database\Migrations\Migration;
 use Bob\Schema\Blueprint;
@@ -72,7 +72,7 @@ class {$className} extends Migration
 
 function createFailingMigration(string $migrationPath): void
 {
-    $file = $migrationPath . '/failing_migration.php';
+    $file = $migrationPath.'/failing_migration.php';
     $content = '<?php
 use Bob\Database\Migrations\Migration;
 
@@ -93,13 +93,15 @@ class FailingMigration extends Migration
 
 test('custom migration loader', function () {
     // Create a custom loader
-    $customLoader = new class implements MigrationLoaderInterface {
+    $customLoader = new class implements MigrationLoaderInterface
+    {
         public array $loadedFiles = [];
 
         public function load(string $file): string
         {
             $this->loadedFiles[] = $file;
             require_once $file;
+
             return $this->extractClassName($file);
         }
 
@@ -129,7 +131,7 @@ test('custom migration loader', function () {
 })->group('feature', 'migrations');
 
 test('default migration loader', function () {
-    $loader = new DefaultMigrationLoader();
+    $loader = new DefaultMigrationLoader;
 
     // Test extractClassName with date prefix
     $className = $loader->extractClassName('2024_01_01_000000_create_users_table.php');
@@ -140,7 +142,7 @@ test('default migration loader', function () {
     expect($className)->toBe('CreatePostsTable');
 
     // Test isValidMigration
-    $validFile = $this->migrationPath . '/test.php';
+    $validFile = $this->migrationPath.'/test.php';
     file_put_contents($validFile, '<?php class TestMigration {}');
     expect($loader->isValidMigration($validFile))->toBeTrue();
     unlink($validFile);
@@ -182,7 +184,7 @@ test('error handler', function () {
     createFailingMigration($this->migrationPath);
 
     // Run migrations and expect an exception
-    expect(fn() => $this->runner->run())
+    expect(fn () => $this->runner->run())
         ->toThrow(Exception::class, 'Migration failed!');
 
     // Verify error handler was called
@@ -193,9 +195,12 @@ test('error handler', function () {
 
 test('lifecycle hooks', function () {
     // Create a custom runner with lifecycle hooks
-    $customRunner = new class($this->connection, $this->repository, [$this->migrationPath]) extends MigrationRunner {
+    $customRunner = new class($this->connection, $this->repository, [$this->migrationPath]) extends MigrationRunner
+    {
         public bool $beforeRunCalled = false;
+
         public bool $afterRunCalled = false;
+
         public array $migrationsRun = [];
 
         protected function beforeRun(): void
@@ -224,9 +229,12 @@ test('lifecycle hooks', function () {
 
 test('error hook', function () {
     // Create a custom runner with error hook
-    $customRunner = new class($this->connection, $this->repository, [$this->migrationPath]) extends MigrationRunner {
+    $customRunner = new class($this->connection, $this->repository, [$this->migrationPath]) extends MigrationRunner
+    {
         public bool $errorHookCalled = false;
+
         public ?Exception $capturedError = null;
+
         public ?string $capturedMigration = null;
 
         protected function onError(Exception $e, string $migration): void
@@ -241,7 +249,7 @@ test('error hook', function () {
     createFailingMigration($this->migrationPath);
 
     // Run migrations and expect an exception
-    expect(fn() => $customRunner->run())
+    expect(fn () => $customRunner->run())
         ->toThrow(Exception::class, 'Migration failed!');
 
     // Verify error hook was called
@@ -251,16 +259,16 @@ test('error hook', function () {
 })->group('feature', 'migrations');
 
 test('loader validation', function () {
-    $loader = new DefaultMigrationLoader();
+    $loader = new DefaultMigrationLoader;
 
     // Create a PHP file without a class
-    $invalidFile = $this->migrationPath . '/no_class.php';
+    $invalidFile = $this->migrationPath.'/no_class.php';
     file_put_contents($invalidFile, '<?php // No class here');
     expect($loader->isValidMigration($invalidFile))->toBeFalse();
     unlink($invalidFile);
 
     // Create a valid PHP file with a class
-    $validFile = $this->migrationPath . '/valid.php';
+    $validFile = $this->migrationPath.'/valid.php';
     file_put_contents($validFile, '<?php class ValidMigration {}');
     expect($loader->isValidMigration($validFile))->toBeTrue();
     unlink($validFile);
@@ -270,10 +278,10 @@ test('loader validation', function () {
 })->group('feature', 'migrations');
 
 test('loader class detection', function () {
-    $loader = new DefaultMigrationLoader();
+    $loader = new DefaultMigrationLoader;
 
     // Create a migration file
-    $file = $this->migrationPath . '/test_migration.php';
+    $file = $this->migrationPath.'/test_migration.php';
     $content = '<?php
 namespace Tests\Feature\Migrations;
 
@@ -304,4 +312,3 @@ class TestClassDetection extends Migration
     // Clean up
     unlink($file);
 })->group('feature', 'migrations');
-

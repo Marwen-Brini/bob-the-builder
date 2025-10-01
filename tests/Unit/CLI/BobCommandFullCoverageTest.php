@@ -9,7 +9,8 @@ use Bob\Query\Grammars\SQLiteGrammar;
 describe('BobCommand Full Coverage Tests', function () {
 
     test('BobCommand exception handling in run method (lines 57-60)', function () {
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             protected array $commands = [
                 'test-exception' => 'testException',
                 'test-connection' => 'testConnection',
@@ -18,7 +19,8 @@ describe('BobCommand Full Coverage Tests', function () {
                 'version' => 'showVersion',
             ];
 
-            protected function testException(): int {
+            protected function testException(): int
+            {
                 throw new Exception('Test exception');
             }
         };
@@ -166,8 +168,10 @@ describe('BobCommand Full Coverage Tests', function () {
     });
 
     test('BobCommand createGrammar method (lines 354-361)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testCreateGrammar(string $driver) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testCreateGrammar(string $driver)
+            {
                 return $this->createGrammar($driver);
             }
         };
@@ -176,14 +180,17 @@ describe('BobCommand Full Coverage Tests', function () {
         expect($command->testCreateGrammar('pgsql'))->toBeInstanceOf(PostgreSQLGrammar::class);
         expect($command->testCreateGrammar('sqlite'))->toBeInstanceOf(SQLiteGrammar::class);
 
-        expect(fn() => $command->testCreateGrammar('invalid'))->toThrow(Exception::class);
+        expect(fn () => $command->testCreateGrammar('invalid'))->toThrow(Exception::class);
     });
 
     test('BobCommand createMockConnection method (lines 364-372)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testCreateMockConnection() {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testCreateMockConnection()
+            {
                 $grammar = $this->createGrammar('mysql');
                 $processor = new \Bob\Query\Processor;
+
                 return $this->createMockConnection($grammar, $processor);
             }
         };
@@ -193,30 +200,32 @@ describe('BobCommand Full Coverage Tests', function () {
     });
 
     test('BobCommand getTableList for MySQL (lines 378-381)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testGetTableList($driver) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testGetTableList($driver)
+            {
                 $mockConnection = \Mockery::mock(Connection::class);
 
                 if ($driver === 'mysql') {
                     $mockConnection->shouldReceive('select')
                         ->with('SHOW TABLES')
                         ->andReturn([
-                            (object)['Tables_in_test' => 'users'],
-                            (object)['Tables_in_test' => 'posts']
+                            (object) ['Tables_in_test' => 'users'],
+                            (object) ['Tables_in_test' => 'posts'],
                         ]);
                 } elseif ($driver === 'pgsql') {
                     $mockConnection->shouldReceive('select')
                         ->with("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
                         ->andReturn([
-                            (object)['tablename' => 'users'],
-                            (object)['tablename' => 'posts']
+                            (object) ['tablename' => 'users'],
+                            (object) ['tablename' => 'posts'],
                         ]);
                 } elseif ($driver === 'sqlite') {
                     $mockConnection->shouldReceive('select')
                         ->with("SELECT name FROM sqlite_master WHERE type='table'")
                         ->andReturn([
-                            (object)['name' => 'users'],
-                            (object)['name' => 'posts']
+                            (object) ['name' => 'users'],
+                            (object) ['name' => 'posts'],
                         ]);
                 }
 
@@ -238,13 +247,15 @@ describe('BobCommand Full Coverage Tests', function () {
     });
 
     test('BobCommand formatQueryWithBindings method (lines 398-405)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testFormatQueryWithBindings($sql, $bindings) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testFormatQueryWithBindings($sql, $bindings)
+            {
                 return $this->formatQueryWithBindings($sql, $bindings);
             }
         };
 
-        $sql = "SELECT * FROM users WHERE id = ? AND name = ?";
+        $sql = 'SELECT * FROM users WHERE id = ? AND name = ?';
         $bindings = [1, 'John'];
 
         $formatted = $command->testFormatQueryWithBindings($sql, $bindings);
@@ -252,14 +263,20 @@ describe('BobCommand Full Coverage Tests', function () {
     });
 
     test('BobCommand output methods (lines 423-434)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testInfo($message) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testInfo($message)
+            {
                 $this->info($message);
             }
-            public function testSuccess($message) {
+
+            public function testSuccess($message)
+            {
                 $this->success($message);
             }
-            public function testError($message) {
+
+            public function testError($message)
+            {
                 $this->error($message);
             }
         };
@@ -380,7 +397,7 @@ describe('BobCommand Full Coverage Tests', function () {
         ob_start();
         $result = $command->run([
             'bob', 'build', 'mysql',
-            'select id, name from users where age > 18 order by created_at desc limit 10'
+            'select id, name from users where age > 18 order by created_at desc limit 10',
         ]);
         $output = ob_get_clean();
 
@@ -394,8 +411,10 @@ describe('BobCommand Full Coverage Tests', function () {
 
     test('BobCommand parseAndBuildQuery with ALL colon syntax operations', function () {
         // Create a test command that calls parseAndBuildQuery directly
-        $command = new class(['bob']) extends BobCommand {
-            public function testParseAndBuildQuery($queryString) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testParseAndBuildQuery($queryString)
+            {
                 $grammar = $this->createGrammar('mysql');
                 $processor = new \Bob\Query\Processor;
                 $connection = $this->createMockConnection($grammar, $processor);
@@ -406,7 +425,7 @@ describe('BobCommand Full Coverage Tests', function () {
 
                 return [
                     'sql' => $builder->toSql(),
-                    'bindings' => $builder->getBindings()
+                    'bindings' => $builder->getBindings(),
                 ];
             }
         };
@@ -470,9 +489,9 @@ describe('BobCommand Full Coverage Tests', function () {
 
         // Test combination of all operations
         $result = $command->testParseAndBuildQuery(
-            'select:id,name,email from:users where:age,>,18 orWhere:status,active ' .
-            'whereIn:role,admin,user whereNull:deleted_at whereNotNull:verified_at ' .
-            'join:posts,posts.user_id,users.id leftJoin:comments,comments.user_id,users.id ' .
+            'select:id,name,email from:users where:age,>,18 orWhere:status,active '.
+            'whereIn:role,admin,user whereNull:deleted_at whereNotNull:verified_at '.
+            'join:posts,posts.user_id,users.id leftJoin:comments,comments.user_id,users.id '.
             'groupBy:department,role having:count,>,5 orderBy:created_at,desc limit:10 offset:20'
         );
 
@@ -492,8 +511,10 @@ describe('BobCommand Full Coverage Tests', function () {
     });
 
     test('BobCommand buildQuery exception handling (lines 165-168)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function createGrammar(string $driver) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function createGrammar(string $driver)
+            {
                 throw new Exception('Grammar creation failed');
             }
         };
@@ -508,8 +529,10 @@ describe('BobCommand Full Coverage Tests', function () {
 
     test('BobCommand testConnection with tables (lines 101-103)', function () {
         // Create a mock command that returns tables
-        $command = new class(['bob']) extends BobCommand {
-            protected function getTableList($connection, string $driver): array {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function getTableList($connection, string $driver): array
+            {
                 return ['users', 'posts', 'comments'];
             }
         };
@@ -552,8 +575,10 @@ describe('BobCommand Full Coverage Tests', function () {
 
     test('BobCommand parseDSL aggregate functions coverage', function () {
         // Create a simple class that exercises parseDSL paths
-        $command = new class(['bob']) extends BobCommand {
-            public function getBuilderState(string $queryString) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function getBuilderState(string $queryString)
+            {
                 // Use SQLite in-memory database that actually works
                 $grammar = $this->createGrammar('sqlite');
                 $processor = new \Bob\Query\Processor;
@@ -622,10 +647,12 @@ describe('BobCommand Full Coverage Tests', function () {
     });
 
     test('BobCommand displayDatabaseVersion with version object (lines 575-577)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testDisplayVersion() {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testDisplayVersion()
+            {
                 // Test with version object
-                $version = new stdClass();
+                $version = new stdClass;
                 $version->version = 'MySQL 8.0.33';
                 ob_start();
                 $this->displayDatabaseVersion($version);

@@ -2,9 +2,9 @@
 
 namespace Tests;
 
-use PHPUnit\Framework\TestCase as BaseTestCase;
 use Bob\Database\Connection;
 use Bob\Database\Model;
+use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -23,9 +23,9 @@ abstract class TestCase extends BaseTestCase
         if ($this->connection) {
             $this->connection = null;
         }
-        
+
         \Mockery::close();
-        
+
         parent::tearDown();
     }
 
@@ -45,14 +45,14 @@ abstract class TestCase extends BaseTestCase
     protected function createMySQLConnection(): Connection
     {
         $config = $this->getMySQLConfig();
-        
-        if (!$config) {
+
+        if (! $config) {
             $this->markTestSkipped('MySQL connection not configured');
         }
-        
+
         $connection = new Connection($config);
         $this->connection = $connection;
-        
+
         return $connection;
     }
 
@@ -71,13 +71,13 @@ abstract class TestCase extends BaseTestCase
                 'collation' => 'utf8mb4_unicode_ci',
             ];
         }
-        
+
         // Check for local config file
-        $configFile = __DIR__ . '/config/database.php';
+        $configFile = __DIR__.'/config/database.php';
         if (file_exists($configFile)) {
             return require $configFile;
         }
-        
+
         return null;
     }
 }

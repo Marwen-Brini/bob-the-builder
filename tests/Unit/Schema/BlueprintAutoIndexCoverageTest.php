@@ -6,7 +6,6 @@
 
 use Bob\Database\Connection;
 use Bob\Schema\Blueprint;
-use Bob\Schema\Grammars\MySQLGrammar;
 use Bob\Schema\Grammars\SQLiteGrammar;
 
 afterEach(function () {
@@ -31,7 +30,7 @@ test('automatic index creation during build', function () {
     $connection->shouldReceive('getTablePrefix')->andReturn('');
     $connection->shouldReceive('getConfig')->andReturn(null);
 
-    $grammar = new SQLiteGrammar(); // Use SQLite which supports basic indexes
+    $grammar = new SQLiteGrammar; // Use SQLite which supports basic indexes
 
     // Build the blueprint - this should trigger automatic index creation
     $blueprint->build($connection, $grammar);
@@ -64,7 +63,7 @@ test('build processes all column indexes', function () {
     $connection->shouldReceive('getTablePrefix')->andReturn('');
     $connection->shouldReceive('getConfig')->andReturn(null);
 
-    $grammar = new SQLiteGrammar();
+    $grammar = new SQLiteGrammar;
 
     // Execute build
     $blueprint->build($connection, $grammar);
@@ -77,7 +76,7 @@ test('build processes all column indexes', function () {
     expect($commandNames)->toContain('unique');
 
     // Count index commands (the third column with named index might get processed differently)
-    $indexCommands = array_filter($commands, fn($cmd) => in_array($cmd['name'], ['index', 'unique']));
+    $indexCommands = array_filter($commands, fn ($cmd) => in_array($cmd['name'], ['index', 'unique']));
     expect(count($indexCommands))->toBeGreaterThanOrEqual(2); // Should have at least 2 index commands
 });
 
@@ -95,7 +94,7 @@ test('build without automatic indexes', function () {
     $connection->shouldReceive('getTablePrefix')->andReturn('');
     $connection->shouldReceive('getConfig')->andReturn(null);
 
-    $grammar = new SQLiteGrammar();
+    $grammar = new SQLiteGrammar;
 
     // Execute build
     $blueprint->build($connection, $grammar);
@@ -129,13 +128,13 @@ test('fluent index property detection', function () {
     $connection->shouldReceive('getTablePrefix')->andReturn('');
     $connection->shouldReceive('getConfig')->andReturn(null);
 
-    $grammar = new SQLiteGrammar();
+    $grammar = new SQLiteGrammar;
 
     // Build should process these properties
     $blueprint->build($connection, $grammar);
 
     $commands = $blueprint->getCommands();
-    $indexCommands = array_filter($commands, fn($cmd) => in_array($cmd['name'], ['index', 'unique']));
+    $indexCommands = array_filter($commands, fn ($cmd) => in_array($cmd['name'], ['index', 'unique']));
 
     expect($indexCommands)->toHaveCount(2);
 });

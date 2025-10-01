@@ -11,18 +11,21 @@ use Bob\Database\Model;
  * CRITICAL: BelongsToMany relationships fail with parameter binding error
  * This makes WordPress taxonomy system completely unusable
  */
-
 class WpPost extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'ID';
+
     public bool $timestamps = false;
 }
 
 class WpTerm extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     public function posts()

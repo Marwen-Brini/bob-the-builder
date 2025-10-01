@@ -89,6 +89,7 @@ class Fluent implements ArrayAccess, JsonSerializable
 
     /**
      * Set an attribute
+     *
      * @codeCoverageIgnore
      */
     public function offsetSet(mixed $offset, mixed $value): void
@@ -98,6 +99,7 @@ class Fluent implements ArrayAccess, JsonSerializable
 
     /**
      * Unset an attribute
+     *
      * @codeCoverageIgnore
      */
     public function offsetUnset(mixed $offset): void
@@ -143,6 +145,7 @@ class Fluent implements ArrayAccess, JsonSerializable
     public function __call(string $method, array $parameters): self
     {
         $this->attributes[$method] = count($parameters) > 0 ? $parameters[0] : true;
+
         return $this;
     }
 }

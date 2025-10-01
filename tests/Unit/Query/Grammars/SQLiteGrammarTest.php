@@ -1,14 +1,14 @@
 <?php
 
-use Bob\Query\Grammars\SQLiteGrammar;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Query\Builder;
+use Bob\Query\Grammars\SQLiteGrammar;
 use Mockery as m;
 
 describe('SQLiteGrammar Tests', function () {
 
     beforeEach(function () {
-        $this->grammar = new SQLiteGrammar();
+        $this->grammar = new SQLiteGrammar;
         $this->connection = m::mock(Connection::class);
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn(m::mock(\Bob\Query\Processor::class));
@@ -21,7 +21,7 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('SQLiteGrammar operators property', function () {
-        $grammar = new SQLiteGrammar();
+        $grammar = new SQLiteGrammar;
         $reflection = new ReflectionClass($grammar);
         $operatorsProperty = $reflection->getProperty('operators');
         $operatorsProperty->setAccessible(true);
@@ -63,8 +63,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('wrapUnion method (lines 34-37)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWrapUnion(string $sql): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWrapUnion(string $sql): string
+            {
                 return $this->wrapUnion($sql);
             }
         };
@@ -78,7 +80,7 @@ describe('SQLiteGrammar Tests', function () {
     test('compileUpsert method (lines 39-46)', function () {
         $values = [
             ['name' => 'John', 'email' => 'john@example.com'],
-            ['name' => 'Jane', 'email' => 'jane@example.com']
+            ['name' => 'Jane', 'email' => 'jane@example.com'],
         ];
         $uniqueBy = ['email'];
         $update = ['name'];
@@ -95,8 +97,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('compileDateBasedWhere method with Day (lines 53-65)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testCompileDateBasedWhere(string $type, $query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testCompileDateBasedWhere(string $type, $query, array $where): string
+            {
                 return $this->compileDateBasedWhere($type, $query, $where);
             }
         };
@@ -104,7 +108,7 @@ describe('SQLiteGrammar Tests', function () {
         $where = [
             'column' => 'created_at',
             'operator' => '=',
-            'value' => '15'
+            'value' => '15',
         ];
 
         $result = $grammar->testCompileDateBasedWhere('Day', $this->builder, $where);
@@ -113,8 +117,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('compileDateBasedWhere method with Month (lines 53-65)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testCompileDateBasedWhere(string $type, $query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testCompileDateBasedWhere(string $type, $query, array $where): string
+            {
                 return $this->compileDateBasedWhere($type, $query, $where);
             }
         };
@@ -122,7 +128,7 @@ describe('SQLiteGrammar Tests', function () {
         $where = [
             'column' => 'created_at',
             'operator' => '=',
-            'value' => '12'
+            'value' => '12',
         ];
 
         $result = $grammar->testCompileDateBasedWhere('Month', $this->builder, $where);
@@ -130,8 +136,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('compileDateBasedWhere method with Year (lines 53-65)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testCompileDateBasedWhere(string $type, $query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testCompileDateBasedWhere(string $type, $query, array $where): string
+            {
                 return $this->compileDateBasedWhere($type, $query, $where);
             }
         };
@@ -139,7 +147,7 @@ describe('SQLiteGrammar Tests', function () {
         $where = [
             'column' => 'created_at',
             'operator' => '=',
-            'value' => '2023'
+            'value' => '2023',
         ];
 
         $result = $grammar->testCompileDateBasedWhere('Year', $this->builder, $where);
@@ -147,8 +155,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('compileDateBasedWhere method with Date (lines 53-65)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testCompileDateBasedWhere(string $type, $query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testCompileDateBasedWhere(string $type, $query, array $where): string
+            {
                 return $this->compileDateBasedWhere($type, $query, $where);
             }
         };
@@ -156,7 +166,7 @@ describe('SQLiteGrammar Tests', function () {
         $where = [
             'column' => 'created_at',
             'operator' => '=',
-            'value' => '2023-12-15'
+            'value' => '2023-12-15',
         ];
 
         $result = $grammar->testCompileDateBasedWhere('Date', $this->builder, $where);
@@ -164,8 +174,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('compileDateBasedWhere method with Time (lines 53-65)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testCompileDateBasedWhere(string $type, $query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testCompileDateBasedWhere(string $type, $query, array $where): string
+            {
                 return $this->compileDateBasedWhere($type, $query, $where);
             }
         };
@@ -173,7 +185,7 @@ describe('SQLiteGrammar Tests', function () {
         $where = [
             'column' => 'created_at',
             'operator' => '=',
-            'value' => '14:30:00'
+            'value' => '14:30:00',
         ];
 
         $result = $grammar->testCompileDateBasedWhere('Time', $this->builder, $where);
@@ -181,8 +193,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('compileJsonLength method (lines 67-72)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testCompileJsonLength(string $column, string $operator, string $value): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testCompileJsonLength(string $column, string $operator, string $value): string
+            {
                 return $this->compileJsonLength($column, $operator, $value);
             }
         };
@@ -194,8 +208,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('wrapJsonFieldAndPath method (lines 74-82)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWrapJsonFieldAndPath(string $column): array {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWrapJsonFieldAndPath(string $column): array
+            {
                 return $this->wrapJsonFieldAndPath($column);
             }
         };
@@ -212,8 +228,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('wrapJsonPath method (lines 84-87)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWrapJsonPath(string $value): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWrapJsonPath(string $value): string
+            {
                 return $this->wrapJsonPath($value);
             }
         };
@@ -236,8 +254,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('whereDate method (lines 94-97)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWhereDate($query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWhereDate($query, array $where): string
+            {
                 return $this->whereDate($query, $where);
             }
         };
@@ -249,8 +269,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('whereTime method (lines 99-102)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWhereTime($query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWhereTime($query, array $where): string
+            {
                 return $this->whereTime($query, $where);
             }
         };
@@ -262,8 +284,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('whereDay method (lines 104-107)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWhereDay($query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWhereDay($query, array $where): string
+            {
                 return $this->whereDay($query, $where);
             }
         };
@@ -275,8 +299,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('whereMonth method (lines 109-112)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWhereMonth($query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWhereMonth($query, array $where): string
+            {
                 return $this->whereMonth($query, $where);
             }
         };
@@ -288,8 +314,10 @@ describe('SQLiteGrammar Tests', function () {
     });
 
     test('whereYear method (lines 114-117)', function () {
-        $grammar = new class extends SQLiteGrammar {
-            public function testWhereYear($query, array $where): string {
+        $grammar = new class extends SQLiteGrammar
+        {
+            public function testWhereYear($query, array $where): string
+            {
                 return $this->whereYear($query, $where);
             }
         };

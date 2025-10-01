@@ -12,11 +12,12 @@ use Bob\Query\Builder as BobBuilder;
  * The problem: When fields are SELECTed from JOINed tables via global scopes,
  * the model doesn't have these attributes accessible even though they're in the result.
  */
-
 class CategoryWithJoinedFields extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     protected static function booted(): void
@@ -24,12 +25,12 @@ class CategoryWithJoinedFields extends Model
         // This global scope adds fields from joined table
         static::addGlobalScope('category_taxonomy', function (BobBuilder $builder) {
             $builder->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
-                   ->where('term_taxonomy.taxonomy', 'category')
-                   ->select('terms.*',
-                           'term_taxonomy.parent',
-                           'term_taxonomy.description as tax_description',
-                           'term_taxonomy.count',
-                           'term_taxonomy.term_taxonomy_id');
+                ->where('term_taxonomy.taxonomy', 'category')
+                ->select('terms.*',
+                    'term_taxonomy.parent',
+                    'term_taxonomy.description as tax_description',
+                    'term_taxonomy.count',
+                    'term_taxonomy.term_taxonomy_id');
         });
     }
 }
@@ -144,7 +145,7 @@ test('ISSUE #10: Model toArray should include JOINed fields', function () {
         'parent' => 0,
         'count' => 5,
         'tax_description' => 'Default category',
-        'term_taxonomy_id' => 1
+        'term_taxonomy_id' => 1,
     ]);
 });
 
@@ -154,10 +155,10 @@ test('Direct query builder returns all fields correctly', function () {
         ->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
         ->where('term_taxonomy.taxonomy', 'category')
         ->select('terms.*',
-                'term_taxonomy.parent',
-                'term_taxonomy.description as tax_description',
-                'term_taxonomy.count',
-                'term_taxonomy.term_taxonomy_id')
+            'term_taxonomy.parent',
+            'term_taxonomy.description as tax_description',
+            'term_taxonomy.count',
+            'term_taxonomy.term_taxonomy_id')
         ->where('terms.term_id', 1)
         ->first();
 

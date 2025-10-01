@@ -21,7 +21,7 @@ describe('GrammarException Tests', function () {
     });
 
     test('GrammarException constructor with default values', function () {
-        $exception = new GrammarException();
+        $exception = new GrammarException;
 
         expect($exception->getMessage())->toBe('');
         expect($exception->getMethod())->toBe('');
@@ -164,7 +164,7 @@ describe('GrammarException Tests', function () {
     });
 
     test('GrammarException extends Exception class', function () {
-        $exception = new GrammarException();
+        $exception = new GrammarException;
 
         expect($exception)->toBeInstanceOf(Exception::class);
         expect($exception)->toBeInstanceOf(Throwable::class);

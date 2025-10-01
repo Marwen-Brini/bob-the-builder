@@ -7,7 +7,9 @@ use Bob\Database\Model;
 class RelUser extends Model
 {
     protected string $table = 'users';
+
     protected $fillable = ['name', 'email'];
+
     public bool $timestamps = false;
 
     public function posts()
@@ -24,7 +26,9 @@ class RelUser extends Model
 class RelPost extends Model
 {
     protected string $table = 'posts';
+
     protected $fillable = ['title', 'content', 'user_id'];
+
     public bool $timestamps = false;
 
     public function user()
@@ -41,7 +45,9 @@ class RelPost extends Model
 class RelProfile extends Model
 {
     protected string $table = 'profiles';
+
     protected $fillable = ['user_id', 'bio', 'avatar'];
+
     public bool $timestamps = false;
 
     public function user()
@@ -53,7 +59,9 @@ class RelProfile extends Model
 class RelTag extends Model
 {
     protected string $table = 'tags';
+
     protected $fillable = ['name', 'slug'];
+
     public bool $timestamps = false;
 
     public function posts()
@@ -122,14 +130,14 @@ describe('Relationships', function () {
         // Create a user
         $userId = $this->connection->table('users')->insertGetId([
             'name' => 'John Doe',
-            'email' => 'john@example.com'
+            'email' => 'john@example.com',
         ]);
 
         // Create a profile for the user
         $this->connection->table('profiles')->insert([
             'user_id' => $userId,
             'bio' => 'Software Developer',
-            'avatar' => 'avatar.jpg'
+            'avatar' => 'avatar.jpg',
         ]);
 
         // Test the relationship
@@ -145,7 +153,7 @@ describe('Relationships', function () {
         // Create a user
         $userId = $this->connection->table('users')->insertGetId([
             'name' => 'Jane Doe',
-            'email' => 'jane@example.com'
+            'email' => 'jane@example.com',
         ]);
 
         // Create posts for the user
@@ -169,14 +177,14 @@ describe('Relationships', function () {
         // Create a user
         $userId = $this->connection->table('users')->insertGetId([
             'name' => 'Bob Smith',
-            'email' => 'bob@example.com'
+            'email' => 'bob@example.com',
         ]);
 
         // Create a post
         $postId = $this->connection->table('posts')->insertGetId([
             'title' => 'My Blog Post',
             'content' => 'Blog content',
-            'user_id' => $userId
+            'user_id' => $userId,
         ]);
 
         // Test the relationship
@@ -193,34 +201,34 @@ describe('Relationships', function () {
         $tagIds = [];
         $tagIds[] = $this->connection->table('tags')->insertGetId([
             'name' => 'PHP',
-            'slug' => 'php'
+            'slug' => 'php',
         ]);
         $tagIds[] = $this->connection->table('tags')->insertGetId([
             'name' => 'Laravel',
-            'slug' => 'laravel'
+            'slug' => 'laravel',
         ]);
         $tagIds[] = $this->connection->table('tags')->insertGetId([
             'name' => 'Testing',
-            'slug' => 'testing'
+            'slug' => 'testing',
         ]);
 
         // Create a user and post
         $userId = $this->connection->table('users')->insertGetId([
             'name' => 'Alice Johnson',
-            'email' => 'alice@example.com'
+            'email' => 'alice@example.com',
         ]);
 
         $postId = $this->connection->table('posts')->insertGetId([
             'title' => 'Testing in Laravel',
             'content' => 'How to test Laravel applications',
-            'user_id' => $userId
+            'user_id' => $userId,
         ]);
 
         // Create pivot table entries
         foreach ($tagIds as $tagId) {
             $this->connection->table('post_tags')->insert([
                 'post_id' => $postId,
-                'tag_id' => $tagId
+                'tag_id' => $tagId,
             ]);
         }
 
@@ -232,7 +240,7 @@ describe('Relationships', function () {
         expect($tags)->toHaveCount(3);
         expect($tags[0])->toBeInstanceOf(RelTag::class);
 
-        $tagNames = array_map(fn($tag) => $tag->name, $tags);
+        $tagNames = array_map(fn ($tag) => $tag->name, $tags);
         expect($tagNames)->toContain('PHP');
         expect($tagNames)->toContain('Laravel');
         expect($tagNames)->toContain('Testing');
@@ -242,12 +250,12 @@ describe('Relationships', function () {
         // Create users with posts
         $user1Id = $this->connection->table('users')->insertGetId([
             'name' => 'User 1',
-            'email' => 'user1@example.com'
+            'email' => 'user1@example.com',
         ]);
 
         $user2Id = $this->connection->table('users')->insertGetId([
             'name' => 'User 2',
-            'email' => 'user2@example.com'
+            'email' => 'user2@example.com',
         ]);
 
         // Create posts
@@ -278,20 +286,20 @@ describe('Relationships', function () {
         // Create a user
         $userId = $this->connection->table('users')->insertGetId([
             'name' => 'Charlie Brown',
-            'email' => 'charlie@example.com'
+            'email' => 'charlie@example.com',
         ]);
 
         // Create posts
         $post1Id = $this->connection->table('posts')->insertGetId([
             'title' => 'Published Post',
             'content' => 'Content',
-            'user_id' => $userId
+            'user_id' => $userId,
         ]);
 
         $post2Id = $this->connection->table('posts')->insertGetId([
             'title' => 'Draft Post',
             'content' => 'Draft content',
-            'user_id' => $userId
+            'user_id' => $userId,
         ]);
 
         // Test relationship with query constraints
@@ -308,23 +316,23 @@ describe('Relationships', function () {
         // Create a post and tags
         $userId = $this->connection->table('users')->insertGetId([
             'name' => 'David Lee',
-            'email' => 'david@example.com'
+            'email' => 'david@example.com',
         ]);
 
         $postId = $this->connection->table('posts')->insertGetId([
             'title' => 'My Post',
             'content' => 'Content',
-            'user_id' => $userId
+            'user_id' => $userId,
         ]);
 
         $tag1Id = $this->connection->table('tags')->insertGetId([
             'name' => 'JavaScript',
-            'slug' => 'javascript'
+            'slug' => 'javascript',
         ]);
 
         $tag2Id = $this->connection->table('tags')->insertGetId([
             'name' => 'React',
-            'slug' => 'react'
+            'slug' => 'react',
         ]);
 
         $post = RelPost::find($postId);

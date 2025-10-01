@@ -11,18 +11,21 @@ use Bob\Database\Model;
  * This test replicates the ACTUAL WordPress database structure
  * where terms and term_taxonomy are separate tables
  */
-
 class RealWpPost extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'ID';
+
     public bool $timestamps = false;
 }
 
 class RealWpTerm extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     // Add a global scope to join with term_taxonomy table
@@ -30,7 +33,7 @@ class RealWpTerm extends Model
     {
         static::addGlobalScope('taxonomy', function ($builder) {
             $builder->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
-                   ->select('terms.*', 'term_taxonomy.term_taxonomy_id', 'term_taxonomy.taxonomy', 'term_taxonomy.parent', 'term_taxonomy.count');
+                ->select('terms.*', 'term_taxonomy.term_taxonomy_id', 'term_taxonomy.taxonomy', 'term_taxonomy.parent', 'term_taxonomy.count');
         });
     }
 
@@ -124,7 +127,6 @@ beforeEach(function () {
 test('ISSUE #17: Real WordPress structure - term_taxonomy_id from JOINed table', function () {
     // Get a term with the global scope applied
     $term = RealWpTerm::find(1);
-
 
     // The term should have term_taxonomy_id from the JOINed table
     expect($term)->not->toBeNull();

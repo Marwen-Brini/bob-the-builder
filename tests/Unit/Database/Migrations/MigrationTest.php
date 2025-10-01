@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Bob\Database\Migrations\Migration;
 
 beforeEach(function () {
-    $this->migration = new TestMigrationForCoverage();
+    $this->migration = new TestMigrationForCoverage;
 });
 
 // Test for lines 42-43: getConnection() method

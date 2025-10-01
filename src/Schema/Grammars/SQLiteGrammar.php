@@ -139,6 +139,7 @@ class SQLiteGrammar extends SchemaGrammar
     {
         // SQLite doesn't support modifying columns, need to recreate table
         $statements = $this->recreateTable($blueprint, $command, $connection);
+
         return implode('; ', $statements);
     }
 
@@ -147,7 +148,7 @@ class SQLiteGrammar extends SchemaGrammar
      */
     public function compileDrop(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
-        return 'drop table ' . $this->wrapTable($blueprint);
+        return 'drop table '.$this->wrapTable($blueprint);
     }
 
     /**
@@ -155,7 +156,7 @@ class SQLiteGrammar extends SchemaGrammar
      */
     public function compileDropIfExists(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
-        return 'drop table if exists ' . $this->wrapTable($blueprint);
+        return 'drop table if exists '.$this->wrapTable($blueprint);
     }
 
     /**
@@ -225,7 +226,7 @@ class SQLiteGrammar extends SchemaGrammar
     protected function recreateTable(Blueprint $blueprint, Fluent $command, Connection $connection): array
     {
         $table = $this->wrapTable($blueprint);
-        $tempTable = $this->wrap('__temp__' . $blueprint->getTable());
+        $tempTable = $this->wrap('__temp__'.$blueprint->getTable());
 
         return [
             // Disable foreign keys
@@ -637,7 +638,7 @@ class SQLiteGrammar extends SchemaGrammar
      */
     protected function modifyNullable(Blueprint $blueprint, Fluent $column): string
     {
-        if ($column->type !== 'integer' || !$column->autoIncrement) {
+        if ($column->type !== 'integer' || ! $column->autoIncrement) {
             return $column->nullable ? '' : ' not null';
         }
 
@@ -649,8 +650,8 @@ class SQLiteGrammar extends SchemaGrammar
      */
     protected function modifyDefault(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->default)) {
-            return ' default ' . $this->getDefaultValue($column->default);
+        if (! is_null($column->default)) {
+            return ' default '.$this->getDefaultValue($column->default);
         }
 
         if ($column->useCurrent && in_array($column->type, ['dateTime', 'dateTimeTz', 'timestamp', 'timestampTz'])) {
@@ -798,7 +799,7 @@ class SQLiteGrammar extends SchemaGrammar
         }
 
         // SQLite supports both double quotes and backticks
-        return '"' . str_replace('"', '""', $value) . '"';
+        return '"'.str_replace('"', '""', $value).'"';
     }
 
     /**

@@ -7,7 +7,6 @@ namespace Bob\Schema;
 use Bob\Database\Connection;
 use Closure;
 use InvalidArgumentException;
-use RuntimeException;
 
 /**
  * Schema Facade - Main interface for database schema operations
@@ -116,7 +115,72 @@ class Schema
      */
     public static function dropAllTables(): void
     {
-        throw new RuntimeException('Drop all tables is not yet implemented.');
+        $connection = static::getConnection();
+        $driver = $connection->getDriverName();
+
+        switch ($driver) {
+            case 'mysql':
+                static::dropAllMySQLTables($connection);
+                break;
+            case 'pgsql':
+                static::dropAllPostgreSQLTables($connection);
+                break;
+            case 'sqlite':
+                static::dropAllSQLiteTables($connection);
+                break;
+            default:
+                throw new \InvalidArgumentException("Unsupported database driver: {$driver}");
+        }
+    }
+
+    /**
+     * Drop all MySQL tables
+     */
+    protected static function dropAllMySQLTables(Connection $connection): void
+    {
+        $connection->statement('SET FOREIGN_KEY_CHECKS = 0');
+
+        $tables = $connection->select('SHOW TABLES');
+        $database = $connection->getConfig('database');
+
+        foreach ($tables as $table) {
+            $tableName = $table->{"Tables_in_{$database}"} ?? array_values((array) $table)[0];
+            static::drop($tableName);
+        }
+
+        $connection->statement('SET FOREIGN_KEY_CHECKS = 1');
+    }
+
+    /**
+     * Drop all PostgreSQL tables
+     */
+    protected static function dropAllPostgreSQLTables(Connection $connection): void
+    {
+        $tables = $connection->select(
+            "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'"
+        );
+
+        foreach ($tables as $table) {
+            static::drop($table->tablename);
+        }
+    }
+
+    /**
+     * Drop all SQLite tables
+     */
+    protected static function dropAllSQLiteTables(Connection $connection): void
+    {
+        $connection->statement('PRAGMA foreign_keys = OFF');
+
+        $tables = $connection->select(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        );
+
+        foreach ($tables as $table) {
+            static::drop($table->name);
+        }
+
+        $connection->statement('PRAGMA foreign_keys = ON');
     }
 
     /**
@@ -138,7 +202,7 @@ class Schema
         $connection = static::getConnection();
         $grammar = static::getGrammar($connection);
 
-        $table = $connection->getTablePrefix() . $table;
+        $table = $connection->getTablePrefix().$table;
 
         // Different databases need different parameter structures
         if ($grammar instanceof \Bob\Schema\Grammars\SQLiteGrammar) {
@@ -174,7 +238,7 @@ class Schema
         $tableColumns = array_map('strtolower', static::getColumnListing($table));
 
         foreach ($columns as $column) {
-            if (!in_array(strtolower($column), $tableColumns)) {
+            if (! in_array(strtolower($column), $tableColumns)) {
                 return false;
             }
         }
@@ -190,7 +254,7 @@ class Schema
         $connection = static::getConnection();
         $grammar = static::getGrammar($connection);
 
-        $table = $connection->getTablePrefix() . $table;
+        $table = $connection->getTablePrefix().$table;
 
         // Handle different parameter binding requirements
         if ($grammar instanceof \Bob\Schema\Grammars\MySQLGrammar) {
@@ -215,7 +279,7 @@ class Schema
         $connection = static::getConnection();
         $grammar = static::getGrammar($connection);
 
-        $table = $connection->getTablePrefix() . $table;
+        $table = $connection->getTablePrefix().$table;
 
         $results = $connection->select(
             $grammar->compileColumnType($table, $column),
@@ -291,13 +355,13 @@ class Schema
 
         switch ($driver) {
             case 'mysql':
-                $grammar = new Grammars\MySQLGrammar();
+                $grammar = new Grammars\MySQLGrammar;
                 break;
             case 'pgsql':
-                $grammar = new Grammars\PostgreSQLGrammar();
+                $grammar = new Grammars\PostgreSQLGrammar;
                 break;
             case 'sqlite':
-                $grammar = new Grammars\SQLiteGrammar();
+                $grammar = new Grammars\SQLiteGrammar;
                 break;
             default:
                 throw new InvalidArgumentException("Unsupported driver [{$driver}].");
@@ -310,6 +374,7 @@ class Schema
 
     /**
      * Create a new command set with a closure
+     *
      * @codeCoverageIgnore
      */
     public static function blueprintResolver(Closure $resolver): void

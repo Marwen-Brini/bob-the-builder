@@ -1,21 +1,19 @@
 <?php
 
-use Bob\Query\RelationshipLoader;
-use Bob\Query\Builder;
+use Bob\Database\Connection;
 use Bob\Database\Model;
 use Bob\Database\Relations\BelongsTo;
 use Bob\Database\Relations\BelongsToMany;
-use Bob\Database\Relations\HasOne;
 use Bob\Database\Relations\HasMany;
+use Bob\Database\Relations\HasOne;
 use Bob\Database\Relations\Relation;
-use Bob\Database\Connection;
-use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\Processor;
+use Bob\Query\Builder;
+use Bob\Query\RelationshipLoader;
 
 describe('RelationshipLoader Tests', function () {
 
     beforeEach(function () {
-        $this->loader = new RelationshipLoader();
+        $this->loader = new RelationshipLoader;
         $this->connection = Mockery::mock(Connection::class);
     });
 

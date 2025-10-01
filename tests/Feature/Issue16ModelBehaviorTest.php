@@ -10,12 +10,14 @@ use Bob\Database\Model;
  *
  * Testing model state consistency after save/update operations
  */
-
 class TestModel extends Model
 {
     protected string $table = 'test_models';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
+
     protected array $fillable = ['name', 'value'];
 }
 
@@ -89,7 +91,7 @@ test('ISSUE #16: Model with fake ID behavior', function () {
 
 test('ISSUE #16: Failed operation model state', function () {
     // Test Case E: Operation that should fail
-    $model = new TestModel();
+    $model = new TestModel;
     // Don't set required 'name' field - should fail
 
     try {
@@ -117,7 +119,7 @@ test('ISSUE #16: Complex operation sequence consistency', function () {
             'result_value' => $result,
             'model_id' => $model->id ?? 'NULL',
             'exists' => $model->exists,
-            'was_recently_created' => $model->wasRecentlyCreated
+            'was_recently_created' => $model->wasRecentlyCreated,
         ];
     }
 
@@ -131,8 +133,8 @@ test('ISSUE #16: Complex operation sequence consistency', function () {
 
     // All successful saves should have similar state
     foreach ($results as $result) {
-        expect($result['exists'])->toBeTrue("Model should exist after successful save");
-        expect($result['was_recently_created'])->toBeTrue("Model should be marked as recently created");
-        expect($result['model_id'])->not->toBe('NULL', "Model should have valid ID after save");
+        expect($result['exists'])->toBeTrue('Model should exist after successful save');
+        expect($result['was_recently_created'])->toBeTrue('Model should be marked as recently created');
+        expect($result['model_id'])->not->toBe('NULL', 'Model should have valid ID after save');
     }
 });

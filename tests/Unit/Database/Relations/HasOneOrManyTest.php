@@ -1,9 +1,9 @@
 <?php
 
-use Bob\Database\Relations\HasOneOrMany;
-use Bob\Database\Model;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Database\Relations\HasOneOrMany;
+use Bob\Query\Builder;
 use Bob\Support\Collection;
 use Mockery as m;
 
@@ -29,14 +29,20 @@ describe('HasOneOrMany Tests', function () {
         $this->query->shouldReceive('update')->withAnyArgs()->andReturn(1);
 
         // Create a concrete implementation for testing
-        $this->relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() {
+        $this->relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
                 return $this->get();
             }
-            public function initRelation(array $models, string $relation): array {
+
+            public function initRelation(array $models, string $relation): array
+            {
                 return $models;
             }
-            public function match(array $models, array $results, string $relation): array {
+
+            public function match(array $models, array $results, string $relation): array
+            {
                 return $models;
             }
         };
@@ -72,11 +78,27 @@ describe('HasOneOrMany Tests', function () {
         $query->shouldReceive('where')->with('user_id', '=', 456)->twice()->andReturnSelf();
         $query->shouldReceive('whereNotNull')->with('user_id')->twice()->andReturnSelf();
 
-        $relation = new class($query, $parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testAddConstraints() { $this->addConstraints(); }
+        $relation = new class($query, $parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testAddConstraints()
+            {
+                $this->addConstraints();
+            }
         };
 
         $relation->testAddConstraints();
@@ -96,14 +118,30 @@ describe('HasOneOrMany Tests', function () {
         $query->shouldReceive('whereNotNull')->withAnyArgs()->andReturnSelf();
         $query->shouldReceive('whereIn')->with('user_id', [1, 2, 3])->once()->andReturnSelf();
 
-        $relation = new class($query, $parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testAddEagerConstraints(array $models) {
+        $relation = new class($query, $parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testAddEagerConstraints(array $models)
+            {
                 $this->addEagerConstraints($models);
             }
-            protected function getKeys(array $models, ?string $key = null): array {
+
+            protected function getKeys(array $models, ?string $key = null): array
+            {
                 return [1, 2, 3]; // Mock key values
             }
         };
@@ -127,10 +165,22 @@ describe('HasOneOrMany Tests', function () {
     });
 
     test('getPlainForeignKey method strips table prefix from foreign key', function () {
-        $relation = new class($this->query, $this->parent, 'posts.user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
+        $relation = new class($this->query, $this->parent, 'posts.user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
         };
 
         $result = $relation->getPlainForeignKey();
@@ -151,11 +201,25 @@ describe('HasOneOrMany Tests', function () {
         $result3->shouldReceive('getAttribute')->with('user_id')->andReturn(2);
         $result3->user_id = 2;
 
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testBuildDictionary(array $results): array {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testBuildDictionary(array $results): array
+            {
                 return $this->buildDictionary($results);
             }
         };
@@ -172,11 +236,25 @@ describe('HasOneOrMany Tests', function () {
         $model->shouldReceive('setAttribute')->with('user_id', 123)->once();
         $model->shouldReceive('save')->once()->andReturn(true);
 
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testSave(Model $model) {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testSave(Model $model)
+            {
                 return $this->save($model);
             }
         };
@@ -197,11 +275,25 @@ describe('HasOneOrMany Tests', function () {
         $query->shouldReceive('whereNotNull')->withAnyArgs()->andReturnSelf();
         $query->shouldReceive('update')->with(['status' => 'active'])->once()->andReturn(5);
 
-        $relation = new class($query, $parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testUpdate(array $attributes): int {
+        $relation = new class($query, $parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testUpdate(array $attributes): int
+            {
                 return $this->update($attributes);
             }
         };
@@ -220,11 +312,25 @@ describe('HasOneOrMany Tests', function () {
             ->once()
             ->andReturn($newInstance);
 
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testCreate(array $attributes = []): Model {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testCreate(array $attributes = []): Model
+            {
                 return $this->create($attributes);
             }
         };
@@ -246,11 +352,25 @@ describe('HasOneOrMany Tests', function () {
         $model2 = m::mock(Model::class);
         $model2->shouldReceive('getKey')->andReturn('pk2');
 
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testGetKeys(array $models, ?string $key = null): array {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testGetKeys(array $models, ?string $key = null): array
+            {
                 return $this->getKeys($models, $key);
             }
         };
@@ -268,17 +388,35 @@ describe('HasOneOrMany Tests', function () {
         $model1->shouldReceive('getAttribute')->with('id')->andReturn(1);
         $model1->id = 1;
 
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testMatchOneOrMany(array $models, array $results, string $relation, string $type): array {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testMatchOneOrMany(array $models, array $results, string $relation, string $type): array
+            {
                 return $this->matchOneOrMany($models, $results, $relation, $type);
             }
-            protected function buildDictionary(array $results): array {
+
+            protected function buildDictionary(array $results): array
+            {
                 return [1 => ['result1', 'result2']];
             }
-            protected function getRelationValue(array $dictionary, string $key, string $type) {
+
+            protected function getRelationValue(array $dictionary, string $key, string $type)
+            {
                 return 'test_value';
             }
         };
@@ -291,11 +429,25 @@ describe('HasOneOrMany Tests', function () {
     });
 
     test('getRelationValue method returns first element for one type', function () {
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testGetRelationValue(array $dictionary, string $key, string $type) {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testGetRelationValue(array $dictionary, string $key, string $type)
+            {
                 return $this->getRelationValue($dictionary, $key, $type);
             }
         };
@@ -307,11 +459,25 @@ describe('HasOneOrMany Tests', function () {
     });
 
     test('getRelationValue method returns array for many type', function () {
-        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() { return []; }
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function testGetRelationValue(array $dictionary, string $key, string $type) {
+        $relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
+                return [];
+            }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function testGetRelationValue(array $dictionary, string $key, string $type)
+            {
                 return $this->getRelationValue($dictionary, $key, $type);
             }
         };
@@ -351,6 +517,7 @@ describe('HasOneOrMany Tests', function () {
 
     test('firstOrNew returns existing model when found', function () {
         $this->markTestSkipped('Complex mock setup needed');
+
         return;
         $model = m::mock(Model::class);
         // Allow where to be called with any args since internally it might differ
@@ -380,6 +547,7 @@ describe('HasOneOrMany Tests', function () {
 
     test('firstOrCreate returns existing model when found', function () {
         $this->markTestSkipped('Complex mock setup needed');
+
         return;
         $model = m::mock(Model::class);
         $this->query->shouldReceive('where')->andReturnSelf();
@@ -391,6 +559,7 @@ describe('HasOneOrMany Tests', function () {
 
     test('firstOrCreate creates model when not found', function () {
         $this->markTestSkipped('Complex mock setup needed');
+
         return;
         $this->query->shouldReceive('where')->andReturnSelf();
         $this->query->shouldReceive('first')->andReturn(null);
@@ -404,6 +573,7 @@ describe('HasOneOrMany Tests', function () {
 
     test('updateOrCreate updates existing model', function () {
         $this->markTestSkipped('Complex mock setup needed');
+
         return;
         $model = m::mock(Model::class);
         $model->shouldReceive('fill')->with(['name' => 'Updated Name'])->once();
@@ -469,6 +639,7 @@ describe('HasOneOrMany Tests', function () {
 
     test('saveMany with Collection input', function () {
         $this->markTestSkipped('Complex mock setup needed');
+
         return;
         $model1 = m::mock(Model::class);
         $model1->shouldReceive('setAttribute')->with('user_id', 123)->once();
@@ -509,7 +680,7 @@ describe('HasOneOrMany Tests', function () {
 
         $result = $this->relation->createMany([
             ['name' => 'User 1'],
-            ['name' => 'User 2']
+            ['name' => 'User 2'],
         ]);
 
         expect($result)->toHaveCount(2);
@@ -531,7 +702,6 @@ describe('HasOneOrMany Tests', function () {
         $result = $this->relation->getRelationExistenceQuery($relatedQuery, $parentQuery);
         expect($result)->toBe($relatedQuery);
     });
-
 
     test('findExisting proxies to find method', function () {
         $model = m::mock(Model::class);
@@ -560,6 +730,7 @@ describe('HasOneOrMany Tests', function () {
 
     test('findFirstByAttributes finds model by attributes', function () {
         $this->markTestSkipped('Complex mock setup needed');
+
         return;
         $model = m::mock(Model::class);
         // The where method is already mocked in beforeEach to return self

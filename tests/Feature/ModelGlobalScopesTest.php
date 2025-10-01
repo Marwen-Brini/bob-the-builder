@@ -1,15 +1,16 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\Scope;
 use Bob\Database\Eloquent\SoftDeletes;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 
 // Test Models
 class GlobalScopeTestCategory extends Model
 {
     protected string $table = 'categories';
+
     protected array $fillable = ['name', 'taxonomy'];
 
     protected static function boot(): void
@@ -26,6 +27,7 @@ class GlobalScopeTestCategory extends Model
 class GlobalScopeTestPost extends Model
 {
     protected string $table = 'posts';
+
     protected array $fillable = ['title', 'status', 'author_id'];
 
     protected static function boot(): void
@@ -57,6 +59,7 @@ class GlobalScopeTestUser extends Model
     use SoftDeletes;
 
     protected string $table = 'users';
+
     protected array $fillable = ['name', 'email', 'active'];
 
     protected static function boot(): void
@@ -71,6 +74,7 @@ class GlobalScopeTestUser extends Model
 class GlobalScopeTestProduct extends Model
 {
     protected string $table = 'products';
+
     protected array $fillable = ['name', 'tenant_id'];
 
     protected static function boot(): void
@@ -205,7 +209,7 @@ test('multiple global scopes work', function () {
     expect($posts)->toHaveCount(2);
 
     // Check that both published posts are present (order may vary based on DB)
-    $titles = array_map(fn($p) => $p->title, $posts);
+    $titles = array_map(fn ($p) => $p->title, $posts);
     expect($titles)->toContain('Published Post 1');
     expect($titles)->toContain('Published Post 2');
 });
@@ -306,7 +310,8 @@ test('global scope on find method', function () {
 
 test('adding global scope after boot', function () {
     // Create a new test model class
-    $model = new class extends Model {
+    $model = new class extends Model
+    {
         protected string $table = 'test_table';
     };
 
@@ -339,21 +344,23 @@ test('global scopes persist across queries', function () {
 
 test('boot method only called once', function () {
     // Track boot calls
-    $model = new class extends Model {
+    $model = new class extends Model
+    {
         protected string $table = 'test_table';
+
         public static $bootCalls = 0;
 
         protected static function boot(): void
         {
             parent::boot();
-            static::$bootCalls++;
+            self::$bootCalls++;
         }
     };
 
     // Create multiple instances
-    new $model();
-    new $model();
-    new $model();
+    new $model;
+    new $model;
+    new $model;
 
     // Boot should only be called once
     expect($model::$bootCalls)->toBe(1);

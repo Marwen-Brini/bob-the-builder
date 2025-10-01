@@ -122,7 +122,7 @@ abstract class SchemaGrammar
             $table = $table->getTable();
         }
 
-        return $this->wrap($this->tablePrefix . $table);
+        return $this->wrap($this->tablePrefix.$table);
     }
 
     /**
@@ -154,7 +154,7 @@ abstract class SchemaGrammar
     {
         $segments = preg_split('/\s+as\s+/i', $value);
 
-        return $this->wrap($segments[0]) . ' as ' . $this->wrapValue($segments[1]);
+        return $this->wrap($segments[0]).' as '.$this->wrapValue($segments[1]);
     }
 
     /**
@@ -176,7 +176,7 @@ abstract class SchemaGrammar
         }
         // @codeCoverageIgnoreEnd
 
-        return '"' . str_replace('"', '""', $value) . '"';
+        return '"'.str_replace('"', '""', $value).'"';
     }
 
     /**
@@ -195,7 +195,7 @@ abstract class SchemaGrammar
         $columns = [];
 
         foreach ($blueprint->getAddedColumns() as $column) {
-            $sql = $this->wrap($column->name) . ' ' . $this->getType($column);
+            $sql = $this->wrap($column->name).' '.$this->getType($column);
 
             $columns[] = $this->addModifiers($sql, $blueprint, $column);
         }
@@ -208,7 +208,7 @@ abstract class SchemaGrammar
      */
     protected function getType(Fluent $column): string
     {
-        $method = 'type' . ucfirst($column->type);
+        $method = 'type'.ucfirst($column->type);
 
         if (method_exists($this, $method)) {
             return $this->$method($column);
@@ -246,8 +246,8 @@ abstract class SchemaGrammar
      */
     protected function modifyDefault(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->default)) {
-            return ' default ' . $this->getDefaultValue($column->default);
+        if (! is_null($column->default)) {
+            return ' default '.$this->getDefaultValue($column->default);
         }
 
         return '';
@@ -275,7 +275,7 @@ abstract class SchemaGrammar
         }
 
         if (is_string($value)) {
-            return "'" . str_replace("'", "''", $value) . "'";
+            return "'".str_replace("'", "''", $value)."'";
         }
 
         if (is_null($value)) {
@@ -293,7 +293,7 @@ abstract class SchemaGrammar
         return sprintf(
             'alter table %s add primary key %s(%s)',
             $this->wrapTable($blueprint),
-            $command->index ? 'constraint ' . $this->wrap($command->index) . ' ' : '',
+            $command->index ? 'constraint '.$this->wrap($command->index).' ' : '',
             $this->columnize($command->columns)
         );
     }
@@ -306,7 +306,7 @@ abstract class SchemaGrammar
         return sprintf(
             'alter table %s add unique %s(%s)',
             $this->wrapTable($blueprint),
-            $command->index ? $this->wrap($command->index) . ' ' : '',
+            $command->index ? $this->wrap($command->index).' ' : '',
             $this->columnize($command->columns)
         );
     }
@@ -456,30 +456,49 @@ abstract class SchemaGrammar
             return implode(', ', array_map([$this, 'quoteString'], $value));
         }
 
-        return "'" . str_replace("'", "''", $value) . "'";
+        return "'".str_replace("'", "''", $value)."'";
     }
 
     /**
      * Get the SQL for the column data type
      */
     abstract protected function typeString(Fluent $column): string;
+
     abstract protected function typeText(Fluent $column): string;
+
     abstract protected function typeMediumText(Fluent $column): string;
+
     abstract protected function typeLongText(Fluent $column): string;
+
     abstract protected function typeInteger(Fluent $column): string;
+
     abstract protected function typeTinyInteger(Fluent $column): string;
+
     abstract protected function typeSmallInteger(Fluent $column): string;
+
     abstract protected function typeMediumInteger(Fluent $column): string;
+
     abstract protected function typeBigInteger(Fluent $column): string;
+
     abstract protected function typeFloat(Fluent $column): string;
+
     abstract protected function typeDouble(Fluent $column): string;
+
     abstract protected function typeDecimal(Fluent $column): string;
+
     abstract protected function typeBoolean(Fluent $column): string;
+
     abstract protected function typeJson(Fluent $column): string;
+
     abstract protected function typeDate(Fluent $column): string;
+
     abstract protected function typeDateTime(Fluent $column): string;
+
     abstract protected function typeTime(Fluent $column): string;
+
     abstract protected function typeTimestamp(Fluent $column): string;
+
     abstract protected function typeBinary(Fluent $column): string;
+
     abstract protected function typeUuid(Fluent $column): string;
 }

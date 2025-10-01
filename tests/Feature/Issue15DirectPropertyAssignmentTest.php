@@ -11,11 +11,12 @@ use Bob\Database\Model;
  * The problem: When you assign a property directly and call save(),
  * save() returns true but the value is not actually persisted to the database.
  */
-
 class CategoryForIssue15 extends Model
 {
     protected string $table = 'categories';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
 
     // Test with different fillable configurations
@@ -25,7 +26,9 @@ class CategoryForIssue15 extends Model
 class CategoryFillableParent extends Model
 {
     protected string $table = 'categories';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
 
     protected array $fillable = ['name', 'slug', 'parent']; // 'parent' IS fillable
@@ -108,10 +111,8 @@ test('ISSUE #15: Direct property assignment fails silently when field is not fil
 test('ISSUE #15: Debug - Check Model dirty tracking behavior', function () {
     $category = CategoryForIssue15::find(1);
 
-
     // Assign value
     $category->parent = 5;
-
 
     // Test save
     $result = $category->save();

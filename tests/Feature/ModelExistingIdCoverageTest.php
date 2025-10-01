@@ -6,8 +6,11 @@ use Bob\Database\Model;
 class ExistingIdTestModel extends Model
 {
     protected string $table = 'test_models';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
+
     protected array $fillable = ['name', 'value'];
 }
 
@@ -29,7 +32,7 @@ beforeEach(function () {
     $this->connection->table('test_models')->insert([
         'id' => 1,
         'name' => 'Existing Record',
-        'value' => 'original'
+        'value' => 'original',
     ]);
 
     Model::setConnection($this->connection);
@@ -38,7 +41,7 @@ beforeEach(function () {
 test('Model with existing ID in database updates instead of insert', function () {
     // Create a new model instance with an ID that exists in the database
     // but without loading it first (no original data)
-    $model = new ExistingIdTestModel();
+    $model = new ExistingIdTestModel;
     $model->id = 1; // This ID exists in the database
     $model->name = 'Updated Name';
     $model->value = 'updated';
@@ -69,7 +72,7 @@ test('Model with existing ID in database updates instead of insert', function ()
 
 test('Model with non-existing ID inserts new record with that ID', function () {
     // Create a model with an ID that doesn't exist
-    $model = new ExistingIdTestModel();
+    $model = new ExistingIdTestModel;
     $model->id = 999; // This ID doesn't exist
     $model->name = 'New Record';
     $model->value = 'new';

@@ -1,10 +1,10 @@
 <?php
 
+use Bob\Database\Connection;
 use Bob\Logging\Log;
 use Bob\Logging\QueryLogger;
-use Bob\Database\Connection;
-use Psr\Log\LoggerInterface;
 use Mockery as m;
+use Psr\Log\LoggerInterface;
 
 describe('Log Tests', function () {
 
@@ -211,7 +211,7 @@ describe('Log Tests', function () {
         Log::configure([
             'log_bindings' => false,
             'log_time' => false,
-            'slow_query_threshold' => 500
+            'slow_query_threshold' => 500,
         ]);
 
         $queryLogger = Log::getQueryLogger();
@@ -238,7 +238,7 @@ describe('Log Tests', function () {
         Log::configure([
             'log_bindings' => false,
             'log_time' => false,
-            'slow_query_threshold' => 200
+            'slow_query_threshold' => 200,
         ]);
 
         $reflection = new ReflectionClass($queryLogger);
@@ -339,14 +339,14 @@ describe('Log Tests', function () {
             'total_queries' => 5,
             'total_time' => 100,
             'slow_queries' => 1,
-            'queries_by_type' => ['select' => 3, 'insert' => 2]
+            'queries_by_type' => ['select' => 3, 'insert' => 2],
         ];
 
         $stats2 = [
             'total_queries' => 3,
             'total_time' => '50ms',
             'slow_queries' => 2,
-            'queries_by_type' => ['select' => 1, 'update' => 2]
+            'queries_by_type' => ['select' => 1, 'update' => 2],
         ];
 
         $merged = $method->invoke(null, $stats1, $stats2);

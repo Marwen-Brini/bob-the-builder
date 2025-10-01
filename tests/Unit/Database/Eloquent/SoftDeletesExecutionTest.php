@@ -1,8 +1,8 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletes;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -10,13 +10,14 @@ use Mockery as m;
  * Tests for executing the actual code paths in SoftDeletes trait
  * to improve coverage of lines 52-105, 120-148
  */
-
 class ExecutionTestModel extends Model
 {
     use SoftDeletes;
 
     protected string $table = 'test_table';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = true;
 
     // Override methods that would cause issues
@@ -24,6 +25,7 @@ class ExecutionTestModel extends Model
     {
         // Track that event was fired
         $this->firedEvents[] = $event;
+
         return true;
     }
 
@@ -31,6 +33,7 @@ class ExecutionTestModel extends Model
     {
         // Simple implementation that just adds where clause
         $query->where($this->primaryKey, $this->getAttribute($this->primaryKey));
+
         return $query;
     }
 
@@ -58,6 +61,7 @@ class ExecutionTestModel extends Model
     {
         // Track that sync was called
         $this->syncCalled = true;
+
         return $this;
     }
 
@@ -65,6 +69,7 @@ class ExecutionTestModel extends Model
     {
         // Track save was called and return true
         $this->saveCalled = true;
+
         return true;
     }
 
@@ -72,12 +77,15 @@ class ExecutionTestModel extends Model
     {
         // Return a real builder we can work with
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+
         return $connection->table($this->table);
     }
 
     // Track method calls
     public array $firedEvents = [];
+
     public bool $syncCalled = false;
+
     public bool $saveCalled = false;
 }
 
@@ -89,7 +97,7 @@ test('forceDelete executes deletion logic', function () {
     // Simply verify that forceDelete method can be called and executes
     // We can't fully test it without the Model's delete() method working properly
 
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
     $model->id = 1;
 
     // At minimum, verify the method exists
@@ -116,7 +124,7 @@ test('forceDelete executes deletion logic', function () {
 
 test('performDeleteOnModel with forceDeleting true', function () {
     // Test the logic path when forceDeleting is true
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
 
     // Use reflection to access the protected property
     $reflection = new ReflectionClass($model);
@@ -149,7 +157,7 @@ test('performDeleteOnModel with forceDeleting false calls runSoftDelete', functi
 
 test('runSoftDelete updates deleted_at column', function () {
     // Test that runSoftDelete method exists and contains the logic
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
 
     // The method should exist
     expect(method_exists($model, 'runSoftDelete'))->toBeTrue();
@@ -173,7 +181,7 @@ test('runSoftDelete updates deleted_at column', function () {
 
 test('runSoftDelete without timestamps', function () {
     // Test the behavior when timestamps is disabled
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
 
     // First test with timestamps enabled (default)
     expect($model->usesTimestamps())->toBe(true);
@@ -191,7 +199,7 @@ test('runSoftDelete without timestamps', function () {
 });
 
 test('restore when not trashed returns false', function () {
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
     $model->deleted_at = null; // Not trashed
 
     // Execute restore - covers lines 116-118
@@ -202,7 +210,7 @@ test('restore when not trashed returns false', function () {
 });
 
 test('restore when trashed performs restoration', function () {
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
     $model->deleted_at = '2024-01-01 00:00:00'; // Trashed
 
     // Execute restore - covers lines 120-135
@@ -217,7 +225,7 @@ test('restore when trashed performs restoration', function () {
 });
 
 test('restore without timestamps', function () {
-    $model = new ExecutionTestModel();
+    $model = new ExecutionTestModel;
     $model->deleted_at = '2024-01-01 00:00:00';
     $model->timestamps = false; // Disable timestamps
 

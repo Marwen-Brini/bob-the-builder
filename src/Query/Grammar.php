@@ -5,7 +5,6 @@ namespace Bob\Query;
 use Bob\Contracts\BuilderInterface;
 use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
-use function Bob\Query\collect;
 
 abstract class Grammar implements GrammarInterface
 {
@@ -94,12 +93,12 @@ abstract class Grammar implements GrammarInterface
             $getter = 'get'.ucfirst($component);
             if (method_exists($query, $getter)) {
                 $value = $query->$getter();
-                
+
                 // Special handling for columns - default to ['*'] if null
                 if ($component === 'columns' && is_null($value)) {
                     $value = ['*'];
                 }
-                
+
                 if (! is_null($value) && (! is_array($value) || ! empty($value))) {
                     $method = 'compile'.ucfirst($component);
                     $sql[$component] = $this->$method($query, $value);
@@ -212,6 +211,7 @@ abstract class Grammar implements GrammarInterface
         // Handle Basic where constraints in joins
         if ($where['type'] === 'Basic') {
             $constraint = $this->wrap($where['column']).' '.$where['operator'].' ?';
+
             // Always include the boolean for non-first constraints
             return $where['boolean'].' '.$constraint;
         }
@@ -619,13 +619,14 @@ abstract class Grammar implements GrammarInterface
                         return $this->wrapValue($segment);
                     } else {
                         // Doesn't have prefix yet, add it
-                        return $this->wrapValue($this->tablePrefix . $segment);
+                        return $this->wrapValue($this->tablePrefix.$segment);
                     }
                 }
 
                 // Otherwise, it's a regular table reference that needs prefixing
                 return $this->wrapTable($segment);
             }
+
             return $this->wrapValue($segment);
         })->implode('.');
     }
@@ -648,7 +649,7 @@ abstract class Grammar implements GrammarInterface
     {
         if (! $this->isExpression($table)) {
             // Check if table already has the prefix to avoid double-prefixing (simple case)
-            if ($this->tablePrefix && !strpos($table, '.') && strpos($table, $this->tablePrefix) === 0) {
+            if ($this->tablePrefix && ! strpos($table, '.') && strpos($table, $this->tablePrefix) === 0) {
                 return $this->wrap($table);
             }
 
@@ -660,7 +661,7 @@ abstract class Grammar implements GrammarInterface
                 $lastIndex = count($segments) - 1;
                 if ($this->tablePrefix && strpos($segments[$lastIndex], $this->tablePrefix) !== 0) {
                     // Add prefix to table name
-                    $segments[$lastIndex] = $this->tablePrefix . $segments[$lastIndex];
+                    $segments[$lastIndex] = $this->tablePrefix.$segments[$lastIndex];
                 }
 
                 // Manually wrap each segment to avoid recursion issues
@@ -668,6 +669,7 @@ abstract class Grammar implements GrammarInterface
                 foreach ($segments as $i => $segment) {
                     $wrapped[] = $this->wrapValue($segment);
                 }
+
                 return implode('.', $wrapped);
             }
 

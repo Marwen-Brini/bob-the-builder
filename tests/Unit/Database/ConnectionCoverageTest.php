@@ -1,13 +1,11 @@
 <?php
 
 use Bob\Database\Connection;
+use Bob\Logging\Log;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Grammars\PostgreSQLGrammar;
 use Bob\Query\Grammars\SQLiteGrammar;
-use Bob\Logging\Log;
-use Bob\Logging\QueryLogger;
 use Psr\Log\LoggerInterface;
-use Bob\Exceptions\QueryException;
 
 beforeEach(function () {
     // Reset global logger
@@ -217,6 +215,7 @@ test('Connection transaction with closure', function () {
 
     $result = $connection->transaction(function ($db) {
         $db->insert('INSERT INTO test_trans (value) VALUES (?)', [100]);
+
         return 'success';
     });
 
@@ -226,7 +225,7 @@ test('Connection transaction with closure', function () {
     expect($rows)->toHaveCount(1);
     if (count($rows) > 0) {
         expect($rows[0])->toHaveProperty('value');
-        expect((int)$rows[0]->value)->toBe(100);
+        expect((int) $rows[0]->value)->toBe(100);
     }
 });
 
@@ -245,6 +244,7 @@ test('Connection transaction with attempts', function () {
             throw new \Exception('Simulated failure');
         }
         $db->insert('INSERT INTO test_attempts (value) VALUES (?)', [200]);
+
         return 'success after retry';
     }, 3);
 
@@ -320,8 +320,8 @@ test('Connection nested transactions', function () {
 
     $rows = $connection->select('SELECT * FROM test_nested ORDER BY value');
     expect($rows)->toHaveCount(2);
-    expect((int)$rows[0]->value)->toBe(500);
-    expect((int)$rows[1]->value)->toBe(600);
+    expect((int) $rows[0]->value)->toBe(500);
+    expect((int) $rows[1]->value)->toBe(600);
 });
 
 test('Connection rollback nested transactions', function () {
@@ -353,7 +353,7 @@ test('Connection rollback nested transactions', function () {
 
     $rows = $connection->select('SELECT * FROM test_rollback_level');
     expect($rows)->toHaveCount(1); // Only first insert committed
-    expect((int)$rows[0]->value)->toBe(700);
+    expect((int) $rows[0]->value)->toBe(700);
 });
 
 test('Connection handles exception in transaction', function () {

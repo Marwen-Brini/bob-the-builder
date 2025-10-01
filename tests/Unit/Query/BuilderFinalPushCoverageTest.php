@@ -1,17 +1,16 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Query\Builder;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Processor;
-use Bob\Database\Model;
 
 describe('Builder Final Push Coverage Tests', function () {
 
     beforeEach(function () {
         $this->connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $this->grammar = new MySQLGrammar();
-        $this->processor = new Processor();
+        $this->grammar = new MySQLGrammar;
+        $this->processor = new Processor;
         $this->builder = new Builder($this->connection);
     });
 
@@ -57,7 +56,7 @@ describe('Builder Final Push Coverage Tests', function () {
     // Line 1368: insertUsing with Closure
     test('insertUsing with closure query', function () {
         // Skip if method doesn't exist
-        if (!method_exists($this->builder->getGrammar(), 'compileInsertUsing')) {
+        if (! method_exists($this->builder->getGrammar(), 'compileInsertUsing')) {
             $this->markTestSkipped('compileInsertUsing not implemented in grammar');
         }
 
@@ -67,7 +66,7 @@ describe('Builder Final Push Coverage Tests', function () {
 
         $result = $this->builder->from('archived_users')->insertUsing(
             ['id', 'name'],
-            function($query) {
+            function ($query) {
                 return $query->from('users')->where('id', '>', 0);
             }
         );
@@ -217,7 +216,7 @@ describe('Builder Final Push Coverage Tests', function () {
         $this->builder->from('users')
             ->whereColumn([
                 ['first_name', '=', 'last_name'],
-                ['updated_at', '>', 'created_at']
+                ['updated_at', '>', 'created_at'],
             ]);
 
         $wheres = $this->builder->wheres;
@@ -240,11 +239,14 @@ describe('Builder Final Push Coverage Tests', function () {
 
     // Line 2155: dd method
     test('dd method dumps and dies', function () {
-        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder {
+        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder
+        {
             public $didDump = false;
 
-            public function dd() {
+            public function dd()
+            {
                 $this->didDump = true;
+
                 return ['sql' => $this->toSql(), 'bindings' => $this->getBindings()];
             }
         };

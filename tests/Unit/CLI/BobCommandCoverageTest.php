@@ -65,10 +65,10 @@ test('BobCommand with invalid command', function () {
 
 test('BobCommand loadConfig from file', function () {
     // Create a temporary config file
-    $configFile = sys_get_temp_dir() . '/.bob.json';
+    $configFile = sys_get_temp_dir().'/.bob.json';
     file_put_contents($configFile, json_encode([
         'driver' => 'sqlite',
-        'database' => ':memory:'
+        'database' => ':memory:',
     ]));
 
     // Change to temp directory to load config

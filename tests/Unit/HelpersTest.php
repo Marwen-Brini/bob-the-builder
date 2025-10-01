@@ -3,7 +3,7 @@
 use Bob\Support\Collection;
 
 // Include the helpers file
-require_once __DIR__ . '/../../src/helpers.php';
+require_once __DIR__.'/../../src/helpers.php';
 
 test('tap function calls callback and returns value', function () {
     $value = 'test';
@@ -15,7 +15,7 @@ test('tap function calls callback and returns value', function () {
 });
 
 test('tap function modifies object through callback', function () {
-    $object = new stdClass();
+    $object = new stdClass;
     $object->name = 'initial';
 
     $result = tap($object, function ($obj) {
@@ -64,7 +64,7 @@ test('collect function creates collection from null', function () {
 });
 
 test('collect function creates collection from object', function () {
-    $object = new stdClass();
+    $object = new stdClass;
     $object->name = 'test';
     $object->value = 123;
 
@@ -105,10 +105,10 @@ test('class_basename returns class name without namespace', function () {
 });
 
 test('class_basename works with objects', function () {
-    $object = new stdClass();
+    $object = new stdClass;
     expect(class_basename($object))->toBe('stdClass');
 
-    $collection = new Collection();
+    $collection = new Collection;
     expect(class_basename($collection))->toBe('Collection');
 });
 
@@ -123,7 +123,8 @@ test('class_basename handles forward slashes', function () {
 });
 
 test('class_basename with anonymous class', function () {
-    $anonymous = new class {
+    $anonymous = new class
+    {
         public $value = 'test';
     };
 
@@ -157,7 +158,7 @@ test('last function returns null for non-array', function () {
     expect(last(null))->toBeNull();
     expect(last('string'))->toBeNull();
     expect(last(123))->toBeNull();
-    expect(last(new stdClass()))->toBeNull();
+    expect(last(new stdClass))->toBeNull();
 });
 
 test('last function works with single element array', function () {
@@ -185,17 +186,18 @@ test('helper functions do not redefine if already exist', function () {
     // Since we've already included the helpers, trying to define them again should not cause errors
 
     // Define a dummy function before including helpers again
-    if (!function_exists('dummy_test_function')) {
-        function dummy_test_function() {
+    if (! function_exists('dummy_test_function')) {
+        function dummy_test_function()
+        {
             return 'test';
         }
     }
 
     // Include helpers again - should not cause redefinition errors
-    include __DIR__ . '/../../src/helpers.php';
+    include __DIR__.'/../../src/helpers.php';
 
     // Functions should still work
-    expect(tap('value', function() {}))->toBe('value');
+    expect(tap('value', function () {}))->toBe('value');
     expect(collect([1, 2]))->toBeInstanceOf(Collection::class);
     expect(class_basename('App\Test'))->toBe('Test');
     expect(last([1, 2, 3]))->toBe(3);

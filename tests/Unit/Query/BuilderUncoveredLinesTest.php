@@ -3,15 +3,12 @@
 namespace Tests\Unit\Query;
 
 use Bob\Database\Connection;
-use Bob\Database\Expression;
 use Bob\Database\Model;
 use Bob\Query\Builder;
 use Bob\Query\Grammar;
-use Bob\Query\Processor;
 use Bob\Query\JoinClause;
+use Bob\Query\Processor;
 use Mockery;
-use PDO;
-use stdClass;
 
 afterEach(function () {
     Mockery::close();
@@ -39,6 +36,7 @@ it('handles insertUsing with closure', function () {
 
     $result = $builder->insertUsing(['name', 'email'], function ($query) {
         $query->from('other_users');
+
         return $query;
     });
 
@@ -130,6 +128,7 @@ it('handles existsOr when exists returns true', function () {
     $callbackCalled = false;
     $result = $builder->existsOr(function () use (&$callbackCalled) {
         $callbackCalled = true;
+
         return false;
     });
 
@@ -159,6 +158,7 @@ it('handles doesntExistOr when doesnt exist returns true', function () {
     $callbackCalled = false;
     $result = $builder->doesntExistOr(function () use (&$callbackCalled) {
         $callbackCalled = true;
+
         return false;
     });
 
@@ -348,7 +348,7 @@ it('handles orOn method in join clause', function () {
     $builder->from('users')
         ->join('posts', function ($join) {
             $join->on('users.id', '=', 'posts.user_id')
-                 ->orOn('users.id', '=', 'posts.author_id');
+                ->orOn('users.id', '=', 'posts.author_id');
         });
 
     $joins = $builder->getJoins();

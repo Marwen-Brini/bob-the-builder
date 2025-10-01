@@ -1,9 +1,9 @@
 <?php
 
-use Bob\Database\Relations\HasMany;
-use Bob\Database\Model;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Database\Relations\HasMany;
+use Bob\Query\Builder;
 use Mockery as m;
 
 describe('HasMany Tests', function () {
@@ -56,7 +56,7 @@ describe('HasMany Tests', function () {
     test('getResults returns query results when parent key exists', function () {
         $models = [
             ['id' => 1, 'name' => 'Post 1'],
-            ['id' => 2, 'name' => 'Post 2']
+            ['id' => 2, 'name' => 'Post 2'],
         ];
 
         $this->query->shouldReceive('get')->once()->andReturn($models);
@@ -184,7 +184,7 @@ describe('HasMany Tests', function () {
         $results = [
             ['id' => 1, 'user_id' => 100, 'title' => 'Post 1'],
             ['id' => 2, 'user_id' => 100, 'title' => 'Post 2'],
-            ['id' => 3, 'user_id' => 100, 'title' => 'Post 3']
+            ['id' => 3, 'user_id' => 100, 'title' => 'Post 3'],
         ];
 
         $query->shouldReceive('get')->once()->andReturn($results);

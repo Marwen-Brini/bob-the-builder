@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use Bob\Database\Connection;
 use Bob\Database\Model;
-use Bob\Query\Builder as BobBuilder;
 
 /**
  * Test for Issue #13: BelongsToMany Relationship Issues
@@ -12,18 +11,21 @@ use Bob\Query\Builder as BobBuilder;
  * The problem: BelongsToMany relationships are not working correctly,
  * especially in WordPress context with term_relationships pivot table.
  */
-
 class Post extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'ID';
+
     public bool $timestamps = false;
 }
 
 class Category extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     // Add term_taxonomy_id as an attribute for the relationship
@@ -145,13 +147,13 @@ test('ISSUE #13: BelongsToMany should handle empty relationships', function () {
     $this->connection->table('terms')->insert([
         'term_id' => 3,
         'name' => 'Empty Category',
-        'slug' => 'empty'
+        'slug' => 'empty',
     ]);
     $this->connection->table('term_taxonomy')->insert([
         'term_taxonomy_id' => 3,
         'term_id' => 3,
         'taxonomy' => 'category',
-        'count' => 0
+        'count' => 0,
     ]);
 
     $category = Category::find(3);

@@ -1,10 +1,9 @@
 <?php
 
-use Bob\Database\Relations\HasOneOrMany;
-use Bob\Database\Relations\HasOne;
-use Bob\Database\Model;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Database\Relations\HasOneOrMany;
+use Bob\Query\Builder;
 use Mockery as m;
 
 describe('HasOneOrMany Full Coverage Tests', function () {
@@ -24,14 +23,20 @@ describe('HasOneOrMany Full Coverage Tests', function () {
         $this->query->shouldReceive('whereNotNull')->withAnyArgs()->andReturnSelf();
 
         // Create concrete implementation for testing
-        $this->relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany {
-            public function getResults() {
+        $this->relation = new class($this->query, $this->parent, 'user_id', 'id') extends HasOneOrMany
+        {
+            public function getResults()
+            {
                 return $this->query->get();
             }
-            public function initRelation(array $models, string $relation): array {
+
+            public function initRelation(array $models, string $relation): array
+            {
                 return $models;
             }
-            public function match(array $models, array $results, string $relation): array {
+
+            public function match(array $models, array $results, string $relation): array
+            {
                 return $models;
             }
         };

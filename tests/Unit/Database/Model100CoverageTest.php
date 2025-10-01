@@ -1,12 +1,9 @@
 <?php
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
-use Bob\Query\Builder;
+use Bob\Database\Model;
 use Bob\Database\Relations\BelongsTo;
 use Bob\Database\Relations\BelongsToMany;
-use Bob\Database\Relations\HasOne;
-use Bob\Database\Relations\HasMany;
 use Bob\Database\Relations\Relation;
 use Mockery as m;
 
@@ -34,9 +31,12 @@ describe('Model 100% Coverage Tests', function () {
         $this->connection->statement('INSERT INTO users (id, name, email) VALUES (1, "John", "john@example.com")');
 
         // Create a model instance
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
+
             protected $fillable = ['name', 'email'];
+
             public bool $timestamps = false;
         };
 
@@ -51,7 +51,8 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 607: castAttribute returns value when no cast defined
     test('castAttribute returns original value when no cast defined', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
             // No casts defined
         };
@@ -71,16 +72,19 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 793: belongsTo with null foreignKey parameter
     test('belongsTo generates foreignKey when null provided', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'posts';
 
-            public function testBelongsTo() {
+            public function testBelongsTo()
+            {
                 // Pass null as foreignKey to trigger line 793
                 return $this->belongsTo(User::class, null, 'id', 'user');
             }
         };
 
-        $user = new class extends Model {
+        $user = new class extends Model
+        {
             protected string $table = 'users';
         };
 
@@ -94,16 +98,19 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 825: belongsToMany with null table parameter
     test('belongsToMany generates table name when null provided', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
 
-            public function testBelongsToMany() {
+            public function testBelongsToMany()
+            {
                 // Pass null as table to trigger line 825
                 return $this->belongsToMany(Role::class, null, 'user_id', 'role_id');
             }
         };
 
-        $role = new class extends Model {
+        $role = new class extends Model
+        {
             protected string $table = 'roles';
         };
 
@@ -118,15 +125,18 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 951: getRelationValue loads from method when not already loaded
     test('getRelationValue loads relationship from method', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
 
-            public function posts() {
+            public function posts()
+            {
                 return $this->hasMany(Post::class, 'user_id');
             }
         };
 
-        $post = new class extends Model {
+        $post = new class extends Model
+        {
             protected string $table = 'posts';
         };
 
@@ -155,11 +165,14 @@ describe('Model 100% Coverage Tests', function () {
         $relationMock = m::mock(\Bob\Database\Relations\HasOne::class);
         $relationMock->shouldReceive('getResults')->once()->andReturn(null);
 
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
+
             public $mockedRelation = null;
 
-            public function testRelation() {
+            public function testRelation()
+            {
                 // Return the mocked relation set from outside
                 return $this->mockedRelation;
             }
@@ -183,7 +196,8 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 1024: getRelations returns relations array
     test('getRelations returns the relations array', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
         };
 
@@ -209,7 +223,8 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 1259: fresh returns null when model doesn't exist
     test('fresh returns null when model does not exist', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
         };
 
@@ -223,8 +238,10 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 1393: getAppends returns appends array
     test('getAppends returns the appends array', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
+
             protected $appends = ['full_name', 'display_name'];
         };
 
@@ -237,13 +254,16 @@ describe('Model 100% Coverage Tests', function () {
 
     // Additional test to ensure tap function works correctly (lines 986-988)
     test('tap function in getRelationshipFromMethod sets relation correctly', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
 
-            public function profile() {
+            public function profile()
+            {
                 // Return a mock relation that returns specific results
                 $relation = m::mock(Relation::class);
                 $relation->shouldReceive('getResults')->once()->andReturn(['profile_data']);
+
                 return $relation;
             }
         };
@@ -266,12 +286,15 @@ describe('Model 100% Coverage Tests', function () {
     // Test line 306 more directly
     test('performUpdate returns true when no dirty attributes', function () {
         // This test ensures line 306 is covered - when prepareAttributesForUpdate returns empty
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
+
             public bool $timestamps = false;
 
             // Override to ensure we get to the empty check
-            protected function prepareAttributesForUpdate(): array {
+            protected function prepareAttributesForUpdate(): array
+            {
                 // Return empty to trigger line 306
                 return [];
             }
@@ -293,7 +316,8 @@ describe('Model 100% Coverage Tests', function () {
 
     // Line 607: getCastedAttribute returns value when no cast defined
     test('getCastedAttribute returns original value when no cast defined', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
             // No casts defined - this will trigger line 607
         };
@@ -315,17 +339,22 @@ describe('Model 100% Coverage Tests', function () {
         $this->connection->statement('INSERT INTO users (id, name, email) VALUES (1, "Test", "test@example.com")');
 
         // Create a model where isDirty() returns true but prepareAttributesForUpdate returns empty
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected string $table = 'users';
+
             public bool $timestamps = false;
+
             protected $fillable = ['name', 'email'];
 
-            public function isDirty($attributes = null): bool {
+            public function isDirty($attributes = null): bool
+            {
                 // Force isDirty to return true so we pass line 298
                 return true;
             }
 
-            protected function prepareAttributesForUpdate(): array {
+            protected function prepareAttributesForUpdate(): array
+            {
                 // Return empty array to trigger line 306
                 return [];
             }

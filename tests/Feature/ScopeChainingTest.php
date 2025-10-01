@@ -38,20 +38,26 @@ afterEach(function () {
     Model::clearConnection();
 });
 
-class TestScopePost extends Model {
+class TestScopePost extends Model
+{
     protected string $table = 'posts';
+
     protected bool $timestamps = false;
 
-    public function scopePublished(Builder $query): Builder {
+    public function scopePublished(Builder $query): Builder
+    {
         return $query->where('status', 'published');
     }
 
-    public function scopeByAuthor(Builder $query, int $authorId): Builder {
+    public function scopeByAuthor(Builder $query, int $authorId): Builder
+    {
         return $query->where('author_id', $authorId);
     }
 
-    public function scopeRecent(Builder $query, int $days = 7): Builder {
+    public function scopeRecent(Builder $query, int $days = 7): Builder
+    {
         $date = date('Y-m-d', strtotime("-$days days"));
+
         return $query->where('published_at', '>=', $date);
     }
 }
@@ -72,7 +78,7 @@ test('can chain multiple scope methods', function () {
     $posts = TestScopePost::published()->byAuthor(1)->get();
 
     expect($posts)->toHaveCount(2);
-    $titles = array_map(fn($p) => $p->title, $posts);
+    $titles = array_map(fn ($p) => $p->title, $posts);
     expect($titles)->toBe(['Post 1', 'Post 4']);
 });
 

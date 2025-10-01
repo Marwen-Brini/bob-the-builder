@@ -8,11 +8,12 @@ use Bob\Database\Model;
 /**
  * Test Issue #15 with fillable restrictions on existing columns
  */
-
 class ModelWithFillable extends Model
 {
     protected string $table = 'test_table';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
 
     // Only 'name' is fillable, 'status' is not
@@ -22,7 +23,9 @@ class ModelWithFillable extends Model
 class ModelWithGuarded extends Model
 {
     protected string $table = 'test_table';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
 
     // 'status' is guarded (protected)
@@ -64,14 +67,13 @@ test('ISSUE #15: Direct assignment to non-fillable existing column', function ()
     // Assign to non-fillable but existing field - what happens?
     $model->status = 'inactive';
 
-
     $this->connection->enableQueryLog();
 
     $result = $model->save();
 
     $queries = $this->connection->getQueryLog();
 
-    if (!empty($queries)) {
+    if (! empty($queries)) {
     }
 
     // Check what was actually saved
@@ -84,18 +86,15 @@ test('ISSUE #15: Direct assignment to non-fillable existing column', function ()
 test('ISSUE #15: Mass assignment vs direct assignment behavior', function () {
     // Test the difference between mass assignment and direct assignment
 
-
     $model = ModelWithFillable::find(1);
 
     // Mass assignment should respect fillable
     $model->fill(['name' => 'Mass Assigned Name', 'status' => 'mass_assigned']);
 
-
     // Now try direct assignment
     $model = ModelWithFillable::find(1);
     $model->name = 'Direct Name';
     $model->status = 'direct_status';
-
 
     // The question: Does direct assignment ignore fillable restrictions?
     // If yes, then both should be dirty and both should save
@@ -107,7 +106,6 @@ test('ISSUE #15: Test guarded behavior', function () {
 
     $model->name = 'New Name';      // Not guarded, should work
     $model->status = 'guarded_value'; // Guarded, what happens?
-
 
     $result = $model->save();
 

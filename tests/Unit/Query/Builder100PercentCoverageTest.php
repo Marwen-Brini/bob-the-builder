@@ -1,24 +1,23 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
-use Bob\Query\Grammar;
-use Bob\Query\Processor;
 use Bob\Database\Model;
-use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\Grammars\PostgreSQLGrammar;
-use Bob\Database\Expression;
-use Bob\Database\Relations\HasMany;
-use Bob\Database\Relations\HasOne;
 use Bob\Database\Relations\BelongsTo;
 use Bob\Database\Relations\BelongsToMany;
+use Bob\Database\Relations\HasMany;
+use Bob\Database\Relations\HasOne;
+use Bob\Query\Builder;
+use Bob\Query\Grammar;
+use Bob\Query\Grammars\MySQLGrammar;
+use Bob\Query\Grammars\PostgreSQLGrammar;
+use Bob\Query\Processor;
 
 describe('Builder 100% Coverage - Final Push', function () {
 
     beforeEach(function () {
         $this->connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $this->grammar = new MySQLGrammar();
-        $this->processor = new Processor();
+        $this->grammar = new MySQLGrammar;
+        $this->processor = new Processor;
         $this->builder = new Builder($this->connection, $this->grammar, $this->processor);
     });
 
@@ -233,7 +232,7 @@ describe('Builder 100% Coverage - Final Push', function () {
 
     // Line 1018: hydrateModel when no model is set
     test('hydrateModel returns data unchanged when no model', function () {
-        $data = (object)['id' => 1, 'name' => 'Test'];
+        $data = (object) ['id' => 1, 'name' => 'Test'];
 
         $reflection = new ReflectionClass($this->builder);
         $method = $reflection->getMethod('hydrateModel');
@@ -269,9 +268,9 @@ describe('Builder 100% Coverage - Final Push', function () {
     // Line 1313: leftJoinWhere with complex callback
     test('leftJoinWhere handles complex join conditions', function () {
         $this->builder->from('users')
-            ->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function($join) {
+            ->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function ($join) {
                 $join->where('posts.published', '=', 1)
-                     ->orWhere('posts.featured', '=', 1);
+                    ->orWhere('posts.featured', '=', 1);
             });
 
         $bindings = $this->builder->getRawBindings();
@@ -303,7 +302,7 @@ describe('Builder 100% Coverage - Final Push', function () {
 
     // Line 1442: inRandomOrder with different grammar
     test('inRandomOrder with PostgreSQL grammar', function () {
-        $pgGrammar = new PostgreSQLGrammar();
+        $pgGrammar = new PostgreSQLGrammar;
         $builder = new Builder($this->connection, $pgGrammar, $this->processor);
 
         $builder->from('users')->inRandomOrder();
@@ -428,7 +427,7 @@ describe('Builder 100% Coverage - Final Push', function () {
 
     test('orWhereJsonContains adds OR condition', function () {
         // Check if the method exists first
-        if (!method_exists($this->builder, 'orWhereJsonContains')) {
+        if (! method_exists($this->builder, 'orWhereJsonContains')) {
             $this->markTestSkipped('orWhereJsonContains method not implemented');
         }
 
@@ -444,7 +443,7 @@ describe('Builder 100% Coverage - Final Push', function () {
     // Lines 2116-2145: whereJsonLength variations
     test('orWhereJsonLength adds OR condition', function () {
         // Check if the method exists first
-        if (!method_exists($this->builder, 'orWhereJsonLength')) {
+        if (! method_exists($this->builder, 'orWhereJsonLength')) {
             $this->markTestSkipped('orWhereJsonLength method not implemented');
         }
 
@@ -468,11 +467,14 @@ describe('Builder 100% Coverage - Final Push', function () {
 
     // Line 2155: dd method
     test('dd method can be overridden', function () {
-        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder {
+        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder
+        {
             public $dumped = false;
 
-            public function dd() {
+            public function dd()
+            {
                 $this->dumped = true;
+
                 return ['sql' => $this->toSql(), 'bindings' => $this->getBindings()];
             }
         };
@@ -483,8 +485,10 @@ describe('Builder 100% Coverage - Final Push', function () {
 
     // Line 2275: dump method
     test('dump returns self for chaining', function () {
-        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder {
-            public function dump() {
+        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder
+        {
+            public function dump()
+            {
                 return $this;
             }
         };
@@ -495,7 +499,7 @@ describe('Builder 100% Coverage - Final Push', function () {
 
     // Lines 2304-2307: Additional methods that might exist
     test('builder can be extended with custom methods', function () {
-        Builder::macro('customMethod', function() {
+        Builder::macro('customMethod', function () {
             return $this->from('custom_table');
         });
 

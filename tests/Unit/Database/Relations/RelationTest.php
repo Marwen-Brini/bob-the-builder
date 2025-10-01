@@ -1,9 +1,9 @@
 <?php
 
-use Bob\Database\Relations\Relation;
-use Bob\Database\Model;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Database\Relations\Relation;
+use Bob\Query\Builder;
 use Mockery as m;
 
 describe('Relation Tests', function () {
@@ -22,7 +22,8 @@ describe('Relation Tests', function () {
         $this->related->shouldReceive('qualifyColumn')->with('parent_id')->andReturn('related.parent_id');
 
         // Create a concrete implementation for testing
-        $this->relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation {
+        $this->relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void
             {
                 // Mock implementation
@@ -68,15 +69,30 @@ describe('Relation Tests', function () {
         $this->query->shouldReceive('get')->with(['*'])->andReturn($results);
 
         // Create a relation that overrides hydrateRelatedModels to avoid static method calls
-        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
-            public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
 
-            protected function hydrateRelatedModels(array $results): array {
-                return ['hydrated_' . count($results)]; // Mock hydration
+            public function addEagerConstraints(array $models): void {}
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
+
+            protected function hydrateRelatedModels(array $results): array
+            {
+                return ['hydrated_'.count($results)]; // Mock hydration
             }
         };
 
@@ -90,14 +106,29 @@ describe('Relation Tests', function () {
         $this->query->shouldReceive('get')->with(['id', 'name'])->andReturn($results);
 
         // Use the same approach for custom columns test
-        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
-            public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
 
-            protected function hydrateRelatedModels(array $results): array {
+            public function addEagerConstraints(array $models): void {}
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
+
+            protected function hydrateRelatedModels(array $results): array
+            {
                 return ['hydrated_custom']; // Mock hydration
             }
         };
@@ -137,15 +168,36 @@ describe('Relation Tests', function () {
         $this->query->shouldReceive('update')->once()->andReturn(1);
 
         // Create a relation that overrides touch behavior
-        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
-            public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
 
-            protected function shouldTouch(): bool { return true; }
-            protected function performTouch(): void { $this->query->update(['updated_at' => 'now']); }
+            public function addEagerConstraints(array $models): void {}
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
+
+            protected function shouldTouch(): bool
+            {
+                return true;
+            }
+
+            protected function performTouch(): void
+            {
+                $this->query->update(['updated_at' => 'now']);
+            }
         };
 
         $relation->touch();
@@ -155,15 +207,36 @@ describe('Relation Tests', function () {
         $this->query->shouldNotReceive('update');
 
         // Create a relation that overrides touch behavior
-        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($this->query, $this->parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
-            public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
 
-            protected function shouldTouch(): bool { return false; }
-            protected function performTouch(): void { $this->query->update(['updated_at' => 'now']); }
+            public function addEagerConstraints(array $models): void {}
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
+
+            protected function shouldTouch(): bool
+            {
+                return false;
+            }
+
+            protected function performTouch(): void
+            {
+                $this->query->update(['updated_at' => 'now']);
+            }
         };
 
         $relation->touch();
@@ -378,11 +451,14 @@ describe('Relation Tests', function () {
     // Lines 124-126: shouldTouch checks if model is ignoring touch
     test('shouldTouch returns false when model is ignoring touch', function () {
         // Create a model class that reports touch is being ignored
-        $relatedModelClass = new class extends Model {
+        $relatedModelClass = new class extends Model
+        {
             protected string $table = 'test';
+
             protected static bool $ignoreTouch = true;
 
-            public static function isIgnoringTouch(): bool {
+            public static function isIgnoringTouch(): bool
+            {
                 return true;
             }
         };
@@ -393,15 +469,30 @@ describe('Relation Tests', function () {
         $parent = m::mock(Model::class);
 
         // Create a test relation that exposes the protected shouldTouch method
-        $relation = new class($query, $parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($query, $parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
+
             public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
 
             // Expose protected method for testing
-            public function testShouldTouch(): bool {
+            public function testShouldTouch(): bool
+            {
                 return $this->shouldTouch();
             }
         };
@@ -422,25 +513,43 @@ describe('Relation Tests', function () {
         $parent = m::mock(Model::class);
 
         // Create a test relation that exposes the protected performTouch method
-        $relation = new class($query, $parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($query, $parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
+
             public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
 
             // Track if rawUpdate was called
             public $rawUpdateCalled = false;
+
             public $rawUpdateData = null;
 
-            public function rawUpdate(array $attributes = []): int {
+            public function rawUpdate(array $attributes = []): int
+            {
                 $this->rawUpdateCalled = true;
                 $this->rawUpdateData = $attributes;
+
                 return 1;
             }
 
             // Expose protected method for testing
-            public function testPerformTouch(): void {
+            public function testPerformTouch(): void
+            {
                 $this->performTouch();
             }
         };
@@ -459,15 +568,30 @@ describe('Relation Tests', function () {
         $parent = m::mock(Model::class);
 
         // Create a test relation with a specific relation name
-        $relation = new class($query, $parent, 'parent_id', 'id') extends Relation {
+        $relation = new class($query, $parent, 'parent_id', 'id') extends Relation
+        {
             public function addConstraints(): void {}
+
             public function addEagerConstraints(array $models): void {}
-            public function initRelation(array $models, string $relation): array { return $models; }
-            public function match(array $models, array $results, string $relation): array { return $models; }
-            public function getResults() { return $this->get(); }
+
+            public function initRelation(array $models, string $relation): array
+            {
+                return $models;
+            }
+
+            public function match(array $models, array $results, string $relation): array
+            {
+                return $models;
+            }
+
+            public function getResults()
+            {
+                return $this->get();
+            }
 
             // Set the protected property
-            public function setRelationName(string $name): void {
+            public function setRelationName(string $name): void
+            {
                 $this->relationName = $name;
             }
         };

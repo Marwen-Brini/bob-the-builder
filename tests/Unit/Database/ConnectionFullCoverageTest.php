@@ -1,17 +1,15 @@
 <?php
 
+use Bob\Cache\QueryCache;
 use Bob\Database\Connection;
+use Bob\Database\QueryProfiler;
+use Bob\Logging\Log;
 use Bob\Query\Grammar;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Grammars\PostgreSQLGrammar;
-use Bob\Query\Grammars\SQLiteGrammar;
 use Bob\Query\Processor;
-use Bob\Database\QueryProfiler;
-use Bob\Cache\QueryCache;
-use Bob\Logging\Log;
-use Bob\Logging\QueryLogger;
-use Psr\Log\LoggerInterface;
 use Mockery as m;
+use Psr\Log\LoggerInterface;
 
 beforeEach(function () {
     // Clear any global loggers
@@ -45,7 +43,7 @@ afterEach(function () {
 });
 
 test('Connection with unsupported driver throws exception', function () {
-    expect(fn() => new Connection(['driver' => 'oracle']))
+    expect(fn () => new Connection(['driver' => 'oracle']))
         ->toThrow(InvalidArgumentException::class, 'Database driver [oracle] not supported');
 });
 
@@ -126,7 +124,7 @@ test('Connection scalar method with object result', function () {
 
     $pdo->shouldReceive('prepare')->once()->andReturn($statement);
     $statement->shouldReceive('execute')->once()->with([])->andReturn(true);
-    $statement->shouldReceive('fetchAll')->once()->andReturn([(object)['count' => 42]]);
+    $statement->shouldReceive('fetchAll')->once()->andReturn([(object) ['count' => 42]]);
 
     $connection = new Connection([]);
     $connection->setPdo($pdo);
@@ -596,7 +594,7 @@ test('Connection getPostgresDsn', function () {
         'driver' => 'pgsql',
         'host' => 'localhost',
         'port' => 5432,
-        'database' => 'test'
+        'database' => 'test',
     ]);
 
     $reflection = new ReflectionClass($connection);
@@ -613,7 +611,7 @@ test('Connection getMySQLDsn', function () {
         'host' => 'localhost',
         'port' => 3306,
         'database' => 'test',
-        'charset' => 'utf8mb4'
+        'charset' => 'utf8mb4',
     ]);
 
     $reflection = new ReflectionClass($connection);
@@ -627,7 +625,7 @@ test('Connection getMySQLDsn', function () {
 test('Connection getSQLiteDsn', function () {
     $connection = new Connection([
         'driver' => 'sqlite',
-        'database' => '/path/to/db.sqlite'
+        'database' => '/path/to/db.sqlite',
     ]);
 
     $reflection = new ReflectionClass($connection);
@@ -742,7 +740,7 @@ test('Connection select with pretending returns empty array (line 301)', functio
     $connection = new Connection([]);
 
     $results = null;
-    $connection->pretend(function($conn) use (&$results) {
+    $connection->pretend(function ($conn) use (&$results) {
         $results = $conn->select('SELECT * FROM users');
     });
 
@@ -753,7 +751,7 @@ test('Connection affectingStatement with pretending returns 0 (line 407)', funct
     $connection = new Connection([]);
 
     $result = null;
-    $connection->pretend(function($conn) use (&$result) {
+    $connection->pretend(function ($conn) use (&$result) {
         $result = $conn->affectingStatement('UPDATE users SET name = ?', ['test']);
     });
 

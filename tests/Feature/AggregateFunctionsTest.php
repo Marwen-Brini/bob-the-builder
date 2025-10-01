@@ -1,8 +1,8 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Expression;
+use Bob\Database\Model;
 
 beforeEach(function () {
     $this->connection = new Connection([
@@ -45,12 +45,12 @@ test('can use aggregate functions in select with Expression', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    
+
     $statusCounts = [];
     foreach ($results as $row) {
         $statusCounts[$row->status] = $row->count;
     }
-    
+
     expect($statusCounts['published'])->toBe(3);
     expect($statusCounts['draft'])->toBe(2);
 });
@@ -63,12 +63,12 @@ test('can use aggregate functions in select as string', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    
+
     $statusCounts = [];
     foreach ($results as $row) {
         $statusCounts[$row->status] = $row->count;
     }
-    
+
     expect($statusCounts['published'])->toBe(3);
     expect($statusCounts['draft'])->toBe(2);
 });
@@ -80,7 +80,7 @@ test('can use multiple aggregate functions', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    
+
     foreach ($results as $row) {
         if ($row->category === 'tech') {
             expect($row->count)->toBe(3);
@@ -101,12 +101,12 @@ test('selectRaw works with aggregate functions', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    
+
     $statusCounts = [];
     foreach ($results as $row) {
         $statusCounts[$row->status] = $row->count;
     }
-    
+
     expect($statusCounts['published'])->toBe(3);
     expect($statusCounts['draft'])->toBe(2);
 });
@@ -153,7 +153,7 @@ test('common aggregate patterns work', function () {
 
     foreach ($patterns as $pattern) {
         $query = $this->connection->table('posts')
-            ->select($pattern . ' as result')
+            ->select($pattern.' as result')
             ->toSql();
 
         // Should not wrap aggregate functions in quotes

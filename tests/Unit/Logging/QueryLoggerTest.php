@@ -1,9 +1,9 @@
 <?php
 
 use Bob\Logging\QueryLogger;
+use Mockery as m;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use Mockery as m;
 
 describe('QueryLogger Tests', function () {
 
@@ -28,7 +28,7 @@ describe('QueryLogger Tests', function () {
     });
 
     test('constructor works without logger', function () {
-        $logger = new QueryLogger();
+        $logger = new QueryLogger;
 
         $reflection = new ReflectionClass($logger);
         $property = $reflection->getProperty('logger');
@@ -106,7 +106,7 @@ describe('QueryLogger Tests', function () {
             ->with(LogLevel::DEBUG, 'Query executed', [
                 'query' => 'SELECT * FROM users',
                 'bindings' => ['id' => 1],
-                'time' => '50ms'
+                'time' => '50ms',
             ]);
 
         $this->logger->logQuery('SELECT * FROM users', ['id' => 1], 50);
@@ -145,7 +145,7 @@ describe('QueryLogger Tests', function () {
             ->once()
             ->with(LogLevel::DEBUG, 'Query executed', [
                 'query' => 'SELECT * FROM users',
-                'time' => '50ms'
+                'time' => '50ms',
             ]);
 
         $this->logger->logQuery('SELECT * FROM users', ['id' => 1], 50);
@@ -161,7 +161,7 @@ describe('QueryLogger Tests', function () {
             ->once()
             ->with(LogLevel::DEBUG, 'Query executed', [
                 'query' => 'SELECT * FROM users',
-                'bindings' => ['id' => 1]
+                'bindings' => ['id' => 1],
             ]);
 
         $this->logger->logQuery('SELECT * FROM users', ['id' => 1], 50);
@@ -171,7 +171,7 @@ describe('QueryLogger Tests', function () {
     });
 
     test('logQuery stores in internal log without PSR logger', function () {
-        $logger = new QueryLogger();
+        $logger = new QueryLogger;
 
         $logger->logQuery('SELECT * FROM users', ['id' => 1], 50);
 
@@ -189,14 +189,14 @@ describe('QueryLogger Tests', function () {
                 'query' => 'SELECT * FROM invalid',
                 'bindings' => [],
                 'error' => 'Syntax error',
-                'code' => 42
+                'code' => 42,
             ]);
 
         $this->logger->logQueryError('SELECT * FROM invalid', [], $exception);
     });
 
     test('logQueryError stores in internal log without PSR logger', function () {
-        $logger = new QueryLogger();
+        $logger = new QueryLogger;
         $exception = new Exception('Syntax error', 42);
 
         $logger->logQueryError('SELECT * FROM invalid', [], $exception);
@@ -235,7 +235,7 @@ describe('QueryLogger Tests', function () {
         $config = [
             'host' => 'localhost',
             'database' => 'test',
-            'password' => 'secret'
+            'password' => 'secret',
         ];
 
         $this->psrLogger->shouldReceive('info')
@@ -244,8 +244,8 @@ describe('QueryLogger Tests', function () {
                 'event' => 'connect',
                 'config' => [
                     'host' => 'localhost',
-                    'database' => 'test'
-                ]
+                    'database' => 'test',
+                ],
             ]);
 
         $this->logger->logConnection('connect', $config);
@@ -415,7 +415,7 @@ describe('QueryLogger Tests', function () {
     });
 
     test('PSR-3 methods store in internal log without PSR logger', function () {
-        $logger = new QueryLogger();
+        $logger = new QueryLogger;
 
         $logger->error('Error message', ['data' => 'test']);
         $logger->warning('Warning message', ['data' => 'test']);

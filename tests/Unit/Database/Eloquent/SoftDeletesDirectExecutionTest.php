@@ -1,40 +1,44 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletes;
 use Bob\Database\Eloquent\SoftDeletingScope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 
 /**
  * Direct execution tests for uncovered SoftDeletes lines
  * Targeting lines 71-73 and 86-105
  */
-
 class DirectExecutionModel extends Model
 {
     use SoftDeletes;
 
     protected string $table = 'direct_test';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = true;
 
     // Add properties to support dynamic property access
     public $id;
+
     public $deleted_at;
+
     public $updated_at;
 
     // Override problematic methods to make execution possible
     protected function fireModelEvent($event, $halt = true): mixed
     {
         // Just return true to allow execution to continue
-        return !$halt;
+        return ! $halt;
     }
 
     protected function setKeysForSaveQuery($query)
     {
         // Add where clause for primary key
-        $query->where($this->getTable() . '.' . $this->primaryKey, $this->getAttribute($this->primaryKey));
+        $query->where($this->getTable().'.'.$this->primaryKey, $this->getAttribute($this->primaryKey));
+
         return $query;
     }
 
@@ -78,12 +82,13 @@ class DirectExecutionModel extends Model
     public function newQuery(): Builder
     {
         $connection = Model::getConnection();
-        if (!$connection) {
+        if (! $connection) {
             $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
             Model::setConnection($connection);
         }
         $builder = $connection->table($this->table);
         $builder->setModel($this);
+
         return $builder;
     }
 }
@@ -100,7 +105,7 @@ test('performDeleteOnModel with forceDeleting=true executes lines 71-73', functi
     $connection = Model::getConnection();
     $connection->table('direct_test')->insert(['id' => 1, 'name' => 'Test']);
 
-    $model = new DirectExecutionModel();
+    $model = new DirectExecutionModel;
     $model->id = 1;
 
     // Use reflection to set forceDeleting and call performDeleteOnModel
@@ -135,7 +140,7 @@ test('runSoftDelete executes full logic lines 86-105', function () {
     $connection = Model::getConnection();
     $connection->table('direct_test')->insert(['id' => 2, 'name' => 'Test2', 'deleted_at' => null, 'updated_at' => null]);
 
-    $model = new DirectExecutionModel();
+    $model = new DirectExecutionModel;
     $model->id = 2;
 
     // Use reflection to call the protected runSoftDelete method
@@ -179,7 +184,7 @@ test('runSoftDelete without timestamps skips lines 95-99', function () {
     $connection = Model::getConnection();
     $connection->table('direct_test')->insert(['id' => 3, 'name' => 'Test3', 'deleted_at' => null, 'updated_at' => null]);
 
-    $model = new DirectExecutionModel();
+    $model = new DirectExecutionModel;
     $model->id = 3;
     $model->timestamps = false; // Disable timestamps
 
@@ -207,7 +212,7 @@ test('performDeleteOnModel with forceDeleting=false calls runSoftDelete', functi
     $connection = Model::getConnection();
     $connection->table('direct_test')->insert(['id' => 4, 'name' => 'Test4']);
 
-    $model = new DirectExecutionModel();
+    $model = new DirectExecutionModel;
     $model->id = 4;
 
     // Use reflection to ensure forceDeleting is false and call performDeleteOnModel

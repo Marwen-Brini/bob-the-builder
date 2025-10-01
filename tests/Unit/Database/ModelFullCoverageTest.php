@@ -1,21 +1,24 @@
 <?php
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
-use Bob\Query\Builder;
-use Bob\Database\Relations\BelongsTo;
+use Bob\Database\Model;
 use Bob\Database\Relations\HasMany;
-use Bob\Database\Relations\HasOne;
-use Bob\Database\Relations\BelongsToMany;
+use Bob\Query\Builder;
 use Mockery as m;
 
 // Test model with various configurations
-class TestModelForCoverage extends Model {
+class TestModelForCoverage extends Model
+{
     protected string $table = 'test_models';
+
     protected string $primaryKey = 'id';
+
     protected $fillable = ['name', 'email', 'status', 'data'];
+
     protected $guarded = ['admin_only'];
+
     protected $hidden = ['password'];
+
     protected array $casts = [
         'status' => 'string',
         'count' => 'int',
@@ -25,6 +28,7 @@ class TestModelForCoverage extends Model {
         'meta' => 'json',
         'created_at' => 'datetime',
     ];
+
     public bool $timestamps = true;
 
     // Relationship methods for testing
@@ -44,13 +48,17 @@ class TestModelForCoverage extends Model {
     }
 }
 
-class TestProfileModel extends Model {
+class TestProfileModel extends Model
+{
     protected string $table = 'profiles';
+
     public bool $timestamps = false;
 }
 
-class ModelWithoutTimestamps extends Model {
+class ModelWithoutTimestamps extends Model
+{
     protected string $table = 'no_timestamps';
+
     public bool $timestamps = false;
 }
 
@@ -82,7 +90,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 306: save() when no dirty attributes
     test('save returns true when no dirty attributes', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
         $model->exists = true;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Test');
@@ -96,8 +104,10 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 351: delete() when canDelete() returns false
     test('delete returns false when canDelete returns false', function () {
-        $model = new class extends TestModelForCoverage {
-            protected function canDelete(): bool {
+        $model = new class extends TestModelForCoverage
+        {
+            protected function canDelete(): bool
+            {
                 return false;
             }
         };
@@ -110,7 +120,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 607: castAttribute when no cast defined
     test('castAttribute returns value unchanged when no cast defined', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         // Use reflection to call protected method
         $method = new ReflectionMethod($model, 'castAttribute');
@@ -123,7 +133,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 633: castAttribute for string type
     test('castAttribute casts to string type', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $method = new ReflectionMethod($model, 'castAttribute');
         $method->setAccessible(true);
@@ -135,7 +145,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 862: getForeignKeyForBelongsTo generates correct key
     test('getForeignKeyForBelongsTo generates correct key', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         // Use reflection to test the protected method directly
         $method = new ReflectionMethod($model, 'getForeignKeyForBelongsTo');
@@ -152,7 +162,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 854: getForeignKey generates correct key for hasMany
     test('getForeignKey generates correct key for hasMany', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         // Public method, can call directly
         $foreignKey = $model->getForeignKey();
@@ -163,11 +173,11 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 951: getRelationValue returns loaded relations
     test('getRelationValue returns loaded relations', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
         $model->setAttribute('id', 1);
 
         // Set a loaded relation directly
-        $relatedModel = new TestModelForCoverage();
+        $relatedModel = new TestModelForCoverage;
         $relatedModel->setAttribute('id', 2);
         $model->setRelation('parent', $relatedModel);
 
@@ -184,12 +194,12 @@ describe('Model Full Coverage Tests', function () {
 
     // Lines 986-988: toArray with relations
     test('toArray includes loaded relations', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Test');
 
         // Set a loaded relation
-        $relatedModel = new TestModelForCoverage();
+        $relatedModel = new TestModelForCoverage;
         $relatedModel->setAttribute('id', 2);
         $relatedModel->setAttribute('name', 'Related');
 
@@ -204,7 +214,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 1024: __set magic method
     test('__set magic method sets attribute', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $model->name = 'John Doe';
 
@@ -213,7 +223,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 1115: newInstance with exists = false
     test('newInstance creates model without exists flag', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $newModel = $model->newInstance(['name' => 'New Model'], false);
 
@@ -223,7 +233,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 1259: getForeignKeyForBelongsTo
     test('getForeignKeyForBelongsTo generates correct foreign key', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $method = new ReflectionMethod($model, 'getForeignKeyForBelongsTo');
         $method->setAccessible(true);
@@ -235,7 +245,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Line 1393: hasRelationMethod checks if method exists
     test('hasRelationMethod returns true for existing relation methods', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $method = new ReflectionMethod($model, 'hasRelationMethod');
         $method->setAccessible(true);
@@ -247,7 +257,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Test various cast types
     test('castAttribute handles all cast types correctly', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $method = new ReflectionMethod($model, 'castAttribute');
         $method->setAccessible(true);
@@ -281,7 +291,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Test model without timestamps
     test('model without timestamps does not update timestamps', function () {
-        $model = new ModelWithoutTimestamps();
+        $model = new ModelWithoutTimestamps;
         $model->setAttribute('name', 'Test');
 
         // This should not set created_at or updated_at
@@ -293,13 +303,13 @@ describe('Model Full Coverage Tests', function () {
 
     // Test fillable and guarded
     test('fill respects fillable and guarded attributes', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $model->fill([
             'name' => 'John',
             'email' => 'john@example.com',
             'admin_only' => 'secret', // This is guarded
-            'non_fillable' => 'ignored'
+            'non_fillable' => 'ignored',
         ]);
 
         expect($model->getAttribute('name'))->toBe('John');
@@ -310,7 +320,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Test hidden attributes in toArray
     test('toArray respects hidden attributes', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
         $model->setAttribute('name', 'John');
         $model->setAttribute('password', 'secret123');
 
@@ -322,7 +332,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Test hasRelationMethod
     test('hasRelationMethod detects existing relationship methods', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         $method = new ReflectionMethod($model, 'hasRelationMethod');
         $method->setAccessible(true);
@@ -339,7 +349,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Test dirty attributes
     test('getDirty returns only changed attributes', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
 
         // Set original attributes
         $model->setAttribute('name', 'Original');
@@ -358,7 +368,7 @@ describe('Model Full Coverage Tests', function () {
 
     // Test insert and update methods
     test('insert handles auto-incrementing keys', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
         $model->setAttribute('name', 'Test');
 
         // Mock the static query() method using the connection's builder
@@ -377,7 +387,7 @@ describe('Model Full Coverage Tests', function () {
     });
 
     test('prepareAttributesForUpdate adds updated_at timestamp', function () {
-        $model = new TestModelForCoverage();
+        $model = new TestModelForCoverage;
         $model->exists = true;
 
         // Set original attributes

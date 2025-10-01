@@ -10,10 +10,10 @@ use Bob\Schema\Fluent;
 use Bob\Schema\SchemaGrammar;
 
 beforeEach(function () {
-    $this->grammar = new TestableSchemaGrammar();
+    $this->grammar = new TestableSchemaGrammar;
     $this->connection = new Connection([
         'driver' => 'sqlite',
-        'database' => ':memory:'
+        'database' => ':memory:',
     ]);
 });
 
@@ -116,7 +116,7 @@ test('get type with valid type', function () {
 test('get type with invalid type', function () {
     $column = new Fluent(['type' => 'invalidType']);
 
-    expect(fn() => $this->grammar->getType($column))
+    expect(fn () => $this->grammar->getType($column))
         ->toThrow(\RuntimeException::class, 'Column type [invalidType] is not supported.');
 });
 
@@ -243,7 +243,7 @@ test('compile fulltext throws exception', function () {
     $blueprint = new Blueprint('posts');
     $command = new Fluent(['columns' => ['content']]);
 
-    expect(fn() => $this->grammar->compileFulltext($blueprint, $command))
+    expect(fn () => $this->grammar->compileFulltext($blueprint, $command))
         ->toThrow(\RuntimeException::class, 'This database does not support fulltext indexes.');
 });
 
@@ -251,7 +251,7 @@ test('compile spatial index throws exception', function () {
     $blueprint = new Blueprint('places');
     $command = new Fluent(['columns' => ['location']]);
 
-    expect(fn() => $this->grammar->compileSpatialIndex($blueprint, $command))
+    expect(fn () => $this->grammar->compileSpatialIndex($blueprint, $command))
         ->toThrow(\RuntimeException::class, 'This database does not support spatial indexes.');
 });
 
@@ -260,7 +260,7 @@ test('compile foreign', function () {
     $command = new Fluent([
         'columns' => ['user_id'],
         'on' => 'users',
-        'references' => ['id']
+        'references' => ['id'],
     ]);
 
     $sql = $this->grammar->compileForeign($blueprint, $command);
@@ -274,7 +274,7 @@ test('compile foreign with name', function () {
         'columns' => ['user_id'],
         'on' => 'users',
         'references' => ['id'],
-        'name' => 'posts_user_id_foreign'
+        'name' => 'posts_user_id_foreign',
     ]);
 
     $sql = $this->grammar->compileForeign($blueprint, $command);
@@ -288,7 +288,7 @@ test('compile foreign with actions', function () {
         'on' => 'users',
         'references' => ['id'],
         'onDelete' => 'cascade',
-        'onUpdate' => 'restrict'
+        'onUpdate' => 'restrict',
     ]);
 
     $sql = $this->grammar->compileForeign($blueprint, $command);
@@ -364,7 +364,7 @@ test('compile comment throws exception', function () {
     $blueprint = new Blueprint('users');
     $command = new Fluent([]);
 
-    expect(fn() => $this->grammar->compileComment($blueprint, $command))
+    expect(fn () => $this->grammar->compileComment($blueprint, $command))
         ->toThrow(\RuntimeException::class, 'This database does not support table comments.');
 });
 

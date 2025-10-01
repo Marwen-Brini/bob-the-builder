@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Database;
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
-use Bob\Query\Builder;
-use Mockery as m;
+use Bob\Database\Model;
 
 class TestRawSelectModel extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'id';
+
     protected array $fillable = ['id', 'title', 'content'];
 }
 

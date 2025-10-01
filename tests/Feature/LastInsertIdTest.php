@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Bob\Database\Connection;
-use PDO;
 
 beforeEach(function () {
     // Create SQLite in-memory database for testing
@@ -53,7 +52,7 @@ test('lastInsertId works with query builder insert', function () {
     // Insert using query builder
     $this->connection->table('users')->insert([
         'name' => 'John Doe',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ]);
 
     $id = $this->connection->lastInsertId();
@@ -72,7 +71,7 @@ test('lastInsertId persists across multiple tables', function () {
     // Insert into users table
     $this->connection->table('users')->insert([
         'name' => 'John Doe',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ]);
 
     $userId = $this->connection->lastInsertId();
@@ -82,7 +81,7 @@ test('lastInsertId persists across multiple tables', function () {
     $this->connection->table('posts')->insert([
         'title' => 'First Post',
         'content' => 'Hello World',
-        'user_id' => $userId
+        'user_id' => $userId,
     ]);
 
     $postId = $this->connection->lastInsertId();
@@ -92,7 +91,7 @@ test('lastInsertId persists across multiple tables', function () {
 test('insertGetId returns the ID directly', function () {
     $id = $this->connection->insertGetId('users', [
         'name' => 'John Doe',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ]);
 
     expect($id)->toBe('1');
@@ -106,17 +105,17 @@ test('insertGetId returns the ID directly', function () {
 test('insertGetId works with multiple inserts', function () {
     $id1 = $this->connection->insertGetId('users', [
         'name' => 'User 1',
-        'email' => 'user1@example.com'
+        'email' => 'user1@example.com',
     ]);
 
     $id2 = $this->connection->insertGetId('users', [
         'name' => 'User 2',
-        'email' => 'user2@example.com'
+        'email' => 'user2@example.com',
     ]);
 
     $id3 = $this->connection->insertGetId('users', [
         'name' => 'User 3',
-        'email' => 'user3@example.com'
+        'email' => 'user3@example.com',
     ]);
 
     expect($id1)->toBe('1');
@@ -131,13 +130,13 @@ test('insertGetId works with multiple inserts', function () {
 test('insertGetId works with different tables', function () {
     $userId = $this->connection->insertGetId('users', [
         'name' => 'John Doe',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ]);
 
     $postId = $this->connection->insertGetId('posts', [
         'title' => 'My Post',
         'content' => 'Post content',
-        'user_id' => $userId
+        'user_id' => $userId,
     ]);
 
     expect($userId)->toBe('1');
@@ -145,7 +144,7 @@ test('insertGetId works with different tables', function () {
 
     // Verify the relationship
     $post = $this->connection->table('posts')->find($postId);
-    expect((string)$post->user_id)->toBe($userId);
+    expect((string) $post->user_id)->toBe($userId);
 });
 
 test('lastInsertId works after bulk insert', function () {
@@ -166,7 +165,7 @@ test('insertGetId with null values', function () {
     $id = $this->connection->insertGetId('posts', [
         'title' => 'Post without content',
         'content' => null,
-        'user_id' => null
+        'user_id' => null,
     ]);
 
     expect($id)->toBe('1');
@@ -194,12 +193,12 @@ test('lastInsertId is connection specific', function () {
     // Insert in first connection
     $this->connection->insertGetId('users', [
         'name' => 'User 1',
-        'email' => 'user1@example.com'
+        'email' => 'user1@example.com',
     ]);
 
     // Insert in second connection
     $connection2->insertGetId('items', [
-        'name' => 'Item 1'
+        'name' => 'Item 1',
     ]);
 
     // Each connection should have its own lastInsertId

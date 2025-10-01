@@ -22,6 +22,10 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 
 - 🚀 **Full ORM with ActiveRecord** - Complete ORM layer with models and relationships (v2.0)
 - 🔗 **Laravel-like Relationships** - HasOne, HasMany, BelongsTo, BelongsToMany with eager loading
+- 🗄️ **Database Migrations** - Complete migration system with versioning and rollbacks (v3.0)
+- 🏗️ **Schema Builder** - Fluent interface for creating and modifying database tables
+- 🔍 **Schema Inspector** - Reverse engineer existing databases and generate migrations
+- 🌐 **WordPress Schema Support** - Specialized helpers for WordPress/WooCommerce tables
 - 💼 **Laravel-like Fluent Interface** - Familiar, expressive query builder syntax
 - 🔧 **Database Agnostic** - Support for MySQL, PostgreSQL, SQLite via PDO
 - 🎯 **Zero Dependencies** - Only requires PHP and PDO
@@ -33,8 +37,29 @@ While initially created to modernize Quantum ORM's query building capabilities, 
 - 📊 **PSR-3 Logging** - Built-in query logging with slow query detection
 - 💾 **Memory Efficient** - Stream 50k+ rows with minimal memory usage
 - 🎁 **Collections** - Powerful collection class for working with result sets
+- 🎪 **Event System** - Hook into migration lifecycle with custom event listeners
 
-## Recent Updates (v2.2.2)
+## Recent Updates (v3.0.0) 🎉
+
+### 🗄️ Complete Migration System & Schema Builder
+
+Bob v3.0 introduces a comprehensive database migration and schema management system:
+
+- **Schema Builder** - Fluent interface for creating and modifying database tables across MySQL, PostgreSQL, and SQLite
+- **Migration System** - Complete migration lifecycle management with versioning, rollbacks, and batch tracking
+- **WordPress Support** - Specialized `WordPressBlueprint` with helpers for WordPress and WooCommerce schemas
+- **Schema Inspector** - Reverse engineer existing databases and generate migration files automatically
+- **Event System** - Hook into migration lifecycle events for logging and custom workflows
+- **Migration Features**:
+  - Dependency resolution between migrations
+  - Transaction support with automatic rollback on failure
+  - Lifecycle hooks (`before()`, `after()`)
+  - Pretend mode for safe testing
+  - Batch tracking and status reporting
+
+See the [Database Migrations & Schema Builder](#database-migrations--schema-builder-v30) section for complete documentation.
+
+## Previous Updates (v2.2.2)
 
 ### 🎯 100% Code Coverage Achieved!
 
@@ -679,6 +704,222 @@ $emails = $users->map(fn($user) => $user->email);
 $hasAdmin = $users->contains('role', 'admin');
 ```
 
+## Database Migrations & Schema Builder (v3.0)
+
+### Schema Builder
+
+Create and modify database tables with an expressive, fluent interface:
+
+```php
+use Bob\Schema\Schema;
+
+// Create a new table
+Schema::create('users', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->string('email')->unique();
+    $table->timestamp('email_verified_at')->nullable();
+    $table->string('password');
+    $table->rememberToken();
+    $table->timestamps();
+});
+
+// Modify existing table
+Schema::table('users', function (Blueprint $table) {
+    $table->string('phone')->nullable()->after('email');
+    $table->index('phone');
+});
+
+// Drop table
+Schema::dropIfExists('users');
+```
+
+### WordPress Schema Support
+
+Bob includes specialized helpers for WordPress and WooCommerce table creation:
+
+```php
+use Bob\Schema\Schema;
+
+// Create WordPress-style post table
+Schema::createWordPress('custom_posts', function (WordPressBlueprint $table) {
+    $table->wpPost();           // All standard WordPress post columns
+    $table->wpPostIndexes();    // Standard WordPress indexes
+});
+
+// Create custom meta table
+Schema::createWordPress('custom_meta', function (WordPressBlueprint $table) {
+    $table->wpMeta('custom');   // Creates: meta_id, custom_id, meta_key, meta_value
+});
+
+// Create WooCommerce order table
+Schema::createWordPress('wc_custom_orders', function (WordPressBlueprint $table) {
+    $table->wcOrder();          // All WooCommerce HPOS order columns
+});
+```
+
+### Migration System
+
+Manage database schema changes with version-controlled migrations:
+
+```php
+use Bob\Database\Migrations\Migration;
+use Bob\Schema\Blueprint;
+use Bob\Schema\Schema;
+
+class CreateUsersTable extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
+    }
+}
+```
+
+### Running Migrations
+
+```php
+use Bob\Database\Migrations\MigrationRunner;
+use Bob\Database\Migrations\MigrationRepository;
+use Bob\Database\Connection;
+
+$connection = new Connection([/* config */]);
+$repository = new MigrationRepository($connection, 'migrations');
+$runner = new MigrationRunner($connection, $repository, ['/path/to/migrations']);
+
+// Run pending migrations
+$runner->run();
+
+// Rollback last batch
+$runner->rollback();
+
+// Rollback all migrations
+$runner->reset();
+
+// Drop all tables and re-run migrations
+$runner->fresh();
+
+// Rollback and re-run all migrations
+$runner->refresh();
+
+// Check migration status
+$status = $runner->status();
+```
+
+### Migration Features
+
+- **Dependency Resolution** - Migrations can declare dependencies on other migrations
+- **Transaction Support** - Run migrations within database transactions
+- **Batch Tracking** - Track which migrations ran together
+- **Lifecycle Hooks** - `before()` and `after()` methods for setup/cleanup
+- **Event System** - Hook into migration events for logging and monitoring
+- **Pretend Mode** - See what migrations would do without running them
+- **Version Control** - Each migration is tracked with execution time and batch number
+
+### Schema Inspector
+
+Reverse engineer existing databases and generate migration files:
+
+```php
+use Bob\Schema\Inspector;
+
+$inspector = new Inspector($connection);
+
+// Get all tables
+$tables = $inspector->getTables();
+
+// Get table structure
+$columns = $inspector->getColumns('users');
+$indexes = $inspector->getIndexes('users');
+$foreignKeys = $inspector->getForeignKeys('users');
+
+// Generate migration from existing table
+$migration = $inspector->generateMigration('users');
+file_put_contents('2024_01_01_000000_create_users_table.php', $migration);
+```
+
+### Column Types
+
+Bob supports all standard database column types:
+
+```php
+// Numeric types
+$table->id();                      // Auto-incrementing BIGINT
+$table->bigInteger('votes');
+$table->integer('count');
+$table->smallInteger('votes');
+$table->tinyInteger('active');
+$table->decimal('amount', 8, 2);
+$table->float('amount');
+$table->double('amount');
+
+// String types
+$table->string('name', 100);
+$table->text('description');
+$table->longText('content');
+$table->char('code', 4);
+
+// Date/Time types
+$table->date('birthday');
+$table->dateTime('created_at');
+$table->timestamp('updated_at');
+$table->time('sunrise');
+$table->timestamps();              // created_at + updated_at
+
+// Other types
+$table->boolean('active');
+$table->json('metadata');
+$table->binary('data');
+$table->uuid('identifier');
+$table->enum('status', ['active', 'inactive']);
+
+// Column modifiers
+$table->string('email')->nullable();
+$table->string('name')->default('Guest');
+$table->string('slug')->unique();
+$table->integer('position')->unsigned();
+$table->text('bio')->comment('User biography');
+```
+
+### Indexes and Constraints
+
+```php
+// Indexes
+$table->primary('id');
+$table->unique('email');
+$table->index('status');
+$table->index(['user_id', 'created_at']);
+
+// Foreign keys
+$table->foreign('user_id')
+    ->references('id')
+    ->on('users')
+    ->onDelete('cascade')
+    ->onUpdate('cascade');
+
+// Drop constraints
+$table->dropPrimary('users_id_primary');
+$table->dropUnique('users_email_unique');
+$table->dropIndex('users_status_index');
+$table->dropForeign('posts_user_id_foreign');
+```
+
 ## Advanced Features
 
 ### Query Builder Cloning
@@ -884,10 +1125,17 @@ For bugs and feature requests, please use the [GitHub issues](https://github.com
 - [x] Comprehensive test suite (1644 tests)
 - [x] Performance benchmarks
 
+### v3.0 - Completed ✅
+- [x] Schema builder with fluent interface
+- [x] Migration system with dependency resolution
+- [x] WordPress/WooCommerce schema helpers
+- [x] Schema inspector for reverse engineering
+- [x] Migration event system
+- [x] Transaction support for migrations
+
 ### Planned Features
-- [ ] Schema builder
-- [ ] Migration system
+- [ ] Database seeding system
 - [ ] Query builder macros/extensions
 - [ ] Additional database support (SQL Server, Oracle)
 - [ ] Query builder IDE helpers
-- [ ] Database event listeners
+- [ ] Advanced migration features (squashing, etc.)

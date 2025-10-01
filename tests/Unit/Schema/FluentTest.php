@@ -5,6 +5,7 @@
 // =============================================================================
 
 use Bob\Schema\Fluent;
+
 test('constructor with attributes', function () {
     $fluent = new Fluent(['name' => 'test', 'value' => 123]);
 
@@ -13,7 +14,7 @@ test('constructor with attributes', function () {
 });
 
 test('constructor empty', function () {
-    $fluent = new Fluent();
+    $fluent = new Fluent;
 
     expect($fluent->nonexistent)->toBeNull();
 });
@@ -26,7 +27,7 @@ test('magic get', function () {
 });
 
 test('magic set', function () {
-    $fluent = new Fluent();
+    $fluent = new Fluent;
 
     $fluent->newProperty = 'newValue';
 
@@ -54,7 +55,7 @@ test('magic unset', function () {
 test('get method', function () {
     $fluent = new Fluent([
         'simple' => 'value',
-        'nested' => ['deep' => 'nested_value']
+        'nested' => ['deep' => 'nested_value'],
     ]);
 
     expect($fluent->get('simple'))->toBe('value');
@@ -105,7 +106,7 @@ test('to json with options', function () {
 });
 
 test('magic call', function () {
-    $fluent = new Fluent();
+    $fluent = new Fluent;
 
     $result = $fluent->customMethod('value');
     expect($result)->toBe($fluent);
@@ -117,7 +118,7 @@ test('magic call', function () {
 });
 
 test('chainability', function () {
-    $fluent = new Fluent();
+    $fluent = new Fluent;
 
     // Setting properties should return the instance for chaining
     $result = $fluent->name = 'test';
@@ -129,9 +130,9 @@ test('complex nested get', function () {
     $fluent = new Fluent([
         'level1' => [
             'level2' => [
-                'level3' => 'deep_value'
-            ]
-        ]
+                'level3' => 'deep_value',
+            ],
+        ],
     ]);
 
     $level1 = $fluent->get('level1');
@@ -170,7 +171,7 @@ test('with various data types', function () {
         'boolean' => true,
         'null' => null,
         'array' => [1, 2, 3],
-        'object' => (object) ['key' => 'value']
+        'object' => (object) ['key' => 'value'],
     ]);
 
     expect($fluent->string)->toBe('text');

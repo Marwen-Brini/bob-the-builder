@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Database;
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -11,7 +11,9 @@ use Mockery as m;
 class TestDeleteModel extends Model
 {
     protected string $table = 'test_models';
+
     protected string $primaryKey = 'id';
+
     protected array $fillable = ['id', 'name', 'email'];  // Include id for testing
 }
 
@@ -41,7 +43,7 @@ afterEach(function () {
 
 test('model exists() returns false after successful deletion', function () {
     // Create a model that "exists" in the database
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 123, 'name' => 'John', 'email' => 'john@example.com']);
 
     // Simulate that the model was loaded from database
@@ -74,7 +76,7 @@ test('model exists() returns false after successful deletion', function () {
 });
 
 test('model primary key is cleared after deletion', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 456, 'name' => 'Jane']);
     $model->syncOriginal();
 
@@ -101,7 +103,7 @@ test('model primary key is cleared after deletion', function () {
 });
 
 test('model original data is cleared after deletion', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 789, 'name' => 'Bob', 'email' => 'bob@example.com']);
     $model->syncOriginal();
 
@@ -133,7 +135,7 @@ test('model original data is cleared after deletion', function () {
 });
 
 test('cannot delete model that does not exist', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['name' => 'New Model']); // No ID, not saved
 
     // Model doesn't exist (no original data)
@@ -149,7 +151,7 @@ test('cannot delete model that does not exist', function () {
 });
 
 test('failed deletion does not clear model state', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 999, 'name' => 'Test']);
     $model->syncOriginal();
 
@@ -179,7 +181,7 @@ test('failed deletion does not clear model state', function () {
 });
 
 test('can attempt to delete already deleted model returns false', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 321, 'name' => 'ToDelete']);
     $model->syncOriginal();
 
@@ -211,7 +213,7 @@ test('can attempt to delete already deleted model returns false', function () {
 });
 
 test('other attributes remain accessible after deletion except primary key', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 654, 'name' => 'Alice', 'email' => 'alice@example.com']);
     $model->syncOriginal();
 
@@ -241,7 +243,7 @@ test('other attributes remain accessible after deletion except primary key', fun
 });
 
 test('isDirty behavior after deletion', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 111, 'name' => 'Original']);
     $model->syncOriginal();
 
@@ -275,7 +277,7 @@ test('isDirty behavior after deletion', function () {
 });
 
 test('wasDeleted flag or method to check deletion status', function () {
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $model->fill(['id' => 222, 'name' => 'Track']);
     $model->syncOriginal();
 
@@ -329,11 +331,11 @@ test('integration test - model state after deletion with real database', functio
     Model::setConnection($connection);
 
     // Create and load the model
-    $model = new TestDeleteModel();
+    $model = new TestDeleteModel;
     $result = $connection->table('test_models')->where('id', 1)->first();
 
     // Manually hydrate the model (simulating find())
-    foreach ((array)$result as $key => $value) {
+    foreach ((array) $result as $key => $value) {
         $model->setAttribute($key, $value);
     }
     $model->syncOriginal();

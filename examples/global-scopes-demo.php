@@ -1,9 +1,8 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Query\Builder;
 
 // Initialize connection
@@ -43,7 +42,7 @@ $builder->addGlobalScope('soft_deletes', function (Builder $query) {
 });
 
 $results = $builder->get();
-echo "   Found " . count($results) . " non-deleted posts\n";
+echo '   Found '.count($results)." non-deleted posts\n";
 
 // Example 2: Multiple global scopes
 echo "\n2. Multiple Global Scopes:\n";
@@ -65,7 +64,7 @@ $builder->addGlobalScope('published', function (Builder $query) {
 });
 
 $results = $builder->get();
-echo "   Found " . count($results) . " published posts (not deleted)\n";
+echo '   Found '.count($results)." published posts (not deleted)\n";
 foreach ($results as $post) {
     echo "   - {$post->title}\n";
 }
@@ -86,7 +85,7 @@ $builder->addGlobalScope('published', function (Builder $query) {
 $builder->withoutGlobalScope('published');
 
 $results = $builder->where('post_type', 'post')->get();
-echo "   Found " . count($results) . " posts (including drafts, excluding deleted)\n";
+echo '   Found '.count($results)." posts (including drafts, excluding deleted)\n";
 foreach ($results as $post) {
     echo "   - {$post->title} (status: {$post->status})\n";
 }
@@ -107,35 +106,40 @@ $builder->addGlobalScope('user', function (Builder $query) {
 $builder->withoutGlobalScopes();
 
 $results = $builder->get();
-echo "   Found " . count($results) . " total posts (including deleted and from all users)\n";
+echo '   Found '.count($results)." total posts (including deleted and from all users)\n";
 
 // Example 5: Using scope classes instead of closures
 echo "\n5. Using Scope Classes:\n";
 
-class PublishedScope {
-    public function apply(Builder $builder, $model) {
+class PublishedScope
+{
+    public function apply(Builder $builder, $model)
+    {
         $builder->where('status', 'published');
     }
 }
 
-class CurrentUserScope {
+class CurrentUserScope
+{
     private $userId;
 
-    public function __construct($userId) {
+    public function __construct($userId)
+    {
         $this->userId = $userId;
     }
 
-    public function apply(Builder $builder, $model) {
+    public function apply(Builder $builder, $model)
+    {
         $builder->where('user_id', $this->userId);
     }
 }
 
 $builder = $connection->table('posts');
-$builder->addGlobalScope('published', new PublishedScope());
+$builder->addGlobalScope('published', new PublishedScope);
 $builder->addGlobalScope('current_user', new CurrentUserScope(1));
 
 $results = $builder->get();
-echo "   Found " . count($results) . " published posts for user 1\n";
+echo '   Found '.count($results)." published posts for user 1\n";
 
 // Example 6: Global scopes with other query operations
 echo "\n6. Global Scopes with Other Operations:\n";
@@ -151,7 +155,7 @@ echo "   Total non-deleted posts: $count\n";
 
 // Global scopes work with exists
 $hasPublished = $builder->where('status', 'published')->exists();
-echo "   Has published posts: " . ($hasPublished ? 'Yes' : 'No') . "\n";
+echo '   Has published posts: '.($hasPublished ? 'Yes' : 'No')."\n";
 
 // Global scopes work with delete
 $builder2 = $connection->table('posts');

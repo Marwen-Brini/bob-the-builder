@@ -1,8 +1,8 @@
 <?php
 
-use Bob\Query\Builder;
-use Bob\Database\Connection;
 use Bob\Cache\QueryCache;
+use Bob\Database\Connection;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
 
@@ -31,7 +31,7 @@ describe('Exists Query Caching', function () {
 
         $sql = 'select exists(select * from users where id = ?) as `exists`';
         $bindings = [1];
-        $cacheKey = 'exists_' . md5($sql . serialize($bindings));
+        $cacheKey = 'exists_'.md5($sql.serialize($bindings));
 
         // Mock the cache and connection
         $this->connection->shouldReceive('getQueryCache')
@@ -74,7 +74,7 @@ describe('Exists Query Caching', function () {
 
         $sql = 'select exists(select * from posts where status = ?) as `exists`';
         $bindings = ['published'];
-        $cacheKey = 'exists_' . md5($sql . serialize($bindings));
+        $cacheKey = 'exists_'.md5($sql.serialize($bindings));
 
         // Mock the cache and connection
         $this->connection->shouldReceive('getQueryCache')
@@ -153,7 +153,7 @@ describe('Exists Query Caching', function () {
 
         $sql = 'select exists(select * from orders where status = ?) as `exists`';
         $bindings = ['pending'];
-        $cacheKey = 'exists_' . md5($sql . serialize($bindings));
+        $cacheKey = 'exists_'.md5($sql.serialize($bindings));
 
         // Mock the cache and connection
         $this->connection->shouldReceive('getQueryCache')
@@ -218,7 +218,7 @@ describe('Exists Query Caching', function () {
         expect($this->builder->exists())->toBeFalse();
 
         // Test with object result returning true
-        $obj = new stdClass();
+        $obj = new stdClass;
         $obj->exists = 1;
         $this->connection->shouldReceive('select')
             ->once()

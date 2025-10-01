@@ -30,7 +30,7 @@ class TestMixin
 
     public function anotherMethod(string $arg): string
     {
-        return 'mixin: ' . $arg;
+        return 'mixin: '.$arg;
     }
 
     protected function protectedMixinMethod(): string
@@ -51,7 +51,7 @@ class TestMixin
 
 beforeEach(function () {
     TestMacroable::clearMacros();
-    $this->instance = new TestMacroable();
+    $this->instance = new TestMacroable;
 });
 
 afterEach(function () {
@@ -69,7 +69,7 @@ test('macro registers a custom method', function () {
 
 test('macro with parameters works correctly', function () {
     TestMacroable::macro('greet', function ($name) {
-        return 'Hello, ' . $name;
+        return 'Hello, '.$name;
     });
 
     expect($this->instance->greet('World'))->toBe('Hello, World');
@@ -101,9 +101,15 @@ test('static macro works correctly', function () {
 
 test('mixin registers multiple macros', function () {
     TestMacroable::mixin([
-        'method1' => function () { return 'one'; },
-        'method2' => function () { return 'two'; },
-        'method3' => function () { return 'three'; },
+        'method1' => function () {
+            return 'one';
+        },
+        'method2' => function () {
+            return 'two';
+        },
+        'method3' => function () {
+            return 'three';
+        },
     ]);
 
     expect(TestMacroable::hasMacro('method1'))->toBeTrue();
@@ -115,7 +121,7 @@ test('mixin registers multiple macros', function () {
 });
 
 test('mixinClass registers methods from a class', function () {
-    TestMacroable::mixinClass(new TestMixin());
+    TestMacroable::mixinClass(new TestMixin);
 
     expect(TestMacroable::hasMacro('mixinMethod'))->toBeTrue();
     expect(TestMacroable::hasMacro('anotherMethod'))->toBeTrue();
@@ -139,7 +145,7 @@ test('mixinClass with replace false does not override existing macros', function
         return 'original';
     });
 
-    TestMacroable::mixinClass(new TestMixin(), false);
+    TestMacroable::mixinClass(new TestMixin, false);
 
     expect($this->instance->mixinMethod())->toBe('original');
 });
@@ -149,7 +155,7 @@ test('mixinClass with replace true overrides existing macros', function () {
         return 'original';
     });
 
-    TestMacroable::mixinClass(new TestMixin(), true);
+    TestMacroable::mixinClass(new TestMixin, true);
 
     expect($this->instance->mixinMethod())->toBe('from mixin');
 });
@@ -159,7 +165,9 @@ test('hasMacro returns false for non-existent macro', function () {
 });
 
 test('removeMacro removes a macro and returns true', function () {
-    TestMacroable::macro('temp', function () { return 'temp'; });
+    TestMacroable::macro('temp', function () {
+        return 'temp';
+    });
 
     expect(TestMacroable::hasMacro('temp'))->toBeTrue();
     expect(TestMacroable::removeMacro('temp'))->toBeTrue();
@@ -171,8 +179,12 @@ test('removeMacro returns false for non-existent macro', function () {
 });
 
 test('clearMacros removes all macros', function () {
-    TestMacroable::macro('macro1', function () { return '1'; });
-    TestMacroable::macro('macro2', function () { return '2'; });
+    TestMacroable::macro('macro1', function () {
+        return '1';
+    });
+    TestMacroable::macro('macro2', function () {
+        return '2';
+    });
 
     expect(TestMacroable::hasMacro('macro1'))->toBeTrue();
     expect(TestMacroable::hasMacro('macro2'))->toBeTrue();
@@ -184,8 +196,12 @@ test('clearMacros removes all macros', function () {
 });
 
 test('getMacros returns all registered macros', function () {
-    $macro1 = function () { return '1'; };
-    $macro2 = function () { return '2'; };
+    $macro1 = function () {
+        return '1';
+    };
+    $macro2 = function () {
+        return '2';
+    };
 
     TestMacroable::macro('macro1', $macro1);
     TestMacroable::macro('macro2', $macro2);
@@ -198,7 +214,9 @@ test('getMacros returns all registered macros', function () {
 });
 
 test('getMacro returns specific macro', function () {
-    $macro = function () { return 'test'; };
+    $macro = function () {
+        return 'test';
+    };
     TestMacroable::macro('testMacro', $macro);
 
     expect(TestMacroable::getMacro('testMacro'))->toBe($macro);
@@ -206,25 +224,25 @@ test('getMacro returns specific macro', function () {
 });
 
 test('__call throws exception for non-existent method', function () {
-    expect(fn() => $this->instance->nonExistentMethod())
+    expect(fn () => $this->instance->nonExistentMethod())
         ->toThrow(BadMethodCallException::class, 'Method TestMacroable::nonExistentMethod does not exist.');
 });
 
 test('__callStatic throws exception for non-existent static method', function () {
-    expect(fn() => TestMacroable::nonExistentStaticMethod())
+    expect(fn () => TestMacroable::nonExistentStaticMethod())
         ->toThrow(BadMethodCallException::class, 'Method TestMacroable::nonExistentStaticMethod does not exist.');
 });
 
 test('macro with non-closure callable works', function () {
     // Test with a regular callable array
-    $callable = [new TestMixin(), 'mixinMethod'];
+    $callable = [new TestMixin, 'mixinMethod'];
     TestMacroable::macro('callableMethod', $callable);
 
     expect($this->instance->callableMethod())->toBe('from mixin');
 });
 
 test('static macro with non-closure callable works', function () {
-    $callable = [new TestMixin(), 'mixinMethod'];
+    $callable = [new TestMixin, 'mixinMethod'];
     TestMacroable::macro('staticCallable', $callable);
 
     expect(TestMacroable::staticCallable())->toBe('from mixin');
@@ -232,21 +250,29 @@ test('static macro with non-closure callable works', function () {
 
 test('macro returns various types correctly', function () {
     // Return null
-    TestMacroable::macro('returnNull', function () { return null; });
+    TestMacroable::macro('returnNull', function () {
+        return null;
+    });
     expect($this->instance->returnNull())->toBeNull();
 
     // Return array
-    TestMacroable::macro('returnArray', function () { return [1, 2, 3]; });
+    TestMacroable::macro('returnArray', function () {
+        return [1, 2, 3];
+    });
     expect($this->instance->returnArray())->toBe([1, 2, 3]);
 
     // Return object
-    TestMacroable::macro('returnObject', function () { return (object)['key' => 'value']; });
+    TestMacroable::macro('returnObject', function () {
+        return (object) ['key' => 'value'];
+    });
     $result = $this->instance->returnObject();
     expect($result)->toBeObject();
     expect($result->key)->toBe('value');
 
     // Return boolean
-    TestMacroable::macro('returnBool', function () { return true; });
+    TestMacroable::macro('returnBool', function () {
+        return true;
+    });
     expect($this->instance->returnBool())->toBeTrue();
 });
 
@@ -262,6 +288,7 @@ test('macro with multiple parameters works', function () {
 test('macro can modify instance state', function () {
     TestMacroable::macro('setName', function ($newName) {
         $this->name = $newName;
+
         return $this;
     });
 
@@ -276,11 +303,13 @@ test('macro can modify instance state', function () {
 test('chaining macros works', function () {
     TestMacroable::macro('chain1', function () {
         $this->name = 'chain1';
+
         return $this;
     });
 
     TestMacroable::macro('chain2', function () {
         $this->name .= '-chain2';
+
         return $this;
     });
 
@@ -342,7 +371,7 @@ test('invokeStaticMacro handles non-closure callables', function () {
     $method = $reflection->getMethod('invokeStaticMacro');
     $method->setAccessible(true);
 
-    $callable = [new TestMixin(), 'mixinMethod'];
+    $callable = [new TestMixin, 'mixinMethod'];
 
     $result = $method->invoke(null, $callable, []);
     expect($result)->toBe('from mixin');

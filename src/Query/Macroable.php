@@ -50,7 +50,6 @@ trait Macroable
     /**
      * Mix in methods from a mixin class.
      *
-     * @param  object|string  $mixin
      * @param  bool  $replace  Whether to replace existing macros
      */
     public static function mixinClass(object|string $mixin, bool $replace = true): void
@@ -67,7 +66,7 @@ trait Macroable
 
             $name = $method->getName();
 
-            if (!$replace && static::hasMacro($name)) {
+            if (! $replace && static::hasMacro($name)) {
                 continue;
             }
 
@@ -94,8 +93,10 @@ trait Macroable
     {
         if (static::hasMacro($name)) {
             unset(static::$macros[$name]);
+
             return true;
         }
+
         return false;
     }
 
@@ -119,8 +120,6 @@ trait Macroable
 
     /**
      * Get a specific macro.
-     *
-     * @return callable|null
      */
     public static function getMacro(string $name): ?callable
     {

@@ -23,14 +23,14 @@ class MySQLGrammar extends SchemaGrammar
     protected array $modifiers = [
         'Unsigned', 'Charset', 'Collate', 'VirtualAs', 'StoredAs',
         'Nullable', 'Default', 'OnUpdate', 'UseCurrent', 'Increment', 'Comment', 'After', 'First',
-        'Invisible', 'Srid', 'AutoIncrement'
+        'Invisible', 'Srid', 'AutoIncrement',
     ];
 
     /**
      * The fluent command methods on the Blueprint
      */
     protected array $fluentCommands = [
-        'Comment', 'Charset', 'Collation', 'Engine', 'Temporary'
+        'Comment', 'Charset', 'Collation', 'Engine', 'Temporary',
     ];
 
     /**
@@ -64,7 +64,7 @@ class MySQLGrammar extends SchemaGrammar
         if ($primaryKey = $this->getCommandByName($blueprint, 'primary')) {
             $tableStructure[] = sprintf(
                 'primary key %s(%s)',
-                $primaryKey->algorithm ? 'using ' . strtolower($primaryKey->algorithm) . ' ' : '',
+                $primaryKey->algorithm ? 'using '.strtolower($primaryKey->algorithm).' ' : '',
                 $this->columnize($primaryKey->columns)
             );
 
@@ -85,14 +85,14 @@ class MySQLGrammar extends SchemaGrammar
     protected function compileCreateEncoding(string $sql, Connection $connection, Blueprint $blueprint): string
     {
         if (isset($blueprint->charset)) {
-            $sql .= ' default character set ' . $blueprint->charset;
-        } elseif (!is_null($charset = $connection->getConfig('charset'))) {
-            $sql .= ' default character set ' . $charset;
+            $sql .= ' default character set '.$blueprint->charset;
+        } elseif (! is_null($charset = $connection->getConfig('charset'))) {
+            $sql .= ' default character set '.$charset;
         }
 
         if (isset($blueprint->collation)) {
             $sql .= " collate '{$blueprint->collation}'";
-        } elseif (!is_null($collation = $connection->getConfig('collation'))) {
+        } elseif (! is_null($collation = $connection->getConfig('collation'))) {
             $sql .= " collate '{$collation}'";
         }
 
@@ -105,7 +105,7 @@ class MySQLGrammar extends SchemaGrammar
     protected function compileCreateEngine(string $sql, Connection $connection, Blueprint $blueprint): string
     {
         if (isset($blueprint->engine)) {
-            return $sql . ' engine = ' . $blueprint->engine;
+            return $sql.' engine = '.$blueprint->engine;
         }
 
         return $sql;
@@ -152,7 +152,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     public function compileDrop(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
-        return 'drop table ' . $this->wrapTable($blueprint);
+        return 'drop table '.$this->wrapTable($blueprint);
     }
 
     /**
@@ -160,7 +160,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     public function compileDropIfExists(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
-        return 'drop table if exists ' . $this->wrapTable($blueprint);
+        return 'drop table if exists '.$this->wrapTable($blueprint);
     }
 
     /**
@@ -270,7 +270,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     public function compileColumnListing(string $table): string
     {
-        return "select column_name as `column_name` from information_schema.columns where table_schema = ? and table_name = ?";
+        return 'select column_name as `column_name` from information_schema.columns where table_schema = ? and table_name = ?';
     }
 
     /**
@@ -278,7 +278,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     public function compileColumnType(string $table, string $column): string
     {
-        return "select data_type from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?";
+        return 'select data_type from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?';
     }
 
     /**
@@ -414,7 +414,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function typeEnum(Fluent $column): string
     {
-        return sprintf("enum(%s)", $this->quoteString($column->allowed));
+        return sprintf('enum(%s)', $this->quoteString($column->allowed));
     }
 
     /**
@@ -422,7 +422,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function typeSet(Fluent $column): string
     {
-        return sprintf("set(%s)", $this->quoteString($column->allowed));
+        return sprintf('set(%s)', $this->quoteString($column->allowed));
     }
 
     /**
@@ -455,7 +455,8 @@ class MySQLGrammar extends SchemaGrammar
     protected function typeDateTime(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'datetime' . $precision;
+
+        return 'datetime'.$precision;
     }
 
     /**
@@ -472,7 +473,8 @@ class MySQLGrammar extends SchemaGrammar
     protected function typeTime(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'time' . $precision;
+
+        return 'time'.$precision;
     }
 
     /**
@@ -489,7 +491,8 @@ class MySQLGrammar extends SchemaGrammar
     protected function typeTimestamp(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'timestamp' . $precision;
+
+        return 'timestamp'.$precision;
     }
 
     /**
@@ -630,8 +633,8 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyCharset(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->charset)) {
-            return ' character set ' . $column->charset;
+        if (! is_null($column->charset)) {
+            return ' character set '.$column->charset;
         }
 
         return '';
@@ -642,7 +645,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyCollate(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->collation)) {
+        if (! is_null($column->collation)) {
             return " collate {$column->collation}";
         }
 
@@ -654,7 +657,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyVirtualAs(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->virtualAs)) {
+        if (! is_null($column->virtualAs)) {
             return " as ({$column->virtualAs}) virtual";
         }
 
@@ -666,7 +669,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyStoredAs(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->storedAs)) {
+        if (! is_null($column->storedAs)) {
             return " as ({$column->storedAs}) stored";
         }
 
@@ -694,8 +697,8 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyDefault(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->default)) {
-            return ' default ' . $this->getDefaultValue($column->default);
+        if (! is_null($column->default)) {
+            return ' default '.$this->getDefaultValue($column->default);
         }
 
         return '';
@@ -730,8 +733,8 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyComment(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->comment)) {
-            return " comment '" . addslashes($column->comment) . "'";
+        if (! is_null($column->comment)) {
+            return " comment '".addslashes($column->comment)."'";
         }
 
         return '';
@@ -742,8 +745,8 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifyAfter(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->after)) {
-            return ' after ' . $this->wrap($column->after);
+        if (! is_null($column->after)) {
+            return ' after '.$this->wrap($column->after);
         }
 
         return '';
@@ -778,8 +781,8 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function modifySrid(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->srid) && is_int($column->srid)) {
-            return ' srid ' . $column->srid;
+        if (! is_null($column->srid) && is_int($column->srid)) {
+            return ' srid '.$column->srid;
         }
 
         return '';
@@ -794,7 +797,7 @@ class MySQLGrammar extends SchemaGrammar
             return $value;
         }
 
-        return '`' . str_replace('`', '``', $value) . '`';
+        return '`'.str_replace('`', '``', $value).'`';
     }
 
     /**
@@ -811,7 +814,7 @@ class MySQLGrammar extends SchemaGrammar
     protected function prefixArray(string $prefix, array $values): array
     {
         return array_map(function ($value) use ($prefix) {
-            return $prefix . ' ' . $value;
+            return $prefix.' '.$value;
         }, $values);
     }
 
@@ -820,7 +823,7 @@ class MySQLGrammar extends SchemaGrammar
      */
     protected function getColumn(Blueprint $blueprint, Fluent $column): string
     {
-        $sql = $this->wrap($column->name) . ' ' . $this->getType($column);
+        $sql = $this->wrap($column->name).' '.$this->getType($column);
 
         return $this->addModifiers($sql, $blueprint, $column);
     }
@@ -850,7 +853,7 @@ class MySQLGrammar extends SchemaGrammar
         $commands = $blueprint->getCommands();
 
         foreach ($commands as $command) {
-            if ($command->name === $name && !isset($command->shouldBeSkipped)) {
+            if ($command->name === $name && ! isset($command->shouldBeSkipped)) {
                 return $command;
             }
         }
@@ -901,6 +904,7 @@ class MySQLGrammar extends SchemaGrammar
     public function compileAutoIncrementStartingValues(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
         $startingValue = $command->column->from ?? 1;
+
         return sprintf(
             'alter table %s auto_increment = %d',
             $this->wrapTable($blueprint),
@@ -917,7 +921,7 @@ class MySQLGrammar extends SchemaGrammar
         $comment = $command->value ?? $column->comment;
 
         // Find the column type from blueprint if not set
-        if (!isset($column->type)) {
+        if (! isset($column->type)) {
             $column->type = 'string';
             $column->length = 255;
         }
@@ -935,7 +939,7 @@ class MySQLGrammar extends SchemaGrammar
 
         // Add the comment
         if ($comment) {
-            $sql .= " comment '" . addslashes($comment) . "'";
+            $sql .= " comment '".addslashes($comment)."'";
         }
 
         return $sql;

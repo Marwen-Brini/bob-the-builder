@@ -2,8 +2,8 @@
 
 namespace Bob\Database\Eloquent;
 
-use Bob\Query\Builder;
 use Bob\Database\Model;
+use Bob\Query\Builder;
 
 /**
  * Interface for implementing query scopes that can be applied to Eloquent queries.
@@ -13,10 +13,6 @@ interface Scope
 {
     /**
      * Apply the scope to a given Eloquent query builder.
-     *
-     * @param  Builder  $builder
-     * @param  Model  $model
-     * @return void
      */
     public function apply(Builder $builder, Model $model): void;
 }

@@ -4,6 +4,7 @@ namespace Bob\Query\Grammars;
 
 use Bob\Contracts\BuilderInterface;
 use Bob\Query\Grammar;
+
 use function Bob\Query\collect;
 
 class PostgreSQLGrammar extends Grammar
@@ -127,7 +128,7 @@ class PostgreSQLGrammar extends Grammar
         $segments = explode('->', $column);
 
         $field = $this->wrap(array_shift($segments));
-        $path = count($segments) ? '->'.collect($segments)->map(fn($segment) => "'".$segment."'")->implode('->') : '';
+        $path = count($segments) ? '->'.collect($segments)->map(fn ($segment) => "'".$segment."'")->implode('->') : '';
 
         return $field.$path.' is not null';
     }

@@ -18,6 +18,7 @@ class ForeignKeyDefinition extends Fluent
     public function references(string|array $columns): self
     {
         $this->references = (array) $columns;
+
         return $this;
     }
 
@@ -27,6 +28,7 @@ class ForeignKeyDefinition extends Fluent
     public function on(string $table): self
     {
         $this->on = $table;
+
         return $this;
     }
 
@@ -36,6 +38,7 @@ class ForeignKeyDefinition extends Fluent
     public function onDelete(string $action): self
     {
         $this->onDelete = $action;
+
         return $this;
     }
 
@@ -77,6 +80,7 @@ class ForeignKeyDefinition extends Fluent
     public function onUpdate(string $action): self
     {
         $this->onUpdate = $action;
+
         return $this;
     }
 
@@ -118,6 +122,7 @@ class ForeignKeyDefinition extends Fluent
     public function deferrable(bool $value = true): self
     {
         $this->deferrable = $value;
+
         return $this;
     }
 
@@ -128,6 +133,7 @@ class ForeignKeyDefinition extends Fluent
     {
         $this->initiallyDeferred = $value;
         $this->deferrable = true;
+
         return $this;
     }
 
@@ -137,6 +143,7 @@ class ForeignKeyDefinition extends Fluent
     public function notValid(): self
     {
         $this->notValid = true;
+
         return $this;
     }
 }

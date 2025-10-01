@@ -1,9 +1,7 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
-use Bob\Query\Grammars\SQLiteGrammar;
-use Bob\Query\Processor;
+use Bob\Query\Builder;
 use Mockery as m;
 
 describe('Builder Ultimate Coverage Tests', function () {
@@ -22,10 +20,10 @@ describe('Builder Ultimate Coverage Tests', function () {
         $this->builder->from('users');
 
         // Use joinSub with a Closure
-        $result = $this->builder->joinSub(function($query) {
+        $result = $this->builder->joinSub(function ($query) {
             $query->from('posts')
-                  ->select('user_id', 'count(*) as post_count')
-                  ->groupBy('user_id');
+                ->select('user_id', 'count(*) as post_count')
+                ->groupBy('user_id');
         }, 'posts_count', 'users.id', '=', 'posts_count.user_id');
 
         $sql = $this->builder->toSql();
@@ -40,7 +38,7 @@ describe('Builder Ultimate Coverage Tests', function () {
     test('withGlobalScopes clones query and applies global scopes', function () {
         // Add a global scope to the builder
         $this->builder->from('users');
-        $this->builder->globalScope('active', function() {
+        $this->builder->globalScope('active', function () {
             // When using closures as global scopes, $this is bound to the builder
             $this->where('status', 'active');
         });
@@ -63,6 +61,7 @@ describe('Builder Ultimate Coverage Tests', function () {
     // Line 1368: insertUsing with query object directly
     test('insertUsing with Builder query object', function () {
         $this->markTestSkipped('insertUsing not fully implemented in SQLiteGrammar');
+
         return;
         $this->connection->statement('CREATE TABLE users (id INTEGER, name TEXT)');
         $this->connection->statement('CREATE TABLE archived_users (id INTEGER, name TEXT)');
@@ -153,10 +152,10 @@ describe('Builder Ultimate Coverage Tests', function () {
     test('joinSub with Closure that modifies subquery builder', function () {
         $this->builder->from('orders');
 
-        $result = $this->builder->joinSub(function($subQuery) {
+        $result = $this->builder->joinSub(function ($subQuery) {
             return $subQuery->from('customers')
-                           ->select('id', 'name')
-                           ->where('active', 1);
+                ->select('id', 'name')
+                ->where('active', 1);
         }, 'active_customers', 'orders.customer_id', '=', 'active_customers.id', 'left');
 
         $sql = $this->builder->toSql();
@@ -210,7 +209,7 @@ describe('Builder Ultimate Coverage Tests', function () {
         $this->builder->from('users')
             ->whereColumn([
                 ['first_name', '=', 'last_name'],
-                ['updated_at', '>', 'created_at']
+                ['updated_at', '>', 'created_at'],
             ]);
 
         $wheres = $this->builder->wheres;
@@ -233,11 +232,14 @@ describe('Builder Ultimate Coverage Tests', function () {
 
     // Line 2155: dd method
     test('dd method would dump and die (mocked)', function () {
-        $builder = new class($this->connection) extends Builder {
+        $builder = new class($this->connection) extends Builder
+        {
             public $dumped = false;
 
-            public function dd() {
+            public function dd()
+            {
                 $this->dumped = true;
+
                 return ['sql' => $this->toSql(), 'bindings' => $this->getBindings()];
             }
         };

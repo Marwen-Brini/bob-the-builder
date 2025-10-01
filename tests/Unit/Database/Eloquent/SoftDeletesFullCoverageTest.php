@@ -1,9 +1,9 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletes;
 use Bob\Database\Eloquent\SoftDeletingScope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -11,17 +11,19 @@ use Mockery as m;
  * Full coverage test for SoftDeletes trait
  * Targeting lines 52-60, 71-73, 86-105, 146-148
  */
-
 class FullCoverageModel extends Model
 {
     use SoftDeletes;
 
     protected string $table = 'coverage_test';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = true;
 
     // Track method calls
     public array $calledMethods = [];
+
     public ?bool $deleteReturn = true;
 
     // Override Model's delete to track and control behavior
@@ -41,6 +43,7 @@ class FullCoverageModel extends Model
     protected function fireModelEvent($event, $halt = true): mixed
     {
         $this->calledMethods[] = "fireModelEvent:$event";
+
         return true;
     }
 
@@ -48,6 +51,7 @@ class FullCoverageModel extends Model
     {
         $this->calledMethods[] = 'setKeysForSaveQuery';
         $query->where($this->primaryKey, $this->getAttribute($this->primaryKey));
+
         return $query;
     }
 
@@ -64,6 +68,7 @@ class FullCoverageModel extends Model
     public function syncOriginal(): Model
     {
         $this->calledMethods[] = 'syncOriginal';
+
         return $this;
     }
 
@@ -91,6 +96,7 @@ class FullCoverageModel extends Model
     public function newQuery(): Builder
     {
         $connection = Model::getConnection() ?: new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+
         return $connection->table($this->table);
     }
 
@@ -101,6 +107,7 @@ class FullCoverageModel extends Model
         $builder = $instance->newQuery();
         // Remove soft delete scope
         $builder->withoutGlobalScope(SoftDeletingScope::class);
+
         return $builder;
     }
 }
@@ -124,7 +131,7 @@ test('forceDelete executes full path (lines 52-60)', function () {
     $deleteCalledWithForceDeleting = false;
 
     // Mock delete to capture state and perform actual deletion
-    $model->shouldReceive('delete')->once()->andReturnUsing(function() use ($model, &$deleteCalledWithForceDeleting, $connection) {
+    $model->shouldReceive('delete')->once()->andReturnUsing(function () use ($model, &$deleteCalledWithForceDeleting, $connection) {
         // Capture the forceDeleting state
         $reflection = new ReflectionClass($model);
         $prop = $reflection->getProperty('forceDeleting');
@@ -133,6 +140,7 @@ test('forceDelete executes full path (lines 52-60)', function () {
 
         // Perform actual deletion
         $connection->table('coverage_test')->where('id', 1)->delete();
+
         return true;
     });
 
@@ -147,7 +155,7 @@ test('forceDelete executes full path (lines 52-60)', function () {
 
 test('performDeleteOnModel with forceDeleting true executes deletion (lines 71-73)', function () {
     // Test the code path when forceDeleting is true
-    $model = new FullCoverageModel();
+    $model = new FullCoverageModel;
     $model->id = 1;
 
     // Use reflection to access protected method and property
@@ -169,7 +177,7 @@ test('performDeleteOnModel with forceDeleting true executes deletion (lines 71-7
 
 test('runSoftDelete executes full soft delete logic (lines 86-105)', function () {
     // Test that runSoftDelete method exists and has the expected structure
-    $model = new FullCoverageModel();
+    $model = new FullCoverageModel;
 
     // Use reflection to verify the method exists
     $reflection = new ReflectionClass($model);
@@ -197,7 +205,7 @@ test('runSoftDelete executes full soft delete logic (lines 86-105)', function ()
 
 test('runSoftDelete without timestamps (lines 95-99 branch)', function () {
     // Test the branch where timestamps is false
-    $model = new FullCoverageModel();
+    $model = new FullCoverageModel;
     $model->timestamps = false;
 
     // When timestamps is false, lines 95-99 are skipped
@@ -226,7 +234,7 @@ test('restoreMany restores multiple records (lines 146-148)', function () {
 
     // Mock the restore method on Builder to return the count
     $originalRestore = null;
-    Builder::macro('restore', function() use ($connection) {
+    Builder::macro('restore', function () use ($connection) {
         // Get the current query's where conditions to find which IDs to restore
         $ids = $this->wheres[0]['values'] ?? [1, 2, 3];
 

@@ -6,15 +6,17 @@ describe('BobCommand 100% Coverage Tests', function () {
 
     test('BobCommand build with --execute shows actual results (line 209)', function () {
         // Create a test database with data
-        $dbFile = sys_get_temp_dir() . '/test_bob_exec_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_exec_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         $connection->statement('CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)');
         $connection->statement('INSERT INTO users (name) VALUES ("Alice"), ("Bob")');
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfig($driver, $args): array {
+            protected function getConnectionConfig($driver, $args): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -35,15 +37,17 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand execute with colon syntax (line 239)', function () {
-        $dbFile = sys_get_temp_dir() . '/test_bob_colon_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_colon_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         $connection->statement('CREATE TABLE products (id INTEGER, name TEXT)');
         $connection->statement('INSERT INTO products VALUES (1, "Widget")');
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -61,16 +65,18 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand schema lists tables (line 287)', function () {
-        $dbFile = sys_get_temp_dir() . '/test_bob_schema_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_schema_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         $connection->statement('CREATE TABLE table1 (id INTEGER)');
         $connection->statement('CREATE TABLE table2 (id INTEGER)');
         $connection->statement('CREATE TABLE table3 (id INTEGER)');
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -90,17 +96,19 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand export CSV with real data (lines 338-346)', function () {
-        $dbFile = sys_get_temp_dir() . '/test_bob_csv_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_csv_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         $connection->statement('CREATE TABLE employees (id INTEGER, name TEXT, salary REAL)');
         $connection->statement('INSERT INTO employees VALUES (1, "John Doe", 50000.50)');
         $connection->statement("INSERT INTO employees VALUES (2, 'Jane \"Smith\"', 60000.75)");
         $connection->statement('INSERT INTO employees VALUES (3, "Bob", NULL)');
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -123,8 +131,10 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand parseAndBuildQuery with parts without colon (line 409)', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testParseAndBuild() {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testParseAndBuild()
+            {
                 $grammar = $this->createGrammar('mysql');
                 $processor = new \Bob\Query\Processor;
                 $connection = $this->createMockConnection($grammar, $processor);
@@ -143,14 +153,16 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand export CSV with empty result set', function () {
-        $dbFile = sys_get_temp_dir() . '/test_bob_empty_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_empty_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         $connection->statement('CREATE TABLE empty_table (id INTEGER, name TEXT)');
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -168,15 +180,17 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand export JSON format', function () {
-        $dbFile = sys_get_temp_dir() . '/test_bob_json_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_json_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         $connection->statement('CREATE TABLE data (id INTEGER, value TEXT)');
         $connection->statement('INSERT INTO data VALUES (1, "test")');
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -195,14 +209,16 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand schema with no tables', function () {
-        $dbFile = sys_get_temp_dir() . '/test_bob_notables_' . uniqid() . '.db';
+        $dbFile = sys_get_temp_dir().'/test_bob_notables_'.uniqid().'.db';
         $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
         // Don't create any tables
 
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             public static $testDb;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => self::$testDb];
             }
         };
@@ -232,8 +248,10 @@ describe('BobCommand 100% Coverage Tests', function () {
     });
 
     test('BobCommand parseAndBuildQuery handles all missing cases', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testAllCases() {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testAllCases()
+            {
                 $grammar = $this->createGrammar('mysql');
                 $processor = new \Bob\Query\Processor;
                 $connection = $this->createMockConnection($grammar, $processor);

@@ -136,9 +136,9 @@ test('left join with prefix', function () {
 
 test('complex join with closure and prefix', function () {
     $sql = $this->connection->table('posts')
-        ->join('users', function($join) {
+        ->join('users', function ($join) {
             $join->on('posts.author_id', '=', 'users.id')
-                 ->where('users.status', '=', 'active');
+                ->where('users.status', '=', 'active');
         })
         ->toSql();
 
@@ -146,9 +146,9 @@ test('complex join with closure and prefix', function () {
     expect($sql)->not->toContain('qt_qt_');
 
     $results = $this->connection->table('posts')
-        ->join('users', function($join) {
+        ->join('users', function ($join) {
             $join->on('posts.author_id', '=', 'users.id')
-                 ->where('users.status', '=', 'active');
+                ->where('users.status', '=', 'active');
         })
         ->get();
 

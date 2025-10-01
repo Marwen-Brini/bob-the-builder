@@ -6,37 +6,37 @@ interface BuilderInterface
 {
     // Getter methods for properties that Grammar needs
     public function getAggregate(): ?array;
-    
+
     public function getColumns(): ?array;
-    
+
     public function getDistinct(): bool;
-    
+
     public function getFrom(): ?string;
-    
+
     public function getJoins(): ?array;
-    
+
     public function getWheres(): array;
-    
+
     public function getGroups(): ?array;
-    
+
     public function getHavings(): ?array;
-    
+
     public function getOrders(): ?array;
-    
+
     public function getLimit(): ?int;
-    
+
     public function getOffset(): ?int;
-    
+
     public function getUnions(): ?array;
-    
+
     public function getUnionLimit(): ?int;
-    
+
     public function getUnionOffset(): ?int;
-    
+
     public function getUnionOrders(): ?array;
-    
+
     public function getLock();
-    
+
     // Query building methods
     public function select($columns = ['*']): self;
 

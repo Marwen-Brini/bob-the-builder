@@ -1,20 +1,19 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Expression;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
-use Bob\Query\Processor;
-use Bob\Database\Model;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Grammars\SQLiteGrammar;
-use Bob\Database\Expression;
+use Bob\Query\Processor;
 
 describe('Builder Maximum Coverage Tests', function () {
 
     beforeEach(function () {
         $this->connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $this->grammar = new MySQLGrammar();
-        $this->processor = new Processor();
+        $this->grammar = new MySQLGrammar;
+        $this->processor = new Processor;
         $this->builder = new Builder($this->connection, $this->grammar, $this->processor);
     });
 
@@ -86,9 +85,9 @@ describe('Builder Maximum Coverage Tests', function () {
     // Line 1313: leftJoinWhere comprehensive test
     test('leftJoinWhere with complex conditions', function () {
         $sql = $this->builder->from('users')
-            ->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function($join) {
+            ->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function ($join) {
                 $join->where('posts.status', 'published')
-                     ->where('posts.views', '>', 100);
+                    ->where('posts.views', '>', 100);
             })
             ->toSql();
 
@@ -138,7 +137,7 @@ describe('Builder Maximum Coverage Tests', function () {
     // Line 1442: inRandomOrder for different databases
     test('inRandomOrder adds random ordering for different grammars', function () {
         // SQLite
-        $sqliteGrammar = new SQLiteGrammar();
+        $sqliteGrammar = new SQLiteGrammar;
         $builder1 = new Builder($this->connection, $sqliteGrammar, $this->processor);
         $sql1 = $builder1->from('users')->inRandomOrder()->toSql();
         // SQLite uses RANDOM() in the order by clause
@@ -347,10 +346,13 @@ describe('Builder Maximum Coverage Tests', function () {
         $dumpedBindings = [];
 
         // Override dd to capture instead of dying
-        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder {
-            public function dd() {
+        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder
+        {
+            public function dd()
+            {
                 $GLOBALS['test_dd_sql'] = $this->toSql();
                 $GLOBALS['test_dd_bindings'] = $this->getBindings();
+
                 return ['dumped' => true];
             }
         };

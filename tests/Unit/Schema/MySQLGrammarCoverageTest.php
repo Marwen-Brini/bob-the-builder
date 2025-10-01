@@ -4,13 +4,13 @@
 // CONVERTED TO PEST - Original PHPUnit code commented below for reference
 // =============================================================================
 
-use Bob\Schema\Blueprint;
-use Bob\Schema\Grammars\MySQLGrammar;
-use Bob\Schema\Fluent;
 use Bob\Database\Connection;
+use Bob\Schema\Blueprint;
+use Bob\Schema\Fluent;
+use Bob\Schema\Grammars\MySQLGrammar;
 
 beforeEach(function () {
-    $this->grammar = new MySQLGrammar();
+    $this->grammar = new MySQLGrammar;
 
     $this->connection = \Mockery::mock(Connection::class);
     $this->connection->shouldReceive('getTablePrefix')->andReturn('');
@@ -29,6 +29,7 @@ function callProtectedMethodMySQL($object, $method, ...$args)
     $reflection = new ReflectionClass($object);
     $reflectionMethod = $reflection->getMethod($method);
     $reflectionMethod->setAccessible(true);
+
     return $reflectionMethod->invoke($object, ...$args);
 }
 

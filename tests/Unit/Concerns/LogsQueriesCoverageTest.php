@@ -1,10 +1,9 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Logging\QueryLogger;
 use Bob\Logging\Log;
-use Psr\Log\LoggerInterface;
 use Mockery as m;
+use Psr\Log\LoggerInterface;
 
 beforeEach(function () {
     // Reset global state
@@ -59,7 +58,7 @@ describe('LogsQueries Coverage Tests', function () {
         $mockLogger = m::mock(LoggerInterface::class);
         $mockLogger->shouldReceive('error')->once()->with(
             'Query execution failed',
-            m::on(function($context) {
+            m::on(function ($context) {
                 return isset($context['query']) &&
                        $context['query'] === 'SELECT * FROM users' &&
                        isset($context['bindings']) &&
@@ -93,7 +92,7 @@ describe('LogsQueries Coverage Tests', function () {
         // Create a mock logger to verify it gets called
         $mockLogger = m::mock(LoggerInterface::class);
         $mockLogger->shouldReceive('info')->once()->with(
-            m::on(function($message) {
+            m::on(function ($message) {
                 return str_contains($message, 'Transaction begin');
             }),
             m::type('array')

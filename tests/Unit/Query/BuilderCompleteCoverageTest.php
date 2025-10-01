@@ -1,26 +1,32 @@
 <?php
 
-use Bob\Query\Builder;
-use Bob\Query\RelationshipLoader;
 use Bob\Database\Connection;
-use Bob\Query\Grammar;
-use Bob\Query\Processor;
-use Bob\Database\Model;
 use Bob\Database\Expression;
-use Bob\Query\JoinClause;
+use Bob\Database\Model;
+use Bob\Query\Builder;
+use Bob\Query\Grammar;
 use Bob\Query\Grammars\MySQLGrammar;
+use Bob\Query\JoinClause;
+use Bob\Query\Processor;
+use Bob\Query\RelationshipLoader;
 use Mockery as m;
 
 // Test models for coverage
-class TestCoverageUser extends Model {
+class TestCoverageUser extends Model
+{
     protected string $table = 'users';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
 }
 
-class TestCoveragePost extends Model {
+class TestCoveragePost extends Model
+{
     protected string $table = 'posts';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
 }
 
@@ -133,8 +139,8 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
     // Line 1137: count with columns parameter
     test('count accepts specific columns', function () {
         $this->grammar->shouldReceive('compileSelect')->andReturn('select count(id) as aggregate from users');
-        $this->connection->shouldReceive('select')->andReturn([(object)['aggregate' => 5]]);
-        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+        $this->connection->shouldReceive('select')->andReturn([(object) ['aggregate' => 5]]);
+        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
         $result = $this->builder->from('users')->count('id');
         expect($result)->toBe(5);
@@ -216,10 +222,10 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
             ->andReturn('select count(*) as aggregate from users');
         $this->connection->shouldReceive('select')
             ->with('select count(*) as aggregate from users', [], true)
-            ->andReturn([(object)['aggregate' => 42]]);
+            ->andReturn([(object) ['aggregate' => 42]]);
         $this->processor->shouldReceive('processSelect')
             ->with(m::type(Builder::class), m::type('array'))
-            ->andReturnUsing(fn($q, $r) => $r);
+            ->andReturnUsing(fn ($q, $r) => $r);
 
         $count = $this->builder->from('users')->getCountForPagination();
         expect($count)->toBe(42);
@@ -229,10 +235,10 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
     test('pluck with single column returns simple array', function () {
         $this->grammar->shouldReceive('compileSelect')->andReturn('select name from users');
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['name' => 'John'],
-            (object)['name' => 'Jane']
+            (object) ['name' => 'John'],
+            (object) ['name' => 'Jane'],
         ]);
-        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
         $result = $this->builder->from('users')->pluck('name');
         expect($result)->toBe(['John', 'Jane']);
@@ -242,10 +248,10 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
     test('implode joins column values with glue', function () {
         $this->grammar->shouldReceive('compileSelect')->andReturn('select name from users');
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['name' => 'John'],
-            (object)['name' => 'Jane']
+            (object) ['name' => 'John'],
+            (object) ['name' => 'Jane'],
         ]);
-        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
         $result = $this->builder->from('users')->implode('name', ', ');
         expect($result)->toBe('John, Jane');
@@ -255,10 +261,10 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
     test('implode handles keyed collection', function () {
         $this->grammar->shouldReceive('compileSelect')->andReturn('select id, name from users');
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['id' => 1, 'name' => 'John'],
-            (object)['id' => 2, 'name' => 'Jane']
+            (object) ['id' => 1, 'name' => 'John'],
+            (object) ['id' => 2, 'name' => 'Jane'],
         ]);
-        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+        $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
         $result = $this->builder->from('users')->implode('name', ', ');
         expect($result)->toBe('John, Jane');
@@ -273,6 +279,7 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
         $called = false;
         $result = $this->builder->from('users')->existsOr(function () use (&$called) {
             $called = true;
+
             return 'no-users';
         });
 
@@ -289,6 +296,7 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
         $called = false;
         $result = $this->builder->from('users')->doesntExistOr(function () use (&$called) {
             $called = true;
+
             return 'has-users';
         });
 
@@ -302,7 +310,7 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
             ->where('active', true)
             ->whereNested(function ($query) {
                 $query->where('age', '>', 18)
-                      ->orWhere('parent_consent', true);
+                    ->orWhere('parent_consent', true);
             }, 'or');
 
         $wheres = $this->builder->wheres;
@@ -370,15 +378,15 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
     });
 
     test('addBinding throws for invalid type', function () {
-        expect(fn() => $this->builder->addBinding('value', 'invalid'))
+        expect(fn () => $this->builder->addBinding('value', 'invalid'))
             ->toThrow(InvalidArgumentException::class);
     });
 
     test('mergeBindings merges all binding types', function () {
         $other = new Builder($this->connection, $this->grammar, $this->processor);
         $other->where('name', 'John')
-              ->having('count', '>', 5)
-              ->addBinding('from_bind', 'from');
+            ->having('count', '>', 5)
+            ->addBinding('from_bind', 'from');
 
         $this->builder->where('active', true);
         $this->builder->mergeBindings($other);
@@ -396,7 +404,7 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
             new Expression('raw sql'),
             123,
             new Expression('another raw'),
-            'another regular'
+            'another regular',
         ];
 
         $cleaned = $this->builder->cleanBindings($bindings);
@@ -428,7 +436,7 @@ describe('Builder Complete Coverage - Uncovered Lines', function () {
 
     // Line 2266: __call magic method
     test('__call throws BadMethodCallException for unknown methods', function () {
-        expect(fn() => $this->builder->unknownMethod('arg'))
+        expect(fn () => $this->builder->unknownMethod('arg'))
             ->toThrow(BadMethodCallException::class);
     });
 });
@@ -492,7 +500,7 @@ describe('Builder Model Integration Edge Cases', function () {
     });
 
     test('find with model returns null when not found', function () {
-        $model = new TestCoverageUser();
+        $model = new TestCoverageUser;
         $this->builder->setModel($model);
 
         $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users where id = ?');
@@ -505,12 +513,12 @@ describe('Builder Model Integration Edge Cases', function () {
     });
 
     test('hydrate creates models from array of arrays', function () {
-        $model = new TestCoverageUser();
+        $model = new TestCoverageUser;
         $this->builder->setModel($model);
 
         $items = [
             ['id' => 1, 'name' => 'John'],
-            ['id' => 2, 'name' => 'Jane']
+            ['id' => 2, 'name' => 'Jane'],
         ];
 
         $result = $this->builder->hydrate($items);
@@ -568,8 +576,8 @@ describe('Builder Union Edge Cases', function () {
 describe('Builder Refactored Methods Coverage', function () {
     beforeEach(function () {
         $this->connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $this->grammar = new MySQLGrammar();
-        $this->processor = new Processor();
+        $this->grammar = new MySQLGrammar;
+        $this->processor = new Processor;
         $this->builder = new Builder($this->connection, $this->grammar, $this->processor);
     });
 
@@ -602,9 +610,9 @@ describe('Builder Refactored Methods Coverage', function () {
 
         // Add a join with bindings to builder2
         $builder2->from('users')
-            ->join('posts', function($join) {
+            ->join('posts', function ($join) {
                 $join->on('users.id', '=', 'posts.user_id')
-                     ->where('posts.active', '=', 1);
+                    ->where('posts.active', '=', 1);
             });
 
         // Get the raw bindings array (with type keys)
@@ -631,7 +639,7 @@ describe('Builder Refactored Methods Coverage', function () {
     });
 
     test('shouldHydrateModel returns true when model is set', function () {
-        $this->builder->setModel(new TestCoverageUser());
+        $this->builder->setModel(new TestCoverageUser);
 
         $reflection = new ReflectionClass($this->builder);
         $method = $reflection->getMethod('shouldHydrateModel');
@@ -642,7 +650,7 @@ describe('Builder Refactored Methods Coverage', function () {
     });
 
     test('extractValueFromResult handles Model instance', function () {
-        $model = new TestCoverageUser();
+        $model = new TestCoverageUser;
         $model->setAttribute('name', 'Test');
 
         $reflection = new ReflectionClass($this->builder);
@@ -654,7 +662,7 @@ describe('Builder Refactored Methods Coverage', function () {
     });
 
     test('extractValueFromResult handles stdClass', function () {
-        $obj = (object)['name' => 'Test'];
+        $obj = (object) ['name' => 'Test'];
 
         $reflection = new ReflectionClass($this->builder);
         $method = $reflection->getMethod('extractValueFromResult');
@@ -685,6 +693,7 @@ describe('Builder Refactored Methods Coverage', function () {
             ->once()
             ->andReturnUsing(function () use (&$statements) {
                 $statements[] = 'DELETE FROM users';
+
                 return true;
             });
         $connection->shouldReceive('statement')
@@ -692,14 +701,17 @@ describe('Builder Refactored Methods Coverage', function () {
             ->once()
             ->andReturnUsing(function () use (&$statements) {
                 $statements[] = 'VACUUM';
+
                 return true;
             });
 
-        $grammar = new class extends Grammar {
-            public function compileTruncate(\Bob\Contracts\BuilderInterface $query): array {
+        $grammar = new class extends Grammar
+        {
+            public function compileTruncate(\Bob\Contracts\BuilderInterface $query): array
+            {
                 return [
                     'DELETE FROM users' => [],
-                    'VACUUM' => []
+                    'VACUUM' => [],
                 ];
             }
         };
@@ -717,7 +729,7 @@ describe('Builder Refactored Methods Coverage', function () {
         $rawBindings = $this->builder->getRawBindings();
 
         // Check that select bindings are empty or don't exist
-        $selectEmpty = !isset($rawBindings['select']) || empty($rawBindings['select']);
+        $selectEmpty = ! isset($rawBindings['select']) || empty($rawBindings['select']);
         expect($selectEmpty)->toBeTrue();
 
         // Create new builder for second test
@@ -743,10 +755,12 @@ describe('Builder Refactored Methods Coverage', function () {
             'value',
             function ($query) use (&$mainCalled) {
                 $mainCalled = true;
+
                 return $query;
             },
             function ($query) use (&$defaultCalled) {
                 $defaultCalled = true;
+
                 return $query;
             }
         );
@@ -769,10 +783,12 @@ describe('Builder Refactored Methods Coverage', function () {
             'value',
             function ($query) use (&$mainCalled) {
                 $mainCalled = true;
+
                 return $query;
             },
             function ($query) use (&$defaultCalled) {
                 $defaultCalled = true;
+
                 return $query;
             }
         );
@@ -783,7 +799,7 @@ describe('Builder Refactored Methods Coverage', function () {
 
     test('invokeMacro binds closure and executes', function () {
         Builder::macro('testInvokeMacro', function ($arg) {
-            return $this->from . ':' . $arg;
+            return $this->from.':'.$arg;
         });
 
         $this->builder->from('users');

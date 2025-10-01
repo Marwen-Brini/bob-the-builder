@@ -235,13 +235,13 @@ class BelongsToMany extends Relation
         foreach ($results as $result) {
             // Get the foreign key value from the pivot columns
             $pivot = $result->getAttribute('pivot');
-            if (!$pivot) {
+            if (! $pivot) {
                 continue;
             }
             $key = $pivot->{$this->foreignPivotKey} ?? null;
 
             if ($key !== null) {
-                if (!isset($dictionary[$key])) {
+                if (! isset($dictionary[$key])) {
                     $dictionary[$key] = [];
                 }
                 $dictionary[$key][] = $result;
@@ -387,7 +387,7 @@ class BelongsToMany extends Relation
      */
     protected function shouldSelectAll(): bool
     {
-        return empty($this->pivotColumns) && !$this->withTimestamps;
+        return empty($this->pivotColumns) && ! $this->withTimestamps;
     }
 
     /**
@@ -397,6 +397,7 @@ class BelongsToMany extends Relation
     {
         if (is_array($id)) {
             $this->attachMultiple($id, $attributes, $touch);
+
             return;
         }
 
@@ -459,7 +460,7 @@ class BelongsToMany extends Relation
     {
         $query = $this->newPivotQuery();
 
-        if (!is_null($ids)) {
+        if (! is_null($ids)) {
             $ids = $this->parseIds($ids);
 
             if (empty($ids)) {
@@ -480,7 +481,7 @@ class BelongsToMany extends Relation
         $changes = [
             'attached' => [],
             'detached' => [],
-            'updated' => []
+            'updated' => [],
         ];
 
         // First, we need to get the current related models

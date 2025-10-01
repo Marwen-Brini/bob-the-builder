@@ -1,14 +1,12 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Query\Grammar;
-use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\Grammars\SQLiteGrammar;
-use Bob\Query\Grammars\PostgreSQLGrammar;
-use Bob\Query\Processor;
-use Bob\Query\Builder;
-use Bob\Exceptions\ConnectionException;
 use Bob\Logging\Log;
+use Bob\Query\Builder;
+use Bob\Query\Grammars\MySQLGrammar;
+use Bob\Query\Grammars\PostgreSQLGrammar;
+use Bob\Query\Grammars\SQLiteGrammar;
+use Bob\Query\Processor;
 
 beforeEach(function () {
     // Clear any global loggers to ensure test isolation
@@ -45,59 +43,59 @@ afterEach(function () {
 });
 
 describe('Connection', function () {
-    
+
     test('implements ConnectionInterface', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
         expect($connection)->toBeInstanceOf(\Bob\Contracts\ConnectionInterface::class);
     });
-    
+
     test('creates appropriate grammar for driver', function () {
         $mysqlConnection = new Connection(['driver' => 'mysql']);
         expect($mysqlConnection->getQueryGrammar())->toBeInstanceOf(MySQLGrammar::class);
-        
+
         $sqliteConnection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
         expect($sqliteConnection->getQueryGrammar())->toBeInstanceOf(SQLiteGrammar::class);
-        
+
         $postgresConnection = new Connection(['driver' => 'pgsql']);
         expect($postgresConnection->getQueryGrammar())->toBeInstanceOf(PostgreSQLGrammar::class);
     });
-    
+
     test('throws exception for unsupported driver', function () {
-        expect(fn() => new Connection(['driver' => 'oracle']))
+        expect(fn () => new Connection(['driver' => 'oracle']))
             ->toThrow(\InvalidArgumentException::class, 'Database driver [oracle] not supported');
     });
-    
+
     test('creates processor', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
         expect($connection->getPostProcessor())->toBeInstanceOf(Processor::class);
     });
-    
+
     test('creates query builder', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
         $builder = $connection->table('users');
-        
+
         expect($builder)->toBeInstanceOf(Builder::class);
         expect($builder->from)->toBe('users');
     });
-    
+
     test('creates raw expression', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
         $raw = $connection->raw('COUNT(*)');
-        
+
         expect($raw)->toBeInstanceOf(\Bob\Database\Expression::class);
         expect((string) $raw)->toBe('COUNT(*)');
     });
-    
+
     test('handles table prefix', function () {
         $connection = new Connection([
             'driver' => 'sqlite',
             'database' => ':memory:',
-            'prefix' => 'wp_'
+            'prefix' => 'wp_',
         ]);
-        
+
         expect($connection->getTablePrefix())->toBe('wp_');
     });
-    
+
     test('pretend mode', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
 
@@ -108,7 +106,7 @@ describe('Connection', function () {
         expect($queries)->toHaveCount(1);
         expect($queries[0]['query'])->toContain('insert into');
     });
-    
+
     test('query logging', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
 
@@ -137,34 +135,35 @@ describe('Connection', function () {
         $connection->flushQueryLog();
         expect($connection->getQueryLog())->toBe([]);
     });
-    
+
     test('transactions', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        
+
         $connection->beginTransaction();
         expect($connection->transactionLevel())->toBe(1);
-        
+
         $connection->commit();
         expect($connection->transactionLevel())->toBe(0);
-        
+
         $connection->beginTransaction();
         $connection->rollBack();
         expect($connection->transactionLevel())->toBe(0);
     });
-    
+
     test('transaction callbacks', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        
+
         $executed = false;
         $result = $connection->transaction(function () use (&$executed) {
             $executed = true;
+
             return 'success';
         });
-        
+
         expect($executed)->toBeTrue();
         expect($result)->toBe('success');
     });
-    
+
     test('reconnection', function () {
         $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
 

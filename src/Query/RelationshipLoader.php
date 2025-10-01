@@ -99,6 +99,7 @@ class RelationshipLoader
 
         // Query related models
         $ownerKey = $relation->getOwnerKeyName();
+
         return $query->whereIn($ownerKey, array_unique($keys))->get();
     }
 
@@ -131,6 +132,7 @@ class RelationshipLoader
         if (strpos($key, '.') !== false) {
             return substr($key, strrpos($key, '.') + 1);
         }
+
         return $key;
     }
 
@@ -143,7 +145,7 @@ class RelationshipLoader
 
         foreach ($models as $model) {
             $key = $model->getAttribute($keyName);
-            if (!is_null($key)) {
+            if (! is_null($key)) {
                 $keys[] = $key;
             }
         }
@@ -160,6 +162,7 @@ class RelationshipLoader
 
         if ($this->isBelongsToMany($relationClass)) {
             $relation->match($models, $related, $name);
+
             return;
         }
 
@@ -181,6 +184,7 @@ class RelationshipLoader
     {
         if ($this->isBelongsTo($relationClass)) {
             $foreignKey = $this->extractKeyName($relation->getForeignKeyName());
+
             return $model->getAttribute($foreignKey);
         }
 
@@ -208,7 +212,7 @@ class RelationshipLoader
                 if (strpos($relationClass, 'HasOne') !== false) {
                     $dictionary[$key] = $item;
                 } else {
-                    if (!isset($dictionary[$key])) {
+                    if (! isset($dictionary[$key])) {
                         $dictionary[$key] = [];
                     }
                     $dictionary[$key][] = $item;

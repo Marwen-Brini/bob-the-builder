@@ -6,13 +6,13 @@ namespace Tests\Unit\Database\Migrations;
 
 use Bob\Database\Connection;
 use Bob\Database\Migrations\Migration;
-use Bob\Database\Migrations\MigrationRunner;
-use Bob\Database\Migrations\MigrationRepository;
 use Bob\Database\Migrations\MigrationLoaderInterface;
-use PHPUnit\Framework\TestCase;
-use Mockery;
+use Bob\Database\Migrations\MigrationRepository;
+use Bob\Database\Migrations\MigrationRunner;
 use Exception;
 use InvalidArgumentException;
+use Mockery;
+use PHPUnit\Framework\TestCase;
 
 // PEST CONVERSION IN PROGRESS - Converting one method at a time
 
@@ -49,7 +49,7 @@ test('run pending with empty migrations array', function () {
 
 // CONVERTED TEST 2: testRunPendingWithMigrationHooks
 test('run pending with migration hooks', function () {
-    $migration = new TestMigrationWithHooks();
+    $migration = new TestMigrationWithHooks;
     $migration->setWithinTransaction(false); // Test without transaction
 
     $this->repository->shouldReceive('log')->once();
@@ -103,7 +103,7 @@ test('reset with empty migrations', function () {
 });
 
 test('run down in pretend mode', function () {
-    $migration = new TestMigration();
+    $migration = new TestMigration;
     $outputCalled = false;
 
     $this->runner->setOutput(function ($message) use (&$outputCalled) {
@@ -124,7 +124,7 @@ test('run down in pretend mode', function () {
 });
 
 test('run down without transaction', function () {
-    $migration = new TestMigration();
+    $migration = new TestMigration;
     $migration->setWithinTransaction(false);
 
     $this->repository->shouldReceive('delete')->with('test_migration.php')->once();
@@ -143,7 +143,7 @@ test('run down without transaction', function () {
 });
 
 test('run down with exception', function () {
-    $migration = new TestMigrationWithException();
+    $migration = new TestMigrationWithException;
     $migration->setWithinTransaction(false);
 
     $outputCalled = false;
@@ -158,7 +158,7 @@ test('run down with exception', function () {
     $method = $reflection->getMethod('runDown');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($this->runner, 'test_migration.php', $migration, false))
+    expect(fn () => $method->invoke($this->runner, 'test_migration.php', $migration, false))
         ->toThrow(Exception::class, 'Test rollback exception');
 
     expect($outputCalled)->toBeTrue();
@@ -201,8 +201,8 @@ test('drop all MySQL tables', function () {
     $this->connection->shouldReceive('getTablePrefix')->andReturn('');
     $this->connection->shouldReceive('statement')->with('SET FOREIGN_KEY_CHECKS = 0')->once();
     $this->connection->shouldReceive('select')->with('SHOW TABLES')->andReturn([
-        (object)['Tables_in_test_db' => 'users'],
-        (object)['Tables_in_test_db' => 'posts']
+        (object) ['Tables_in_test_db' => 'users'],
+        (object) ['Tables_in_test_db' => 'posts'],
     ]);
     $this->connection->shouldReceive('getConfig')->with('database')->andReturn('test_db');
     $this->connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
@@ -227,8 +227,8 @@ test('drop all PostgreSQL tables', function () {
     $this->connection->shouldReceive('select')
         ->with("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'")
         ->andReturn([
-            (object)['tablename' => 'users'],
-            (object)['tablename' => 'posts']
+            (object) ['tablename' => 'users'],
+            (object) ['tablename' => 'posts'],
         ]);
 
     $this->connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
@@ -253,8 +253,8 @@ test('drop all SQLite tables', function () {
     $this->connection->shouldReceive('select')
         ->with("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
         ->andReturn([
-            (object)['name' => 'users'],
-            (object)['name' => 'posts']
+            (object) ['name' => 'users'],
+            (object) ['name' => 'posts'],
         ]);
 
     $this->connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
@@ -280,7 +280,7 @@ test('drop all tables unsupported driver', function () {
     $method = $reflection->getMethod('dropAllTables');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($this->runner))
+    expect(fn () => $method->invoke($this->runner))
         ->toThrow(InvalidArgumentException::class, 'Unsupported database driver: sqlsrv');
 });
 
@@ -298,7 +298,9 @@ test('getter setter methods', function () {
     expect($this->runner->getRepository())->toBe($newRepository);
 
     // Test output setter
-    $output = function($message) { echo $message; };
+    $output = function ($message) {
+        echo $message;
+    };
     $this->runner->setOutput($output);
 
     // Use reflection to verify output was set
@@ -317,24 +319,24 @@ test('getter setter methods', function () {
 //     protected Connection $connection;
 //     protected MigrationRepository $repository;
 //     protected MigrationLoaderInterface $loader;
-// 
+//
 //     protected function setUp(): void
 //     {
 //         parent::setUp();
-// 
+//
 //         $this->connection = Mockery::mock(Connection::class);
 //         $this->repository = Mockery::mock(MigrationRepository::class);
 //         $this->loader = Mockery::mock(MigrationLoaderInterface::class);
-// 
+//
 //         $this->runner = new MigrationRunner($this->connection, $this->repository);
 //     }
-// 
+//
 //     protected function tearDown(): void
 //     {
 //         Mockery::close();
 //         parent::tearDown();
 //     }
-// 
+//
 //     // /**
 //     //  * Test runPending with empty migrations array (covers lines 146-147)
 //     //  */
@@ -345,17 +347,17 @@ test('getter setter methods', function () {
 //     //         $this->assertEquals('Nothing to migrate.', $message);
 //     //         $outputCalled = true;
 //     //     });
-// 
+//
 //     //     // Use reflection to access protected method
 //     //     $reflection = new \ReflectionClass($this->runner);
 //     //     $method = $reflection->getMethod('runPending');
 //     //     $method->setAccessible(true);
-// 
+//
 //     //     $method->invoke($this->runner, [], 1, []);
-// 
+//
 //     //     $this->assertTrue($outputCalled);
 //     // }
-// 
+//
 //     // /**
 //     //  * Test runPending with migrations having before/after hooks (covers lines 182-184)
 //     //  */
@@ -363,25 +365,25 @@ test('getter setter methods', function () {
 //     // {
 //     //     $migration = new TestMigrationWithHooks();
 //     //     $migration->setWithinTransaction(false); // Test without transaction
-// 
+//
 //     //     $this->repository->shouldReceive('log')->once();
-// 
+//
 //     //     $this->runner->setOutput(function ($message) {
 //     //         // Capture migration messages
 //     //     });
-// 
+//
 //     //     // Use reflection to access protected method
 //     //     $reflection = new \ReflectionClass($this->runner);
 //     //     $method = $reflection->getMethod('runUp');
 //     //     $method->setAccessible(true);
-// 
+//
 //     //     $method->invoke($this->runner, 'test_migration.php', $migration, 1, false);
-// 
+//
 //     //     $this->assertTrue($migration->beforeCalled);
 //     //     $this->assertTrue($migration->upCalled);
 //     //     $this->assertTrue($migration->afterCalled);
 //     // }
-// 
+//
 //     // /**
 //     //  * Test rollback with empty migrations (covers lines 220-221)
 //     //  */
@@ -392,15 +394,15 @@ test('getter setter methods', function () {
 //     //         $this->assertEquals('Nothing to rollback.', $message);
 //     //         $outputCalled = true;
 //     //     });
-// 
+//
 //     //     $this->repository->shouldReceive('getMigrations')->with(1)->andReturn([]);
-// 
+//
 //     //     $result = $this->runner->rollback(['step' => 1]);
-// 
+//
 //     //     $this->assertEquals([], $result);
 //     //     $this->assertTrue($outputCalled);
 //     // }
-// 
+//
 //     /**
 //      * Test reset with empty migrations (covers lines 249-250)
 //      */
@@ -411,15 +413,15 @@ test('getter setter methods', function () {
 //             $this->assertEquals('Nothing to rollback.', $message);
 //             $outputCalled = true;
 //         });
-// 
+//
 //         $this->repository->shouldReceive('getRan')->andReturn([]);
-// 
+//
 //         $result = $this->runner->reset();
-// 
+//
 //         $this->assertEquals([], $result);
 //         $this->assertTrue($outputCalled);
 //     }
-// 
+//
 //     /**
 //      * Test runDown in pretend mode (covers lines 270-271)
 //      */
@@ -427,24 +429,24 @@ test('getter setter methods', function () {
 //     {
 //         $migration = new TestMigration();
 //         $outputCalled = false;
-// 
+//
 //         $this->runner->setOutput(function ($message) use (&$outputCalled) {
 //             if (str_contains($message, 'Would run:')) {
 //                 $outputCalled = true;
 //             }
 //         });
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('runDown');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner, 'test_migration.php', $migration, true);
-// 
+//
 //         $this->assertTrue($outputCalled);
 //         $this->assertFalse($migration->downCalled); // Should not actually run in pretend mode
 //     }
-// 
+//
 //     /**
 //      * Test runDown without transactions (covers line 284)
 //      */
@@ -452,22 +454,22 @@ test('getter setter methods', function () {
 //     {
 //         $migration = new TestMigration();
 //         $migration->setWithinTransaction(false); // Test without transaction
-// 
+//
 //         $this->repository->shouldReceive('delete')->with('test_migration.php')->once();
 //         $this->runner->setOutput(function ($message) {
 //             // Capture output
 //         });
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('runDown');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner, 'test_migration.php', $migration, false);
-// 
+//
 //         $this->assertTrue($migration->downCalled);
 //     }
-// 
+//
 //     /**
 //      * Test runDown with exception handling (covers lines 291-293)
 //      */
@@ -475,22 +477,22 @@ test('getter setter methods', function () {
 //     {
 //         $migration = new TestMigrationWithException();
 //         $migration->setWithinTransaction(false); // Test without transaction
-// 
+//
 //         $this->expectException(Exception::class);
 //         $this->expectExceptionMessage('Test rollback exception');
-// 
+//
 //         $outputCalled = false;
 //         $this->runner->setOutput(function ($message) use (&$outputCalled) {
 //             if (str_contains($message, 'Rollback failed:')) {
 //                 $outputCalled = true;
 //             }
 //         });
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('runDown');
 //         $method->setAccessible(true);
-// 
+//
 //         try {
 //             $method->invoke($this->runner, 'test_migration.php', $migration, false);
 //         } catch (Exception $e) {
@@ -498,7 +500,7 @@ test('getter setter methods', function () {
 //             throw $e;
 //         }
 //     }
-// 
+//
 //     /**
 //      * Test fresh method (covers lines 313-322)
 //      */
@@ -511,30 +513,30 @@ test('getter setter methods', function () {
 //         $this->connection->shouldReceive('getConfig')->with('database')->andReturn('test_db');
 //         $this->connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
 //         $this->connection->shouldReceive('statement')->with('SET FOREIGN_KEY_CHECKS = 1')->once();
-// 
+//
 //         // Mock repository methods - first exists, then doesn't after deletion
 //         $this->repository->shouldReceive('repositoryExists')->andReturn(true, false);
 //         $this->repository->shouldReceive('deleteRepository')->once();
 //         $this->repository->shouldReceive('createRepository')->once();
 //         $this->repository->shouldReceive('getRan')->andReturn([]);
 //         $this->repository->shouldReceive('getNextBatchNumber')->andReturn(1);
-// 
+//
 //         // Mock loader for run method
 //         $this->loader->shouldReceive('load')->andReturn([]);
-// 
+//
 //         $outputCalled = false;
 //         $this->runner->setOutput(function ($message) use (&$outputCalled) {
 //             if ($message === 'Dropped all tables successfully.') {
 //                 $outputCalled = true;
 //             }
 //         });
-// 
+//
 //         $result = $this->runner->fresh();
-// 
+//
 //         $this->assertTrue($outputCalled);
 //         $this->assertIsArray($result);
 //     }
-// 
+//
 //     /**
 //      * Test dropAllTables with MySQL (covers lines 501-502)
 //      */
@@ -552,18 +554,18 @@ test('getter setter methods', function () {
 //         $this->connection->shouldReceive('statement')->with('drop table `users`')->once();
 //         $this->connection->shouldReceive('statement')->with('drop table `posts`')->once();
 //         $this->connection->shouldReceive('statement')->with('SET FOREIGN_KEY_CHECKS = 1')->once();
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('dropAllTables');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner);
-// 
+//
 //         // Test passed if no exception thrown
 //         $this->assertTrue(true);
 //     }
-// 
+//
 //     /**
 //      * Test dropAllTables with PostgreSQL (covers lines 504-505)
 //      */
@@ -580,18 +582,18 @@ test('getter setter methods', function () {
 //         $this->connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
 //         $this->connection->shouldReceive('statement')->with('drop table "users"')->once();
 //         $this->connection->shouldReceive('statement')->with('drop table "posts"')->once();
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('dropAllTables');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner);
-// 
+//
 //         // Test passed if no exception thrown
 //         $this->assertTrue(true);
 //     }
-// 
+//
 //     /**
 //      * Test dropAllTables with SQLite (covers lines 507-508)
 //      */
@@ -610,36 +612,36 @@ test('getter setter methods', function () {
 //         $this->connection->shouldReceive('statement')->with('drop table "users"')->once();
 //         $this->connection->shouldReceive('statement')->with('drop table "posts"')->once();
 //         $this->connection->shouldReceive('statement')->with('PRAGMA foreign_keys = ON')->once();
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('dropAllTables');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner);
-// 
+//
 //         // Test passed if no exception thrown
 //         $this->assertTrue(true);
 //     }
-// 
+//
 //     /**
 //      * Test dropAllTables with unsupported driver (covers lines 510-511)
 //      */
 //     public function testDropAllTablesUnsupportedDriver()
 //     {
 //         $this->connection->shouldReceive('getDriverName')->andReturn('unsupported');
-// 
+//
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage('Unsupported database driver: unsupported');
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('dropAllTables');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner);
 //     }
-// 
+//
 //     /**
 //      * Test getter and setter methods (covers lines 632-681)
 //      */
@@ -649,22 +651,22 @@ test('getter setter methods', function () {
 //         $paths = ['/path/to/migrations', '/another/path'];
 //         $this->runner->setPaths($paths);
 //         $this->assertEquals($paths, $this->runner->getPaths());
-// 
+//
 //         // Test repository
 //         $newRepository = Mockery::mock(MigrationRepository::class);
 //         $this->runner->setRepository($newRepository);
 //         $this->assertSame($newRepository, $this->runner->getRepository());
-// 
+//
 //         // Test connection - fix the expectation on the new repository mock
 //         $newConnection = Mockery::mock(Connection::class);
 //         $newRepository->shouldReceive('setConnection')->with($newConnection)->once();
 //         $this->runner->setConnection($newConnection);
 //         $this->assertSame($newConnection, $this->runner->getConnection());
-// 
+//
 //         // Test ran migrations (initially empty)
 //         $this->assertEquals([], $this->runner->getRan());
 //     }
-// 
+//
 //     /**
 //      * Test lifecycle hooks
 //      */
@@ -674,20 +676,20 @@ test('getter setter methods', function () {
 //         $reflection = new \ReflectionClass($this->runner);
 //         $beforeRunMethod = $reflection->getMethod('beforeRun');
 //         $beforeRunMethod->setAccessible(true);
-// 
+//
 //         // Should not throw any exception
 //         $beforeRunMethod->invoke($this->runner);
 //         $this->assertTrue(true);
-// 
+//
 //         // Test afterRun hook (empty implementation)
 //         $afterRunMethod = $reflection->getMethod('afterRun');
 //         $afterRunMethod->setAccessible(true);
-// 
+//
 //         // Should not throw any exception (needs array parameter)
 //         $afterRunMethod->invoke($this->runner, []);
 //         $this->assertTrue(true);
 //     }
-// 
+//
 //     /**
 //      * Test error handling with custom error handler
 //      */
@@ -699,26 +701,26 @@ test('getter setter methods', function () {
 //             $this->assertEquals('Test up exception', $e->getMessage());
 //             $this->assertEquals('test_migration.php', $migration);
 //         });
-// 
+//
 //         // Test by invoking the code path that calls the error handler
 //         // The error handler is called in runUp when an exception occurs
 //         $migration = new TestMigrationWithException();
 //         $migration->setWithinTransaction(false);
-// 
+//
 //         // Use reflection to test the error handling path in runUp
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('runUp');
 //         $method->setAccessible(true);
-// 
+//
 //         try {
 //             $method->invoke($this->runner, 'test_migration.php', $migration, 1, false);
 //         } catch (Exception $e) {
 //             // Expected exception - the error handler should still have been called
 //         }
-// 
+//
 //         $this->assertTrue($errorHandlerCalled);
 //     }
-// 
+//
 //     /**
 //      * Test pretendToRun method
 //      */
@@ -726,23 +728,23 @@ test('getter setter methods', function () {
 //     {
 //         $migration = new TestMigration();
 //         $outputCalled = false;
-// 
+//
 //         $this->runner->setOutput(function ($message) use (&$outputCalled) {
 //             if (str_contains($message, 'Would run:')) {
 //                 $outputCalled = true;
 //             }
 //         });
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('pretendToRun');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner, $migration, 'down');
-// 
+//
 //         $this->assertTrue($outputCalled);
 //     }
-// 
+//
 //     /**
 //      * Test rollback with batch option (covers line 331)
 //      */
@@ -753,14 +755,14 @@ test('getter setter methods', function () {
 //             (object)['migration' => 'test_migration1'],
 //             (object)['migration' => 'test_migration2']
 //         ]);
-// 
+//
 //         // Mock the loader since rollback will try to resolve migrations
 //         $this->loader->shouldReceive('load')->andReturn('TestMigration');
-// 
+//
 //         // Set up paths with a real directory
 //         $tempDir = sys_get_temp_dir() . '/migrations_' . uniqid();
 //         mkdir($tempDir, 0777, true);
-// 
+//
 //         // Create test migration files
 //         file_put_contents($tempDir . '/test_migration1.php', '<?php
 // use Bob\Database\Migrations\Migration;
@@ -776,28 +778,28 @@ test('getter setter methods', function () {
 //     public function down(): void {}
 //     public function getQueries(string $direction): array { return []; }
 // }');
-// 
+//
 //         $this->runner->setPaths([$tempDir]);
 //         $this->runner->setOutput(function($message) {});
-// 
+//
 //         // Mock the repository delete method
 //         $this->repository->shouldReceive('delete')->twice();
-// 
+//
 //         // Mock connection transaction method
 //         $this->connection->shouldReceive('transaction')->twice()->andReturnUsing(function($callback) {
 //             return $callback();
 //         });
-// 
+//
 //         $result = $this->runner->rollback(['batch' => 3]);
-// 
+//
 //         $this->assertEquals(['test_migration1', 'test_migration2'], $result);
-// 
+//
 //         // Clean up
 //         unlink($tempDir . '/test_migration1.php');
 //         unlink($tempDir . '/test_migration2.php');
 //         rmdir($tempDir);
 //     }
-// 
+//
 //     /**
 //      * Test resolve method with existing class (covers line 394)
 //      */
@@ -807,17 +809,17 @@ test('getter setter methods', function () {
 //         if (!class_exists('TestMigrationForResolve')) {
 //             eval('class TestMigrationForResolve extends ' . TestMigration::class . ' {}');
 //         }
-// 
+//
 //         // Use reflection to access protected resolve method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('resolve');
 //         $method->setAccessible(true);
-// 
+//
 //         $result = $method->invoke($this->runner, 'TestMigrationForResolve');
-// 
+//
 //         $this->assertInstanceOf('TestMigrationForResolve', $result);
 //     }
-// 
+//
 //     /**
 //      * Test resolve method with non-existent file (covers line 401)
 //      */
@@ -825,18 +827,18 @@ test('getter setter methods', function () {
 //     {
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage('Migration [non_existent_migration] not found.');
-// 
+//
 //         // Mock findMigrationFile to return null
 //         $this->runner->setPaths(['/non/existent/path']);
-// 
+//
 //         // Use reflection to access protected resolve method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('resolve');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner, 'non_existent_migration');
 //     }
-// 
+//
 //     /**
 //      * Test resolve method with file that doesn't define expected class (covers line 408)
 //      */
@@ -844,16 +846,16 @@ test('getter setter methods', function () {
 //     {
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage('Migration class [NonExistentClass] not found in file');
-// 
+//
 //         // Create a valid migration file with test_migration name
 //         $tempDir = sys_get_temp_dir() . '/migrations_' . uniqid();
 //         mkdir($tempDir, 0777, true);
 //         $migrationFile = $tempDir . '/test_migration.php';
 //         $migrationContent = <<<'PHP'
 // <?php
-// 
+//
 // use Bob\Database\Migrations\Migration;
-// 
+//
 // class ExistingClass extends Migration
 // {
 //     public function up(): void {}
@@ -862,18 +864,18 @@ test('getter setter methods', function () {
 // }
 // PHP;
 //         file_put_contents($migrationFile, $migrationContent);
-// 
+//
 //         // Mock loader to return a different class name than what's actually in the file
 //         $this->loader->shouldReceive('load')->with($migrationFile)->andReturn('NonExistentClass');
-// 
+//
 //         $this->runner->setPaths([$tempDir]);
 //         $this->runner->setLoader($this->loader);
-// 
+//
 //         // Use reflection to access protected resolve method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('resolve');
 //         $method->setAccessible(true);
-// 
+//
 //         try {
 //             $method->invoke($this->runner, 'test_migration');
 //         } finally {
@@ -881,7 +883,7 @@ test('getter setter methods', function () {
 //             rmdir($tempDir);
 //         }
 //     }
-// 
+//
 //     /**
 //      * Test resolve method with class that doesn't extend Migration (covers line 414)
 //      */
@@ -889,16 +891,16 @@ test('getter setter methods', function () {
 //     {
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage('Class [stdClass] must extend Migration.');
-// 
+//
 //         // Create a valid migration file with test_migration name
 //         $tempDir = sys_get_temp_dir() . '/migrations_' . uniqid();
 //         mkdir($tempDir, 0777, true);
 //         $migrationFile = $tempDir . '/test_migration.php';
 //         $migrationContent = <<<'PHP'
 // <?php
-// 
+//
 // use Bob\Database\Migrations\Migration;
-// 
+//
 // class SomeValidMigration extends Migration
 // {
 //     public function up(): void {}
@@ -907,18 +909,18 @@ test('getter setter methods', function () {
 // }
 // PHP;
 //         file_put_contents($migrationFile, $migrationContent);
-// 
+//
 //         // Mock loader to return stdClass (which exists but doesn't extend Migration)
 //         $this->loader->shouldReceive('load')->with($migrationFile)->andReturn('stdClass');
-// 
+//
 //         $this->runner->setPaths([$tempDir]);
 //         $this->runner->setLoader($this->loader);
-// 
+//
 //         // Use reflection to access protected resolve method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('resolve');
 //         $method->setAccessible(true);
-// 
+//
 //         try {
 //             $method->invoke($this->runner, 'test_migration');
 //         } finally {
@@ -926,7 +928,7 @@ test('getter setter methods', function () {
 //             rmdir($tempDir);
 //         }
 //     }
-// 
+//
 //     /**
 //      * Test getMigrationClass method (covers lines 432-447)
 //      */
@@ -936,35 +938,35 @@ test('getter setter methods', function () {
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('getMigrationClass');
 //         $method->setAccessible(true);
-// 
+//
 //         // Test with timestamp prefix
 //         $result = $method->invoke($this->runner, '2023_12_25_123456_create_users_table.php');
 //         $this->assertEquals('CreateUsersTable', $result);
-// 
+//
 //         // Test with complex name
 //         $result = $method->invoke($this->runner, '2023_01_01_000000_add_email_to_user_profiles_table.php');
 //         $this->assertEquals('AddEmailToUserProfilesTable', $result);
 //     }
-// 
+//
 //     /**
 //      * Test migration with description (covers line 575)
 //      */
 //     public function testMigrationWithDescription()
 //     {
 //         $migration = new TestMigrationWithDescription();
-// 
+//
 //         $outputMessages = [];
 //         $this->runner->setOutput(function ($message) use (&$outputMessages) {
 //             $outputMessages[] = $message;
 //         });
-// 
+//
 //         // Use reflection to access protected pretendToRun method (where description is used)
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('pretendToRun');
 //         $method->setAccessible(true);
-// 
+//
 //         $method->invoke($this->runner, $migration, 'up');
-// 
+//
 //         // Check that description was outputted
 //         $descriptionFound = false;
 //         foreach ($outputMessages as $message) {
@@ -973,10 +975,10 @@ test('getter setter methods', function () {
 //                 break;
 //             }
 //         }
-// 
+//
 //         $this->assertTrue($descriptionFound);
 //     }
-// 
+//
 //     /**
 //      * Test dependency resolution with circular dependency (covers line 475)
 //      */
@@ -984,27 +986,27 @@ test('getter setter methods', function () {
 //     {
 //         $migration1 = new TestMigrationWithDependencies(['migration2']);
 //         $migration2 = new TestMigrationWithDependencies(['migration1']); // Circular
-// 
+//
 //         $migrations = [
 //             'migration1' => $migration1,
 //             'migration2' => $migration2
 //         ];
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('resolveDependency');
 //         $method->setAccessible(true);
-// 
+//
 //         $sorted = [];
 //         $visited = ['migration1' => true]; // Already visited
-// 
+//
 //         // This should return early due to circular dependency check
 //         $method->invokeArgs($this->runner, ['migration1', $migrations, &$sorted, &$visited]);
-// 
+//
 //         // migration1 should not be added to sorted again
 //         $this->assertEmpty($sorted);
 //     }
-// 
+//
 //     /**
 //      * Test dependency resolution with valid dependency (covers lines 482-483)
 //      */
@@ -1012,38 +1014,42 @@ test('getter setter methods', function () {
 //     {
 //         $migration1 = new TestMigrationWithDependencies(['migration2']);
 //         $migration2 = new TestMigrationWithDependencies([]);
-// 
+//
 //         $migrations = [
 //             'migration1' => $migration1,
 //             'migration2' => $migration2
 //         ];
-// 
+//
 //         // Use reflection to access protected method
 //         $reflection = new \ReflectionClass($this->runner);
 //         $method = $reflection->getMethod('resolveDependency');
 //         $method->setAccessible(true);
-// 
+//
 //         $sorted = [];
 //         $visited = [];
-// 
+//
 //         // Resolve migration1, which depends on migration2
 //         $method->invokeArgs($this->runner, ['migration1', $migrations, &$sorted, &$visited]);
-// 
+//
 //         // migration2 should be resolved first, then migration1
 //         $this->assertArrayHasKey('migration2', $sorted);
 //         $this->assertArrayHasKey('migration1', $sorted);
 //     }
 // }
-// 
+//
 /**
  * Test migration with hooks
  */
 class TestMigrationWithHooks extends Migration
 {
     public bool $beforeCalled = false;
+
     public bool $upCalled = false;
+
     public bool $afterCalled = false;
+
     public bool $downCalled = false;
+
     protected bool $withinTransaction = true;
 
     public function before(): void
@@ -1083,14 +1089,16 @@ class TestMigrationWithHooks extends Migration
             : ['drop table users'];
     }
 }
-// 
+//
 /**
  * Test migration
  */
 class TestMigration extends Migration
 {
     public bool $upCalled = false;
+
     public bool $downCalled = false;
+
     protected bool $withinTransaction = true;
 
     public function up(): void
@@ -1120,7 +1128,7 @@ class TestMigration extends Migration
             : ['drop table test'];
     }
 }
-// 
+//
 /**
  * Test migration that throws exception
  */
@@ -1153,13 +1161,14 @@ class TestMigrationWithException extends Migration
         return ['create table test (id int)'];
     }
 }
-// 
+//
 /**
  * Test migration with description
  */
 class TestMigrationWithDescription extends Migration
 {
     public bool $upCalled = false;
+
     protected bool $withinTransaction = true;
 
     public function up(): void
@@ -1192,7 +1201,7 @@ class TestMigrationWithDescription extends Migration
         return ['create table test (id int)'];
     }
 }
-// 
+//
 /**
  * Test migration with dependencies
  */

@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\Database\Migrations;
 
 use Bob\Database\Migrations\MigrationCreator;
-use PHPUnit\Framework\TestCase;
 use InvalidArgumentException;
+use PHPUnit\Framework\TestCase;
 
 // PEST CONVERSION IN PROGRESS - Converting one method at a time
 
 // Pest setup
 beforeEach(function () {
     // Create a temporary directory for test migrations
-    $this->tempDir = sys_get_temp_dir() . '/bob_migrations_test_' . uniqid();
+    $this->tempDir = sys_get_temp_dir().'/bob_migrations_test_'.uniqid();
     mkdir($this->tempDir, 0777, true);
 
     $this->creator = new MigrationCreator($this->tempDir);
@@ -22,7 +22,7 @@ beforeEach(function () {
 afterEach(function () {
     // Clean up temporary files
     if (is_dir($this->tempDir)) {
-        $files = glob($this->tempDir . '/*');
+        $files = glob($this->tempDir.'/*');
         foreach ($files as $file) {
             if (is_file($file)) {
                 unlink($file);
@@ -33,17 +33,18 @@ afterEach(function () {
 });
 
 // Helper function
-function convertToClassName(string $name): string {
+function convertToClassName(string $name): string
+{
     return str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
 }
 
 // CONVERTED TEST 1: testCreateBasicMigration
 test('basic migration creation', function () {
-    $uniqueName = 'create_test_users_table_' . uniqid();
+    $uniqueName = 'create_test_users_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName);
 
     expect($fileName)->toBeFile();
-    expect($fileName)->toContain($uniqueName . '.php');
+    expect($fileName)->toContain($uniqueName.'.php');
 
     $content = file_get_contents($fileName);
     $expectedClassName = convertToClassName($uniqueName);
@@ -54,7 +55,7 @@ test('basic migration creation', function () {
 
 // CONVERTED TEST 2: testCreateMigrationWithTableCreate
 test('migration creation with table create mode', function () {
-    $uniqueName = 'create_test_posts_table_' . uniqid();
+    $uniqueName = 'create_test_posts_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'test_posts', true);
 
     expect($fileName)->toBeFile();
@@ -68,7 +69,7 @@ test('migration creation with table create mode', function () {
 
 // CONVERTED TEST 3: testCreateMigrationWithTableUpdate
 test('migration creation with table update mode', function () {
-    $uniqueName = 'add_email_to_test_users_table_' . uniqid();
+    $uniqueName = 'add_email_to_test_users_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'test_users', false);
 
     expect($fileName)->toBeFile();
@@ -81,7 +82,7 @@ test('migration creation with table update mode', function () {
 
 // CONVERTED TEST 4: testCreateBlankMigration
 test('blank migration creation', function () {
-    $uniqueName = 'do_something_custom_' . uniqid();
+    $uniqueName = 'do_something_custom_'.uniqid();
     $fileName = $this->creator->create($uniqueName);
 
     expect($fileName)->toBeFile();
@@ -94,7 +95,7 @@ test('blank migration creation', function () {
 
 // CONVERTED TEST 5: testCreateUsersTableWithSpecificColumns
 test('create users table with specific columns', function () {
-    $uniqueName = 'create_app_users_table_' . uniqid();
+    $uniqueName = 'create_app_users_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'app_users', true);
 
     $content = file_get_contents($fileName);
@@ -107,7 +108,7 @@ test('create users table with specific columns', function () {
 
 // CONVERTED TEST 6: testCreatePostsTableWithSpecificColumns
 test('create posts table with specific columns', function () {
-    $uniqueName = 'create_blog_posts_table_' . uniqid();
+    $uniqueName = 'create_blog_posts_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'blog_posts', true);
 
     $content = file_get_contents($fileName);
@@ -120,7 +121,7 @@ test('create posts table with specific columns', function () {
 
 // CONVERTED TEST 7: testCreateArticlesTableWithSpecificColumns
 test('create articles table with specific columns', function () {
-    $uniqueName = 'create_news_articles_table_' . uniqid();
+    $uniqueName = 'create_news_articles_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'news_articles', true);
 
     $content = file_get_contents($fileName);
@@ -133,7 +134,7 @@ test('create articles table with specific columns', function () {
 
 // CONVERTED TEST 8: testCreateGenericTableWithDefaultColumns
 test('create generic table with default columns', function () {
-    $uniqueName = 'create_categories_table_' . uniqid();
+    $uniqueName = 'create_categories_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'categories', true);
 
     $content = file_get_contents($fileName);
@@ -143,11 +144,11 @@ test('create generic table with default columns', function () {
 // CONVERTED TEST 9: testEnsureMigrationDoesntAlreadyExistClassExists
 test('ensure migration doesnt already exist class exists', function () {
     // First test the class_exists scenario by defining a class that would conflict
-    if (!class_exists('TestClassConflict')) {
+    if (! class_exists('TestClassConflict')) {
         eval('class TestClassConflict {}');
     }
 
-    expect(fn() => $this->creator->create('test_class_conflict'))
+    expect(fn () => $this->creator->create('test_class_conflict'))
         ->toThrow(InvalidArgumentException::class, 'A TestClassConflict class already exists.');
 });
 
@@ -157,7 +158,7 @@ test('ensure migration doesnt already exist file exists', function () {
     $this->creator->create('test_duplicate');
 
     // Try to create another with the same name
-    expect(fn() => $this->creator->create('test_duplicate'))
+    expect(fn () => $this->creator->create('test_duplicate'))
         ->toThrow(InvalidArgumentException::class, 'A migration file with name test_duplicate already exists.');
 });
 
@@ -176,7 +177,7 @@ class {{ class }} extends CustomBase
 STUB;
 
     $this->creator->registerStub('blank', $customStub);
-    $uniqueName = 'test_custom_migration_' . uniqid();
+    $uniqueName = 'test_custom_migration_'.uniqid();
     $fileName = $this->creator->create($uniqueName);
 
     $content = file_get_contents($fileName);
@@ -196,17 +197,17 @@ test('path getter and setter', function () {
 
 // CONVERTED TEST 13: testDatePrefixFormat
 test('date prefix format', function () {
-    $uniqueName = 'test_date_prefix_' . uniqid();
+    $uniqueName = 'test_date_prefix_'.uniqid();
     $fileName = $this->creator->create($uniqueName);
     $baseName = basename($fileName);
 
     // Should match YYYY_MM_DD_HHMMSS format
-    expect($baseName)->toMatch('/^\d{4}_\d{2}_\d{2}_\d{6}_' . preg_quote($uniqueName, '/') . '\.php$/');
+    expect($baseName)->toMatch('/^\d{4}_\d{2}_\d{2}_\d{6}_'.preg_quote($uniqueName, '/').'\.php$/');
 });
 
 // CONVERTED TEST 14: testClassNameGeneration
 test('class name generation from migration name', function () {
-    $uniqueName = 'create_user_profile_settings_table_' . uniqid();
+    $uniqueName = 'create_user_profile_settings_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName);
 
     $content = file_get_contents($fileName);
@@ -216,7 +217,7 @@ test('class name generation from migration name', function () {
 
 // CONVERTED TEST 15: testCreateWordPressGenericMigration
 test('create WordPress generic migration', function () {
-    $uniqueName = 'create_wp_custom_table_' . uniqid();
+    $uniqueName = 'create_wp_custom_table_'.uniqid();
     $fileName = $this->creator->createWordPress($uniqueName, 'generic');
 
     expect($fileName)->toBeFile();
@@ -228,7 +229,7 @@ test('create WordPress generic migration', function () {
 
 // CONVERTED TEST 16: testCreateWordPressPostMigration
 test('create WordPress post migration', function () {
-    $uniqueName = 'create_custom_posts_table_' . uniqid();
+    $uniqueName = 'create_custom_posts_table_'.uniqid();
     $fileName = $this->creator->createWordPress($uniqueName, 'post');
 
     expect($fileName)->toBeFile();
@@ -244,7 +245,7 @@ test('create WordPress post migration', function () {
 
 // CONVERTED TEST 17: testCreateWordPressTaxonomyMigration
 test('create WordPress taxonomy migration', function () {
-    $uniqueName = 'create_taxonomy_tables_' . uniqid();
+    $uniqueName = 'create_taxonomy_tables_'.uniqid();
     $fileName = $this->creator->createWordPress($uniqueName, 'taxonomy');
 
     expect($fileName)->toBeFile();
@@ -288,13 +289,13 @@ test('WordPress stub population with table name extraction', function () {
 
 // CONVERTED TEST 20: testEnsureWordPressMigrationDoesntAlreadyExist
 test('ensure WordPress migration doesnt already exist', function () {
-    $uniqueName = 'wp_duplicate_' . uniqid();
+    $uniqueName = 'wp_duplicate_'.uniqid();
 
     // Create first migration
     $this->creator->createWordPress($uniqueName, 'post');
 
     // Try to create another with the same name
-    expect(fn() => $this->creator->createWordPress($uniqueName, 'taxonomy'))
+    expect(fn () => $this->creator->createWordPress($uniqueName, 'taxonomy'))
         ->toThrow(InvalidArgumentException::class, "A migration file with name {$uniqueName} already exists.");
 });
 
@@ -320,7 +321,7 @@ class {{ class }} extends Migration
 STUB;
 
     $this->creator->registerStub('create', $customCreateStub);
-    $uniqueName = 'create_custom_table_' . uniqid();
+    $uniqueName = 'create_custom_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'custom', true);
 
     $content = file_get_contents($fileName);
@@ -350,7 +351,7 @@ class {{ class }} extends Migration
 STUB;
 
     $this->creator->registerStub('update', $customUpdateStub);
-    $uniqueName = 'modify_existing_table_' . uniqid();
+    $uniqueName = 'modify_existing_table_'.uniqid();
     $fileName = $this->creator->create($uniqueName, 'existing', false);
 
     $content = file_get_contents($fileName);
@@ -362,18 +363,18 @@ STUB;
 // {
 //     protected MigrationCreator $creator;
 //     protected string $tempDir;
-// 
+//
 //     protected function setUp(): void
 //     {
 //         parent::setUp();
-// 
+//
 //         // Create a temporary directory for test migrations
 //         $this->tempDir = sys_get_temp_dir() . '/bob_migrations_test_' . uniqid();
 //         mkdir($this->tempDir, 0777, true);
-// 
+//
 //         $this->creator = new MigrationCreator($this->tempDir);
 //     }
-// 
+//
 //     protected function tearDown(): void
 //     {
 //         // Clean up temporary files
@@ -386,10 +387,10 @@ STUB;
 //             }
 //             rmdir($this->tempDir);
 //         }
-// 
+//
 //         parent::tearDown();
 //     }
-// 
+//
 //     // /**
 //     //  * Test basic migration creation
 //     //  */
@@ -397,17 +398,17 @@ STUB;
 //     // {
 //     //     $uniqueName = 'create_test_users_table_' . uniqid();
 //     //     $fileName = $this->creator->create($uniqueName);
-// 
+//
 //     //     $this->assertFileExists($fileName);
 //     //     $this->assertStringContainsString($uniqueName . '.php', $fileName);
-// 
+//
 //     //     $content = file_get_contents($fileName);
 //     //     $expectedClassName = $this->convertToClassName($uniqueName);
 //     //     $this->assertStringContainsString("class {$expectedClassName} extends Migration", $content);
 //     //     $this->assertStringContainsString('public function up(): void', $content);
 //     //     $this->assertStringContainsString('public function down(): void', $content);
 //     // }
-// 
+//
 //     /**
 //      * Helper method to convert migration name to class name (matches MigrationCreator logic)
 //      */
@@ -415,7 +416,7 @@ STUB;
 //     {
 //         return str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
 //     }
-// 
+//
 //     // /**
 //     //  * Test migration creation with table (create mode)
 //     //  */
@@ -423,16 +424,16 @@ STUB;
 //     // {
 //     //     $uniqueName = 'create_test_posts_table_' . uniqid();
 //     //     $fileName = $this->creator->create($uniqueName, 'test_posts', true);
-// 
+//
 //     //     $this->assertFileExists($fileName);
-// 
+//
 //     //     $content = file_get_contents($fileName);
 //     //     $this->assertStringContainsString("Schema::create('test_posts'", $content);
 //     //     $this->assertStringContainsString('$table->id();', $content);
 //     //     $this->assertStringContainsString('$table->timestamps();', $content);
 //     //     $this->assertStringContainsString("Schema::dropIfExists('test_posts');", $content);
 //     // }
-// 
+//
 //     // /**
 //     //  * Test migration creation with table (update mode)
 //     //  */
@@ -440,15 +441,15 @@ STUB;
 //     // {
 //     //     $uniqueName = 'add_email_to_test_users_table_' . uniqid();
 //     //     $fileName = $this->creator->create($uniqueName, 'test_users', false);
-// 
+//
 //     //     $this->assertFileExists($fileName);
-// 
+//
 //     //     $content = file_get_contents($fileName);
 //     //     $this->assertStringContainsString("Schema::table('test_users'", $content);
 //     //     $this->assertStringContainsString('// Add columns or modifications here', $content);
 //     //     $this->assertStringContainsString('// Reverse the changes made in up()', $content);
 //     // }
-// 
+//
 //     /**
 //      * Test blank migration creation
 //      */
@@ -456,15 +457,15 @@ STUB;
 //     {
 //         $uniqueName = 'do_something_custom_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName);
-// 
+//
 //         $this->assertFileExists($fileName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $expectedClassName = $this->convertToClassName($uniqueName);
 //         $this->assertStringContainsString("class {$expectedClassName} extends Migration", $content);
 //         $this->assertStringContainsString('//', $content); // Should have empty comment placeholders
 //     }
-// 
+//
 //     /**
 //      * Test migration creation for users table (covers lines 245-250)
 //      */
@@ -472,7 +473,7 @@ STUB;
 //     {
 //         $uniqueName = 'create_app_users_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName, 'app_users', true);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('$table->string(\'name\');', $content);
 //         $this->assertStringContainsString('$table->string(\'email\')->unique();', $content);
@@ -480,7 +481,7 @@ STUB;
 //         $this->assertStringContainsString('$table->string(\'password\');', $content);
 //         $this->assertStringContainsString('$table->rememberToken();', $content);
 //     }
-// 
+//
 //     /**
 //      * Test migration creation for posts table (covers lines 251-256)
 //      */
@@ -488,7 +489,7 @@ STUB;
 //     {
 //         $uniqueName = 'create_blog_posts_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName, 'blog_posts', true);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('$table->string(\'title\');', $content);
 //         $this->assertStringContainsString('$table->text(\'content\');', $content);
@@ -496,7 +497,7 @@ STUB;
 //         $this->assertStringContainsString('$table->boolean(\'published\')->default(false);', $content);
 //         $this->assertStringContainsString('$table->foreignId(\'user_id\')->constrained();', $content);
 //     }
-// 
+//
 //     /**
 //      * Test migration creation for articles table (covers lines 251-256)
 //      */
@@ -504,7 +505,7 @@ STUB;
 //     {
 //         $uniqueName = 'create_news_articles_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName, 'news_articles', true);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('$table->string(\'title\');', $content);
 //         $this->assertStringContainsString('$table->text(\'content\');', $content);
@@ -512,7 +513,7 @@ STUB;
 //         $this->assertStringContainsString('$table->boolean(\'published\')->default(false);', $content);
 //         $this->assertStringContainsString('$table->foreignId(\'user_id\')->constrained();', $content);
 //     }
-// 
+//
 //     /**
 //      * Test migration creation for generic table (covers lines 257-259)
 //      */
@@ -520,11 +521,11 @@ STUB;
 //     {
 //         $uniqueName = 'create_categories_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName, 'categories', true);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('// Add columns here', $content);
 //     }
-// 
+//
 //     /**
 //      * Test duplicate migration name detection (class exists - covers line 63)
 //      */
@@ -534,14 +535,14 @@ STUB;
 //         if (!class_exists('TestClassConflict')) {
 //             eval('class TestClassConflict {}');
 //         }
-// 
+//
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage('A TestClassConflict class already exists.');
-// 
+//
 //         // Try to create migration with name that would create TestClassConflict class
 //         $this->creator->create('test_class_conflict');
 //     }
-// 
+//
 //     /**
 //      * Test duplicate migration file detection
 //      */
@@ -549,14 +550,14 @@ STUB;
 //     {
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage('A migration file with name test_duplicate already exists.');
-// 
+//
 //         // Create first migration
 //         $this->creator->create('test_duplicate');
-// 
+//
 //         // Try to create another with the same name
 //         $this->creator->create('test_duplicate');
 //     }
-// 
+//
 //     /**
 //      * Test custom stub registration and usage (covers lines 168-532 for custom stubs)
 //      */
@@ -564,7 +565,7 @@ STUB;
 //     {
 //         $customStub = <<<'STUB'
 // <?php
-// 
+//
 // class {{ class }} extends CustomBase
 // {
 //     public function execute(): void
@@ -573,18 +574,18 @@ STUB;
 //     }
 // }
 // STUB;
-// 
+//
 //         $this->creator->registerStub('blank', $customStub);
 //         $uniqueName = 'test_custom_migration_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $expectedClassName = $this->convertToClassName($uniqueName);
 //         $this->assertStringContainsString("class {$expectedClassName} extends CustomBase", $content);
 //         $this->assertStringContainsString('public function execute(): void', $content);
 //         $this->assertStringContainsString('// Custom implementation', $content);
 //     }
-// 
+//
 //     /**
 //      * Test path getter and setter
 //      */
@@ -592,10 +593,10 @@ STUB;
 //     {
 //         $newPath = '/tmp/new_migrations';
 //         $this->creator->setPath($newPath);
-// 
+//
 //         $this->assertEquals($newPath, $this->creator->getPath());
 //     }
-// 
+//
 //     /**
 //      * Test date prefix format
 //      */
@@ -604,11 +605,11 @@ STUB;
 //         $uniqueName = 'test_date_prefix_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName);
 //         $baseName = basename($fileName);
-// 
+//
 //         // Should match YYYY_MM_DD_HHMMSS format
 //         $this->assertMatchesRegularExpression('/^\d{4}_\d{2}_\d{2}_\d{6}_' . preg_quote($uniqueName, '/') . '\.php$/', $baseName);
 //     }
-// 
+//
 //     /**
 //      * Test class name generation from migration name
 //      */
@@ -616,12 +617,12 @@ STUB;
 //     {
 //         $uniqueName = 'create_user_profile_settings_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $expectedClassName = $this->convertToClassName($uniqueName);
 //         $this->assertStringContainsString("class {$expectedClassName} extends Migration", $content);
 //     }
-// 
+//
 //     /**
 //      * Test WordPress generic migration creation (covers lines 315-328)
 //      */
@@ -629,14 +630,14 @@ STUB;
 //     {
 //         $uniqueName = 'create_wp_custom_table_' . uniqid();
 //         $fileName = $this->creator->createWordPress($uniqueName, 'generic');
-// 
+//
 //         $this->assertFileExists($fileName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $expectedClassName = $this->convertToClassName($uniqueName);
 //         $this->assertStringContainsString("class {$expectedClassName} extends Migration", $content);
 //     }
-// 
+//
 //     /**
 //      * Test WordPress post migration creation (covers lines 336-406)
 //      */
@@ -644,9 +645,9 @@ STUB;
 //     {
 //         $uniqueName = 'create_custom_posts_table_' . uniqid();
 //         $fileName = $this->creator->createWordPress($uniqueName, 'post');
-// 
+//
 //         $this->assertFileExists($fileName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('$table->bigIncrements(\'ID\');', $content);
 //         $this->assertStringContainsString('$table->unsignedBigInteger(\'post_author\')', $content);
@@ -655,7 +656,7 @@ STUB;
 //         $this->assertStringContainsString('$table->string(\'post_status\', 20)', $content);
 //         $this->assertStringContainsString('$table->index([\'post_type\', \'post_status\', \'post_date\', \'ID\']);', $content);
 //     }
-// 
+//
 //     /**
 //      * Test WordPress taxonomy migration creation (covers lines 411-474)
 //      */
@@ -663,9 +664,9 @@ STUB;
 //     {
 //         $uniqueName = 'create_taxonomy_tables_' . uniqid();
 //         $fileName = $this->creator->createWordPress($uniqueName, 'taxonomy');
-// 
+//
 //         $this->assertFileExists($fileName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('Schema::create(\'terms\'', $content);
 //         $this->assertStringContainsString('Schema::create(\'term_taxonomy\'', $content);
@@ -677,7 +678,7 @@ STUB;
 //         $this->assertStringContainsString('Schema::dropIfExists(\'term_taxonomy\');', $content);
 //         $this->assertStringContainsString('Schema::dropIfExists(\'terms\');', $content);
 //     }
-// 
+//
 //     /**
 //      * Test WordPress meta migration creation (covers lines 479-512)
 //      */
@@ -685,16 +686,16 @@ STUB;
 //     {
 //         // Use a specific pattern that we can predict
 //         $fileName = $this->creator->createWordPress('create_post_meta_table', 'meta');
-// 
+//
 //         $this->assertFileExists($fileName);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('$table->bigIncrements(\'meta_id\');', $content);
 //         $this->assertStringContainsString('$table->unsignedBigInteger(\'post_id\')', $content);
 //         $this->assertStringContainsString('$table->string(\'meta_key\')', $content);
 //         $this->assertStringContainsString('$table->longText(\'meta_value\')', $content);
 //     }
-// 
+//
 //     /**
 //      * Test WordPress stub population with table name extraction (covers lines 517-533)
 //      */
@@ -702,13 +703,13 @@ STUB;
 //     {
 //         // Use a specific pattern that we can predict
 //         $fileName = $this->creator->createWordPress('create_user_meta_table', 'meta');
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('create(\'user_meta\'', $content);
 //         $this->assertStringContainsString('$table->unsignedBigInteger(\'user_id\')', $content);
 //         $this->assertStringContainsString('dropIfExists(\'user_meta\');', $content);
 //     }
-// 
+//
 //     /**
 //      * Test duplicate WordPress migration detection
 //      */
@@ -717,14 +718,14 @@ STUB;
 //         $uniqueName = 'wp_duplicate_' . uniqid();
 //         $this->expectException(InvalidArgumentException::class);
 //         $this->expectExceptionMessage("A migration file with name {$uniqueName} already exists.");
-// 
+//
 //         // Create first migration
 //         $this->creator->createWordPress($uniqueName, 'post');
-// 
+//
 //         // Try to create another with the same name
 //         $this->creator->createWordPress($uniqueName, 'taxonomy');
 //     }
-// 
+//
 //     /**
 //      * Test custom stub for create migrations
 //      */
@@ -732,7 +733,7 @@ STUB;
 //     {
 //         $customCreateStub = <<<'STUB'
 // <?php
-// 
+//
 // class {{ class }} extends Migration
 // {
 //     public function up(): void
@@ -740,7 +741,7 @@ STUB;
 //         // Custom create logic for {{ table }}
 //         {{ up }}
 //     }
-// 
+//
 //     public function down(): void
 //     {
 //         // Custom drop logic
@@ -748,16 +749,16 @@ STUB;
 //     }
 // }
 // STUB;
-// 
+//
 //         $this->creator->registerStub('create', $customCreateStub);
 //         $uniqueName = 'create_custom_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName, 'custom', true);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('// Custom create logic for custom', $content);
 //         $this->assertStringContainsString('// Custom drop logic', $content);
 //     }
-// 
+//
 //     /**
 //      * Test custom stub for update migrations
 //      */
@@ -765,7 +766,7 @@ STUB;
 //     {
 //         $customUpdateStub = <<<'STUB'
 // <?php
-// 
+//
 // class {{ class }} extends Migration
 // {
 //     public function up(): void
@@ -773,7 +774,7 @@ STUB;
 //         // Custom update logic for {{ table }}
 //         {{ up }}
 //     }
-// 
+//
 //     public function down(): void
 //     {
 //         // Custom rollback logic
@@ -781,11 +782,11 @@ STUB;
 //     }
 // }
 // STUB;
-// 
+//
 //         $this->creator->registerStub('update', $customUpdateStub);
 //         $uniqueName = 'modify_existing_table_' . uniqid();
 //         $fileName = $this->creator->create($uniqueName, 'existing', false);
-// 
+//
 //         $content = file_get_contents($fileName);
 //         $this->assertStringContainsString('// Custom update logic for existing', $content);
 //         $this->assertStringContainsString('// Custom rollback logic', $content);

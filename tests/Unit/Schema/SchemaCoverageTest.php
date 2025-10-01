@@ -5,11 +5,8 @@
 // =============================================================================
 
 use Bob\Database\Connection;
-use Bob\Schema\Schema;
 use Bob\Schema\Blueprint;
-use Bob\Schema\Grammars\MySQLGrammar;
-use Bob\Schema\Grammars\PostgreSQLGrammar;
-use Bob\Schema\Grammars\SQLiteGrammar;
+use Bob\Schema\Schema;
 
 afterEach(function () {
     \Mockery::close();
@@ -28,7 +25,7 @@ test('get connection uses default when not set', function () {
     $property->setValue(null, null);
 
     // Now test that it tries to get default connection
-    expect(fn() => Schema::getConnection())
+    expect(fn () => Schema::getConnection())
         ->toThrow(\Error::class, 'Call to undefined method Bob\Database\Connection::getDefaultConnection()');
 });
 
@@ -100,7 +97,7 @@ test('has columns checks multiple columns', function () {
         ->andReturn([
             ['column_name' => 'id'],
             ['column_name' => 'title'],
-            ['column_name' => 'content']
+            ['column_name' => 'content'],
         ]);
 
     Schema::setConnection($mockConnection);
@@ -115,7 +112,7 @@ test('has columns checks multiple columns', function () {
         ->once()
         ->andReturn([
             ['column_name' => 'id'],
-            ['column_name' => 'title']
+            ['column_name' => 'title'],
         ]);
 
     // One column doesn't exist
@@ -133,7 +130,7 @@ test('get column listing', function () {
         ->andReturn([
             ['column_name' => 'id'],
             ['column_name' => 'title'],
-            ['column_name' => 'content']
+            ['column_name' => 'content'],
         ]);
 
     Schema::setConnection($mockConnection);
@@ -166,7 +163,7 @@ test('get column type throws exception when column does not exist', function () 
 
     Schema::setConnection($mockConnection);
 
-    expect(fn() => Schema::getColumnType('posts', 'non_existent'))
+    expect(fn () => Schema::getColumnType('posts', 'non_existent'))
         ->toThrow(InvalidArgumentException::class, "Column non_existent doesn't exist on table posts.");
 });
 
@@ -227,6 +224,7 @@ test('without foreign key constraints', function () {
     $callbackCalled = false;
     $result = Schema::withoutForeignKeyConstraints(function () use (&$callbackCalled) {
         $callbackCalled = true;
+
         return 'test_result';
     });
 
@@ -254,14 +252,31 @@ test('without foreign key constraints re enables on exception', function () {
 
     Schema::setConnection($mockConnection);
 
-    expect(fn() => Schema::withoutForeignKeyConstraints(function () {
+    expect(fn () => Schema::withoutForeignKeyConstraints(function () {
         throw new RuntimeException('Test exception');
     }))->toThrow(RuntimeException::class, 'Test exception');
 });
 
-test('drop all tables throws exception', function () {
-    expect(fn() => Schema::dropAllTables())
-        ->toThrow(RuntimeException::class, 'Drop all tables is not yet implemented.');
+test('drop all tables works correctly', function () {
+    $connection = Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('sqlite');
+    $connection->shouldReceive('statement')->with('PRAGMA foreign_keys = OFF');
+    $connection->shouldReceive('select')
+        ->with("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        ->andReturn([
+            (object) ['name' => 'users'],
+            (object) ['name' => 'posts'],
+        ]);
+    $connection->shouldReceive('getTablePrefix')->andReturn('');
+    $connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
+    $connection->shouldReceive('statement')->with('drop table "users"')->once();
+    $connection->shouldReceive('statement')->with('drop table "posts"')->once();
+    $connection->shouldReceive('statement')->with('PRAGMA foreign_keys = ON');
+
+    Schema::setConnection($connection);
+    Schema::dropAllTables();
+
+    expect(true)->toBeTrue();
 });
 
 test('get grammar for postgresql', function () {
@@ -288,7 +303,7 @@ test('get grammar for unsupported driver throws exception', function () {
 
     Schema::setConnection($mockConnection);
 
-    expect(fn() => Schema::hasTable('test'))
+    expect(fn () => Schema::hasTable('test'))
         ->toThrow(InvalidArgumentException::class, 'Unsupported driver [unsupported].');
 });
 
@@ -395,4 +410,67 @@ test('get column listing with empty table', function () {
 
     $columns = Schema::getColumnListing('empty_table');
     expect($columns)->toBe([]);
+});
+
+test('drop all tables for mysql', function () {
+    $connection = Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('mysql');
+    $connection->shouldReceive('statement')->with('SET FOREIGN_KEY_CHECKS = 0')->once();
+    $connection->shouldReceive('getConfig')->with('database')->andReturn('test_db');
+    $connection->shouldReceive('select')
+        ->with('SHOW TABLES')
+        ->andReturn([
+            (object) ['Tables_in_test_db' => 'users'],
+            (object) ['Tables_in_test_db' => 'posts'],
+        ]);
+    $connection->shouldReceive('getTablePrefix')->andReturn('');
+
+    // Schema::drop() calls Schema::build() which checks for schema_transactions and charset/collation
+    $connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
+    $connection->shouldReceive('getConfig')->with('charset')->andReturn(null);
+    $connection->shouldReceive('getConfig')->with('collation')->andReturn(null);
+
+    // Drop statements
+    $connection->shouldReceive('statement')->with('drop table `users`')->once();
+    $connection->shouldReceive('statement')->with('drop table `posts`')->once();
+    $connection->shouldReceive('statement')->with('SET FOREIGN_KEY_CHECKS = 1')->once();
+
+    Schema::setConnection($connection);
+    Schema::dropAllTables();
+
+    expect(true)->toBeTrue();
+});
+
+test('drop all tables for postgresql', function () {
+    $connection = Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('pgsql');
+    $connection->shouldReceive('select')
+        ->with("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'")
+        ->andReturn([
+            (object) ['tablename' => 'users'],
+            (object) ['tablename' => 'posts'],
+        ]);
+    $connection->shouldReceive('getTablePrefix')->andReturn('');
+
+    // Schema::drop() calls Schema::build() which checks for schema_transactions
+    $connection->shouldReceive('getConfig')->with('schema_transactions', true)->andReturn(false);
+
+    // Drop statements (PostgreSQL uses lowercase 'drop table')
+    $connection->shouldReceive('statement')->with('drop table "users"')->once();
+    $connection->shouldReceive('statement')->with('drop table "posts"')->once();
+
+    Schema::setConnection($connection);
+    Schema::dropAllTables();
+
+    expect(true)->toBeTrue();
+});
+
+test('drop all tables throws exception for unsupported driver', function () {
+    $connection = Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('oracle');
+
+    Schema::setConnection($connection);
+
+    expect(fn () => Schema::dropAllTables())
+        ->toThrow(\InvalidArgumentException::class, 'Unsupported database driver: oracle');
 });

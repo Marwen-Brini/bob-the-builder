@@ -2,16 +2,16 @@
 
 namespace Tests\Unit;
 
-use Bob\Query\Builder;
-use Bob\Support\Collection;
 use Bob\Database\Connection;
+use Bob\Query\Builder;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Processor;
+use Bob\Support\Collection;
 use Mockery as m;
 
 beforeEach(function () {
-    $this->grammar = new MySQLGrammar();
-    $this->processor = new Processor();
+    $this->grammar = new MySQLGrammar;
+    $this->processor = new Processor;
     $this->connection = m::mock(Connection::class);
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -147,7 +147,7 @@ describe('PHP 8.4 Deprecation Fixes - Implicit Nullable Parameters', function ()
             expect($result1)->toBe(1);
 
             // With callback
-            $result2 = $collection->first(fn($item) => $item > 3);
+            $result2 = $collection->first(fn ($item) => $item > 3);
             expect($result2)->toBe(4);
 
             // With null callback and default
@@ -163,7 +163,7 @@ describe('PHP 8.4 Deprecation Fixes - Implicit Nullable Parameters', function ()
             expect($sorted1->values()->all())->toBe([1, 1, 3, 4, 5]);
 
             // With callback
-            $sorted2 = $collection->sort(fn($a, $b) => $b <=> $a);
+            $sorted2 = $collection->sort(fn ($a, $b) => $b <=> $a);
             expect($sorted2->values()->all())->toBe([5, 4, 3, 1, 1]);
         });
 
@@ -175,7 +175,7 @@ describe('PHP 8.4 Deprecation Fixes - Implicit Nullable Parameters', function ()
             expect($filtered1->values()->all())->toBe([1, 2, 3, 4, 5]);
 
             // With callback
-            $filtered2 = $collection->filter(fn($item) => $item > 2);
+            $filtered2 = $collection->filter(fn ($item) => $item > 2);
             expect($filtered2->values()->all())->toBe([3, 4, 5]);
         });
 
@@ -211,7 +211,7 @@ describe('PHP 8.4 Deprecation Fixes - Implicit Nullable Parameters', function ()
             $builder = new Builder($this->connection);
             $builder->from('users');
 
-            $builder->join('posts', function($join) {
+            $builder->join('posts', function ($join) {
                 $join->on('users.id', null, null);
                 $join->on('users.id', '=', null);
                 $join->orOn('users.email', null, 'posts.author_email');
@@ -239,7 +239,7 @@ describe('PHP 8.4 Deprecation Fixes - Implicit Nullable Parameters', function ()
             // Test callable type with null
             $collection = new Collection([1, 2, 3]);
             $collection->filter(null);                // null
-            $collection->filter(fn($x) => $x > 1);    // callable
+            $collection->filter(fn ($x) => $x > 1);    // callable
 
             expect($builder->wheres)->toHaveCount(3);
         });
@@ -271,9 +271,9 @@ describe('Edge Cases', function () {
     test('nested where clauses with null values', function () {
         $builder = new Builder($this->connection);
 
-        $builder->where(function($query) {
+        $builder->where(function ($query) {
             $query->where('col1', '=', null)
-                  ->orWhere('col2', '=', null);
+                ->orWhere('col2', '=', null);
         });
 
         expect($builder->wheres)->toHaveCount(1);

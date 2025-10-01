@@ -1,8 +1,8 @@
 <?php
 
+use Bob\Database\Connection;
 use Bob\Query\Builder;
 use Bob\Query\DynamicFinder;
-use Bob\Database\Connection;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
 use Mockery as m;
@@ -53,8 +53,8 @@ test('camelToSnake converts camelCase to snake_case', function () {
 
 test('findBy pattern calls where and first', function () {
     // Return a result so the method doesn't return null
-    $this->processor->shouldReceive('processSelect')->once()->andReturn([(object)['email' => 'test@example.com']]);
-    $this->connection->shouldReceive('selectOne')->once()->andReturn((object)['email' => 'test@example.com']);
+    $this->processor->shouldReceive('processSelect')->once()->andReturn([(object) ['email' => 'test@example.com']]);
+    $this->connection->shouldReceive('selectOne')->once()->andReturn((object) ['email' => 'test@example.com']);
 
     $this->builder->from('users');
     $result = $this->builder->findByEmail('test@example.com');
@@ -101,8 +101,8 @@ test('orWhereBy pattern adds orWhere clause', function () {
 
 test('firstWhere pattern calls where and first', function () {
     // Return a result so the method doesn't return null
-    $this->processor->shouldReceive('processSelect')->once()->andReturn([(object)['slug' => 'my-slug']]);
-    $this->connection->shouldReceive('selectOne')->once()->andReturn((object)['slug' => 'my-slug']);
+    $this->processor->shouldReceive('processSelect')->once()->andReturn([(object) ['slug' => 'my-slug']]);
+    $this->connection->shouldReceive('selectOne')->once()->andReturn((object) ['slug' => 'my-slug']);
 
     $this->builder->from('users');
     $result = $this->builder->firstWhereSlug('my-slug');
@@ -115,8 +115,8 @@ test('firstWhere pattern calls where and first', function () {
 
 test('countBy pattern calls where and count', function () {
     $this->grammar->shouldReceive('compileSelect')->once()->andReturn('select count(*) as aggregate from users where category = ?');
-    $this->connection->shouldReceive('select')->once()->andReturn([(object)['aggregate' => 5]]);
-    $this->processor->shouldReceive('processSelect')->once()->andReturn([(object)['aggregate' => 5]]);
+    $this->connection->shouldReceive('select')->once()->andReturn([(object) ['aggregate' => 5]]);
+    $this->processor->shouldReceive('processSelect')->once()->andReturn([(object) ['aggregate' => 5]]);
 
     $this->builder->from('users');
     $result = $this->builder->countByCategory('electronics');
@@ -187,6 +187,7 @@ test('custom finder pattern can be registered', function () {
         function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
             $limit = $params[0] ?? 10;
+
             return $this->orderBy($column, 'desc')->limit($limit);
         }
     );
@@ -202,7 +203,7 @@ test('custom finder pattern can be registered', function () {
 });
 
 test('clearFinders removes all custom patterns', function () {
-    TestBuilderWithDynamicFinder::registerFinder('/^test(.+)$/', function() {});
+    TestBuilderWithDynamicFinder::registerFinder('/^test(.+)$/', function () {});
 
     expect(TestBuilderWithDynamicFinder::getFinderPatterns())->toHaveCount(1);
 
@@ -212,8 +213,8 @@ test('clearFinders removes all custom patterns', function () {
 });
 
 test('getFinderPatterns returns registered patterns', function () {
-    TestBuilderWithDynamicFinder::registerFinder('/^pattern1$/', function() {});
-    TestBuilderWithDynamicFinder::registerFinder('/^pattern2$/', function() {});
+    TestBuilderWithDynamicFinder::registerFinder('/^pattern1$/', function () {});
+    TestBuilderWithDynamicFinder::registerFinder('/^pattern2$/', function () {});
 
     $patterns = TestBuilderWithDynamicFinder::getFinderPatterns();
 
@@ -235,6 +236,7 @@ test('custom pattern takes precedence over default', function () {
         '/^findBy(.+)$/',
         function ($matches, $params) use (&$customCalled) {
             $customCalled = true;
+
             return 'custom result';
         }
     );
@@ -267,8 +269,10 @@ test('complex camelCase conversions', function () {
 
 test('non-closure handlers work correctly', function () {
     // Create a callable class
-    $handler = new class {
-        public function __invoke($matches, $params) {
+    $handler = new class
+    {
+        public function __invoke($matches, $params)
+        {
             return 'handler result';
         }
     };
@@ -286,6 +290,7 @@ test('multiple parameters are passed to handler', function () {
         '/^between(.+)$/',
         function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->whereBetween($column, [$params[0] ?? 0, $params[1] ?? 100]);
         }
     );
@@ -301,6 +306,6 @@ test('multiple parameters are passed to handler', function () {
 test('undefined dynamic method throws exception', function () {
     $this->builder->from('users');
 
-    expect(fn() => $this->builder->unknownDynamicMethod())
+    expect(fn () => $this->builder->unknownDynamicMethod())
         ->toThrow(\BadMethodCallException::class, 'Method unknownDynamicMethod does not exist.');
 });

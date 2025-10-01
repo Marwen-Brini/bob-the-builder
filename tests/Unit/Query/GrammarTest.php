@@ -1,99 +1,122 @@
 <?php
 
-use Bob\Query\Grammar;
-use Bob\Query\Builder;
 use Bob\Contracts\BuilderInterface;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
+use Bob\Query\Grammar;
 use Bob\Query\Processor;
 use Mockery as m;
 
 // Create a concrete Grammar implementation for testing
-class TestGrammar extends Grammar {
+class TestGrammar extends Grammar
+{
     // Make protected methods public for testing
-    protected function compileUnionAggregate(BuilderInterface $query): string {
+    protected function compileUnionAggregate(BuilderInterface $query): string
+    {
         // Base implementation for union aggregate
         $sql = $this->compileAggregate($query, $query->getAggregate());
-        return $sql . ' from (select * from users) as temp_table';
+
+        return $sql.' from (select * from users) as temp_table';
     }
 
-    public function testCompileGroups(BuilderInterface $query, array $groups): string {
+    public function testCompileGroups(BuilderInterface $query, array $groups): string
+    {
         return $this->compileGroups($query, $groups);
     }
 
-    public function testCompileHavings(BuilderInterface $query, array $havings): string {
+    public function testCompileHavings(BuilderInterface $query, array $havings): string
+    {
         return $this->compileHavings($query, $havings);
     }
 
-    public function testCompileOrders(BuilderInterface $query, array $orders): string {
+    public function testCompileOrders(BuilderInterface $query, array $orders): string
+    {
         return $this->compileOrders($query, $orders);
     }
 
-    public function testCompileLimit(BuilderInterface $query, int $limit): string {
+    public function testCompileLimit(BuilderInterface $query, int $limit): string
+    {
         return $this->compileLimit($query, $limit);
     }
 
-    public function testCompileOffset(BuilderInterface $query, int $offset): string {
+    public function testCompileOffset(BuilderInterface $query, int $offset): string
+    {
         return $this->compileOffset($query, $offset);
     }
 
-    public function testCompileUnions(BuilderInterface $query, array $unions): string {
+    public function testCompileUnions(BuilderInterface $query, array $unions): string
+    {
         return $this->compileUnions($query, $unions);
     }
 
-    public function testCompileJoins(BuilderInterface $query, array $joins): string {
+    public function testCompileJoins(BuilderInterface $query, array $joins): string
+    {
         return $this->compileJoins($query, $joins);
     }
 
-    public function testWhereJsonContains(BuilderInterface $query, array $where): string {
+    public function testWhereJsonContains(BuilderInterface $query, array $where): string
+    {
         return $this->whereJsonContains($query, $where);
     }
 
-    public function testWhereJsonNotContains(BuilderInterface $query, array $where): string {
+    public function testWhereJsonNotContains(BuilderInterface $query, array $where): string
+    {
         return $this->whereJsonNotContains($query, $where);
     }
 
-    public function testWhereJsonLength(BuilderInterface $query, array $where): string {
+    public function testWhereJsonLength(BuilderInterface $query, array $where): string
+    {
         return $this->whereJsonLength($query, $where);
     }
 
-    public function testWhereFulltext(BuilderInterface $query, array $where): string {
+    public function testWhereFulltext(BuilderInterface $query, array $where): string
+    {
         return $this->whereFulltext($query, $where);
     }
 
-    public function testWhereSub(BuilderInterface $query, array $where): string {
+    public function testWhereSub(BuilderInterface $query, array $where): string
+    {
         return $this->whereSub($query, $where);
     }
 
-    public function testCompileGroupIndex(): string {
+    public function testCompileGroupIndex(): string
+    {
         return 'force index (group_index)';
     }
 
-    public function compileJsonContains($column, $value): string {
+    public function compileJsonContains($column, $value): string
+    {
         throw new \RuntimeException('This database engine does not support JSON operations.');
     }
 
-    public function compileJsonContainsKey($column): string {
+    public function compileJsonContainsKey($column): string
+    {
         throw new \RuntimeException('This database engine does not support JSON operations.');
     }
 
-    public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, ?array $update = null): string {
+    public function compileUpsert(BuilderInterface $query, array $values, array $uniqueBy, ?array $update = null): string
+    {
         throw new \RuntimeException('This database engine does not support upserts.');
     }
 
-    public function testIsExpression($value): bool {
+    public function testIsExpression($value): bool
+    {
         return $this->isExpression($value);
     }
 
-    public function testGetValue($value) {
+    public function testGetValue($value)
+    {
         return $this->getValue($value);
     }
 
-    public function testWhereNotBetween(BuilderInterface $query, array $where): string {
+    public function testWhereNotBetween(BuilderInterface $query, array $where): string
+    {
         return $this->whereNotBetween($query, $where);
     }
 
-    public function testCompileDateBasedWhere(string $type, BuilderInterface $query, array $where): string {
+    public function testCompileDateBasedWhere(string $type, BuilderInterface $query, array $where): string
+    {
         return $this->compileDateBasedWhere($type, $query, $where);
     }
 }
@@ -101,7 +124,7 @@ class TestGrammar extends Grammar {
 beforeEach(function () {
     $this->connection = m::mock(Connection::class);
     $this->processor = m::mock(Processor::class);
-    $this->grammar = new TestGrammar();
+    $this->grammar = new TestGrammar;
 
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -165,7 +188,7 @@ test('Grammar compileInsertGetId delegates to compileInsert', function () {
 test('Grammar whereJsonContains', function () {
     $where = [
         'column' => 'data',
-        'value' => '{"key": "value"}'
+        'value' => '{"key": "value"}',
     ];
 
     $sql = $this->grammar->testWhereJsonContains($this->builder, $where);
@@ -176,7 +199,7 @@ test('Grammar whereJsonContains', function () {
 test('Grammar whereJsonNotContains', function () {
     $where = [
         'column' => 'data',
-        'value' => '{"key": "value"}'
+        'value' => '{"key": "value"}',
     ];
 
     $sql = $this->grammar->testWhereJsonNotContains($this->builder, $where);
@@ -188,7 +211,7 @@ test('Grammar whereJsonLength', function () {
     $where = [
         'column' => 'items',
         'operator' => '>',
-        'value' => 5
+        'value' => 5,
     ];
 
     $sql = $this->grammar->testWhereJsonLength($this->builder, $where);
@@ -199,7 +222,7 @@ test('Grammar whereJsonLength', function () {
 test('Grammar whereFulltext', function () {
     $where = [
         'columns' => ['title', 'body'],
-        'value' => 'search term'
+        'value' => 'search term',
     ];
 
     $sql = $this->grammar->testWhereFulltext($this->builder, $where);
@@ -209,6 +232,7 @@ test('Grammar whereFulltext', function () {
 
 test('Grammar whereSub', function () {
     $this->markTestSkipped('Complex mock setup');
+
     return;
     $subQuery = m::mock(BuilderInterface::class);
     $subQuery->shouldReceive('getColumns')->andReturn(['count(*)']);
@@ -228,7 +252,7 @@ test('Grammar whereSub', function () {
     $where = [
         'column' => 'total',
         'operator' => '>',
-        'query' => $subQuery
+        'query' => $subQuery,
     ];
 
     $sql = $this->grammar->testWhereSub($this->builder, $where);
@@ -239,7 +263,7 @@ test('Grammar whereSub', function () {
 test('Grammar whereNotBetween', function () {
     $where = [
         'column' => 'age',
-        'values' => [18, 65]
+        'values' => [18, 65],
     ];
 
     $sql = $this->grammar->testWhereNotBetween($this->builder, $where);
@@ -289,12 +313,12 @@ test('Grammar supportsJsonOperations returns false by default', function () {
 });
 
 test('Grammar compileJsonContains throws exception by default', function () {
-    expect(fn() => $this->grammar->compileJsonContains('data', '{}'))
+    expect(fn () => $this->grammar->compileJsonContains('data', '{}'))
         ->toThrow(\RuntimeException::class);
 });
 
 test('Grammar compileJsonContainsKey throws exception by default', function () {
-    expect(fn() => $this->grammar->compileJsonContainsKey('data->key'))
+    expect(fn () => $this->grammar->compileJsonContainsKey('data->key'))
         ->toThrow(\RuntimeException::class);
 });
 
@@ -302,7 +326,7 @@ test('Grammar compileDateBasedWhere', function () {
     $where = [
         'column' => 'created_at',
         'operator' => '=',
-        'value' => '2023-01-01'
+        'value' => '2023-01-01',
     ];
 
     $sql = $this->grammar->testCompileDateBasedWhere('Date', $this->builder, $where);
@@ -368,7 +392,7 @@ test('Grammar compileLock with string', function () {
 test('Grammar compileUpsert throws exception by default', function () {
     $this->builder->from('users');
 
-    expect(fn() => $this->grammar->compileUpsert($this->builder, [['name' => 'John']], ['email'], ['name']))
+    expect(fn () => $this->grammar->compileUpsert($this->builder, [['name' => 'John']], ['email'], ['name']))
         ->toThrow(\RuntimeException::class);
 });
 
@@ -435,7 +459,7 @@ test('Grammar compileGroups', function () {
 test('Grammar compileHavings', function () {
     $havings = [
         ['type' => 'Basic', 'column' => 'count(*)', 'operator' => '>', 'value' => 5, 'boolean' => 'and'],
-        ['type' => 'Raw', 'sql' => 'sum(amount) > 1000', 'boolean' => 'or']
+        ['type' => 'Raw', 'sql' => 'sum(amount) > 1000', 'boolean' => 'or'],
     ];
 
     $sql = $this->grammar->testCompileHavings($this->builder, $havings);
@@ -447,7 +471,7 @@ test('Grammar compileHavings', function () {
 test('Grammar compileOrders', function () {
     $orders = [
         ['column' => 'name', 'direction' => 'asc'],
-        ['column' => 'created_at', 'direction' => 'desc']
+        ['column' => 'created_at', 'direction' => 'desc'],
     ];
 
     $sql = $this->grammar->testCompileOrders($this->builder, $orders);
@@ -469,6 +493,7 @@ test('Grammar compileOffset', function () {
 
 test('Grammar compileUnions', function () {
     $this->markTestSkipped('Complex mock setup');
+
     return;
     $unionQuery = m::mock(BuilderInterface::class);
     $unionQuery->shouldReceive('getColumns')->andReturn(['*']);
@@ -487,7 +512,7 @@ test('Grammar compileUnions', function () {
 
     $unions = [
         ['query' => $unionQuery, 'all' => false],
-        ['query' => $unionQuery, 'all' => true]
+        ['query' => $unionQuery, 'all' => true],
     ];
 
     $sql = $this->grammar->compileUnions($this->builder, $unions);

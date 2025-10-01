@@ -8,14 +8,18 @@ use Bob\Database\Model;
 class Issue13Post extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'ID';
+
     public bool $timestamps = false;
 }
 
 class Issue13Term extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     public function posts()
@@ -104,7 +108,6 @@ test('Debug: Check the parent model attributes', function () {
     // Debug: What attributes does the term have?
     var_dump($term->getAttributes());
 
-
     // The issue is that we're looking for term_taxonomy_id on the terms table,
     // but that field doesn't exist on terms - it's only in term_taxonomy!
 
@@ -121,9 +124,12 @@ test('Debug: Correct relationship setup', function () {
     // 2. Or join term_taxonomy table first
 
     // Let's try with correct parent key
-    $term = new class extends Model {
+    $term = new class extends Model
+    {
         protected string $table = 'terms';
+
         protected string $primaryKey = 'term_id';
+
         public bool $timestamps = false;
 
         public function posts()

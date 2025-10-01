@@ -1,7 +1,6 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Query\Builder;
 
 beforeEach(function () {
     $this->connection = new Connection([
@@ -31,9 +30,9 @@ test('nested where closure generates correct SQL', function () {
     $builder = $this->connection->table('posts');
 
     $search = 'Hello';
-    $builder->where(function($q) use ($search) {
+    $builder->where(function ($q) use ($search) {
         $q->where('title', 'LIKE', "%$search%")
-          ->orWhere('content', 'LIKE', "%$search%");
+            ->orWhere('content', 'LIKE', "%$search%");
     });
 
     $sql = $builder->toSql();
@@ -51,10 +50,10 @@ test('multiple nested where closures work correctly', function () {
     $builder = $this->connection->table('posts');
 
     $builder->where('status', 'published')
-            ->where(function($q) {
-                $q->where('title', 'LIKE', '%World%')
-                  ->orWhere('content', 'LIKE', '%World%');
-            });
+        ->where(function ($q) {
+            $q->where('title', 'LIKE', '%World%')
+                ->orWhere('content', 'LIKE', '%World%');
+        });
 
     $sql = $builder->toSql();
 
@@ -70,12 +69,12 @@ test('multiple nested where closures work correctly', function () {
 test('deeply nested where closures', function () {
     $builder = $this->connection->table('posts');
 
-    $builder->where(function($q) {
+    $builder->where(function ($q) {
         $q->where('status', 'published')
-          ->where(function($q2) {
-              $q2->where('title', 'LIKE', '%Hello%')
-                 ->orWhere('title', 'LIKE', '%Another%');
-          });
+            ->where(function ($q2) {
+                $q2->where('title', 'LIKE', '%Hello%')
+                    ->orWhere('title', 'LIKE', '%Another%');
+            });
     });
 
     $results = $builder->get();
@@ -86,10 +85,10 @@ test('nested where with orWhere works', function () {
     $builder = $this->connection->table('posts');
 
     $builder->where('id', '>', 0)
-            ->orWhere(function($q) {
-                $q->where('title', 'Test Post')
-                  ->where('status', 'draft');
-            });
+        ->orWhere(function ($q) {
+            $q->where('title', 'Test Post')
+                ->where('status', 'draft');
+        });
 
     $sql = $builder->toSql();
     expect($sql)->toContain('or (');
@@ -102,9 +101,9 @@ test('empty nested where closure is ignored', function () {
     $builder = $this->connection->table('posts');
 
     $builder->where('status', 'published')
-            ->where(function($q) {
-                // Empty closure - should be ignored
-            });
+        ->where(function ($q) {
+            // Empty closure - should be ignored
+        });
 
     $sql = $builder->toSql();
 
@@ -118,10 +117,10 @@ test('empty nested where closure is ignored', function () {
 test('nested where with different operators', function () {
     $builder = $this->connection->table('posts');
 
-    $builder->where(function($q) {
+    $builder->where(function ($q) {
         $q->where('id', '>=', 2)
-          ->where('id', '<=', 3);
-    })->orWhere(function($q) {
+            ->where('id', '<=', 3);
+    })->orWhere(function ($q) {
         $q->where('title', 'LIKE', '%Hello%');
     });
 
@@ -132,9 +131,9 @@ test('nested where with different operators', function () {
 test('nested whereIn and whereNotIn', function () {
     $builder = $this->connection->table('posts');
 
-    $builder->where(function($q) {
+    $builder->where(function ($q) {
         $q->whereIn('id', [1, 2])
-          ->orWhereNotIn('status', ['archived']);
+            ->orWhereNotIn('status', ['archived']);
     });
 
     $results = $builder->get();
@@ -147,16 +146,16 @@ test('bindings are properly handled in nested closures', function () {
     $search1 = 'Hello';
     $search2 = 'World';
 
-    $builder->where(function($q) use ($search1, $search2) {
+    $builder->where(function ($q) use ($search1, $search2) {
         $q->where('title', 'LIKE', "%$search1%")
-          ->orWhere('content', 'LIKE', "%$search2%");
+            ->orWhere('content', 'LIKE', "%$search2%");
     });
 
     $bindings = $builder->getBindings();
     // getBindings() returns a flat array for compatibility
     expect($bindings)->toHaveCount(2);
-    expect($bindings[0])->toBe("%Hello%");
-    expect($bindings[1])->toBe("%World%");
+    expect($bindings[0])->toBe('%Hello%');
+    expect($bindings[1])->toBe('%World%');
 
     $results = $builder->get();
     expect($results)->toHaveCount(2); // "Hello World" and "Another Post" (has World)

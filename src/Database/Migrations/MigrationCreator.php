@@ -39,8 +39,8 @@ class MigrationCreator
         $this->ensureMigrationDoesntAlreadyExist($name);
 
         // Build the file name with timestamp prefix
-        $fileName = $this->getDatePrefix() . '_' . $name . '.php';
-        $filePath = $this->path . '/' . $fileName;
+        $fileName = $this->getDatePrefix().'_'.$name.'.php';
+        $filePath = $this->path.'/'.$fileName;
 
         // Get the stub content
         $stub = $this->getStub($table, $create);
@@ -63,7 +63,7 @@ class MigrationCreator
             throw new InvalidArgumentException("A {$className} class already exists.");
         }
 
-        $files = glob($this->path . '/*_' . $name . '.php');
+        $files = glob($this->path.'/*_'.$name.'.php');
 
         if (count($files) > 0) {
             throw new InvalidArgumentException("A migration file with name {$name} already exists.");
@@ -316,8 +316,8 @@ STUB;
     {
         $this->ensureMigrationDoesntAlreadyExist($name);
 
-        $fileName = $this->getDatePrefix() . '_' . $name . '.php';
-        $filePath = $this->path . '/' . $fileName;
+        $fileName = $this->getDatePrefix().'_'.$name.'.php';
+        $filePath = $this->path.'/'.$fileName;
 
         $stub = $this->getWordPressStub($type);
         $stub = $this->populateWordPressStub($name, $stub, $type);
