@@ -6,7 +6,6 @@ namespace Bob\Schema;
 
 use Bob\Database\Connection;
 use Closure;
-use InvalidArgumentException;
 
 /**
  * Schema Blueprint for defining database table structures
@@ -95,7 +94,7 @@ class Blueprint
         $statements = [];
 
         foreach ($this->commands as $command) {
-            $method = 'compile' . ucfirst($command->name);
+            $method = 'compile'.ucfirst($command->name);
 
             if (method_exists($grammar, $method)) {
                 $sql = $grammar->$method($this, $command, $connection);
@@ -114,7 +113,7 @@ class Blueprint
      */
     protected function addImpliedCommands(SchemaGrammar $grammar): void
     {
-        if (count($this->columns) > 0 && !$this->creating()) {
+        if (count($this->columns) > 0 && ! $this->creating()) {
             array_unshift($this->commands, $this->createCommand('add'));
         }
 
@@ -139,10 +138,10 @@ class Blueprint
                         $this->index($column->name);
                     } elseif ($index === 'fulltext') {
                         $this->fulltext($column->name);
-                    // @codeCoverageIgnoreStart
+                        // @codeCoverageIgnoreStart
                     } elseif ($index === 'spatialIndex') {
                         $this->spatialIndex($column->name);
-                    // @codeCoverageIgnoreEnd
+                        // @codeCoverageIgnoreEnd
                     }
 
                     unset($column->{$index});
@@ -157,7 +156,7 @@ class Blueprint
                 // If no table name provided, try to infer from column name
                 if ($table === null) {
                     // Convert user_id to users, post_id to posts, etc.
-                    $table = str_replace('_id', '', $column->name) . 's';
+                    $table = str_replace('_id', '', $column->name).'s';
                 }
 
                 $foreign = $this->foreign($column->name);
@@ -197,7 +196,7 @@ class Blueprint
             foreach ($grammar->getFluentCommands() as $commandName) {
                 $attributeName = lcfirst($commandName);
 
-                if (!isset($column->{$attributeName})) {
+                if (! isset($column->{$attributeName})) {
                     continue;
                 }
 
@@ -956,7 +955,7 @@ class Blueprint
      */
     protected function createIndexName(string $type, array $columns): string
     {
-        $index = strtolower($this->prefix . $this->table . '_' . implode('_', $columns) . '_' . $type);
+        $index = strtolower($this->prefix.$this->table.'_'.implode('_', $columns).'_'.$type);
 
         return str_replace(['-', '.'], '_', $index);
     }
@@ -968,6 +967,7 @@ class Blueprint
     {
         $command = $this->createCommand($name, $parameters);
         $this->commands[] = $command;
+
         return $command;
     }
 
@@ -1002,6 +1002,7 @@ class Blueprint
     {
         // Process fluent indexes before returning commands
         $this->addFluentIndexes();
+
         return $this->commands;
     }
 
@@ -1011,7 +1012,7 @@ class Blueprint
     public function getAddedColumns(): array
     {
         return array_filter($this->columns, function ($column) {
-            return !$column->change;
+            return ! $column->change;
         });
     }
 
@@ -1063,6 +1064,7 @@ class Collection
                 return true;
             }
         }
+
         return false;
     }
 }

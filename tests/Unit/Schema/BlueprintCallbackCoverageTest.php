@@ -183,7 +183,7 @@ test('blueprint indexes and constraints (covers lines 717-721, 785-793)', functi
     $commands = $blueprint->getCommands();
 
     // Check dropForeign commands
-    $dropForeignCommands = array_filter($commands, fn($cmd) => $cmd['name'] === 'dropForeign');
+    $dropForeignCommands = array_filter($commands, fn ($cmd) => $cmd['name'] === 'dropForeign');
     expect(count($dropForeignCommands))->toBe(2);
 
     // rawIndex adds to commands

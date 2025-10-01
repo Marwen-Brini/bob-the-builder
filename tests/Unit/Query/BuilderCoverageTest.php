@@ -1,11 +1,10 @@
 <?php
 
+use Bob\Database\Connection;
+use Bob\Database\Expression;
 use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
-use Bob\Database\Connection;
-use Bob\Database\Expression;
-use Bob\Query\JoinClause;
 
 beforeEach(function () {
     $this->connection = Mockery::mock(Connection::class);
@@ -455,7 +454,7 @@ describe('Builder Extended Coverage', function () {
 
 test('increment method', function () {
     $this->connection->shouldReceive('update')->andReturn(1);
-    $this->connection->shouldReceive('raw')->andReturnUsing(function($value) {
+    $this->connection->shouldReceive('raw')->andReturnUsing(function ($value) {
         return new Expression($value);
     });
     $this->grammar->shouldReceive('wrap')->andReturn('`points`');
@@ -468,7 +467,7 @@ test('increment method', function () {
 
 test('decrement method', function () {
     $this->connection->shouldReceive('update')->andReturn(1);
-    $this->connection->shouldReceive('raw')->andReturnUsing(function($value) {
+    $this->connection->shouldReceive('raw')->andReturnUsing(function ($value) {
         return new Expression($value);
     });
     $this->grammar->shouldReceive('wrap')->andReturn('`points`');

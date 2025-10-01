@@ -4,7 +4,6 @@ namespace Bob\Database\Relations;
 
 use Bob\Database\Model;
 use Bob\Query\Builder;
-use Bob\Database\Connection;
 use Closure;
 
 abstract class Relation
@@ -86,6 +85,7 @@ abstract class Relation
     public function get(array $columns = ['*']): array
     {
         $results = $this->executeSelectQuery($columns);
+
         return $this->hydrateRelatedModels($results);
     }
 
@@ -103,7 +103,8 @@ abstract class Relation
     protected function hydrateRelatedModels(array $results): array
     {
         $class = get_class($this->related);
-        return array_map(fn($result) => $class::hydrate($result), $results);
+
+        return array_map(fn ($result) => $class::hydrate($result), $results);
     }
 
     /**
@@ -122,6 +123,7 @@ abstract class Relation
     protected function shouldTouch(): bool
     {
         $model = $this->getRelated();
+
         return ! $model::isIgnoringTouch();
     }
 
@@ -292,7 +294,6 @@ abstract class Relation
     /**
      * Remove all or passed global scopes from the relationship query.
      *
-     * @param  array|null  $scopes
      * @return $this
      */
     public function withoutGlobalScopes(?array $scopes = null)
@@ -331,6 +332,7 @@ abstract class Relation
     {
         $previous = static::$constraints;
         static::$constraints = false;
+
         return $previous;
     }
 

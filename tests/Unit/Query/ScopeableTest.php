@@ -8,31 +8,36 @@ class TestScopeable
     use Scopeable;
 
     public array $conditions = [];
+
     public array $orders = [];
+
     public ?int $limitValue = null;
 
     public function where(string $column, $value): self
     {
         $this->conditions[] = [$column, '=', $value];
+
         return $this;
     }
 
     public function orderBy(string $column, string $direction = 'asc'): self
     {
         $this->orders[] = [$column, $direction];
+
         return $this;
     }
 
     public function limit(int $value): self
     {
         $this->limitValue = $value;
+
         return $this;
     }
 }
 
 beforeEach(function () {
     TestScopeable::clearScopes();
-    $this->instance = new TestScopeable();
+    $this->instance = new TestScopeable;
 });
 
 afterEach(function () {
@@ -81,7 +86,7 @@ test('withScope with parameters', function () {
 });
 
 test('withScope throws exception for non-existent scope', function () {
-    expect(fn() => $this->instance->withScope('nonExistent'))
+    expect(fn () => $this->instance->withScope('nonExistent'))
         ->toThrow(InvalidArgumentException::class, 'Scope [nonExistent] not found.');
 });
 
@@ -113,7 +118,7 @@ test('withScopes with parameters', function () {
 
     $this->instance->withScopes([
         'ofType' => 'premium',
-        'limitTo' => [10]
+        'limitTo' => [10],
     ]);
 
     expect($this->instance->conditions)->toHaveCount(1);
@@ -215,7 +220,9 @@ test('hasScope checks both local and global scopes', function () {
 });
 
 test('getLocalScope returns scope callback', function () {
-    $callback = function () { return 'local'; };
+    $callback = function () {
+        return 'local';
+    };
     TestScopeable::scope('local', $callback);
 
     expect(TestScopeable::getLocalScope('local'))->toBe($callback);
@@ -223,7 +230,9 @@ test('getLocalScope returns scope callback', function () {
 });
 
 test('getGlobalScope returns scope callback', function () {
-    $callback = function () { return 'global'; };
+    $callback = function () {
+        return 'global';
+    };
     TestScopeable::globalScope('global', $callback);
 
     expect(TestScopeable::getGlobalScope('global'))->toBe($callback);
@@ -281,8 +290,12 @@ test('clearGlobalScopes removes only global scopes', function () {
 });
 
 test('getScopes returns all registered scopes', function () {
-    $localCallback = function () { return 'local'; };
-    $globalCallback = function () { return 'global'; };
+    $localCallback = function () {
+        return 'local';
+    };
+    $globalCallback = function () {
+        return 'global';
+    };
 
     TestScopeable::scope('localScope', $localCallback);
     TestScopeable::globalScope('globalScope', $globalCallback);
@@ -326,8 +339,10 @@ test('resetAppliedScopes clears applied scopes', function () {
 });
 
 test('scope with non-closure callable works', function () {
-    $callable = [new class {
-        public function handle($query) {
+    $callable = [new class
+    {
+        public function handle($query)
+        {
             $query->where('callable', true);
         }
     }, 'handle'];
@@ -341,8 +356,10 @@ test('scope with non-closure callable works', function () {
 });
 
 test('global scope with non-closure callable works', function () {
-    $callable = [new class {
-        public function apply($query) {
+    $callable = [new class
+    {
+        public function apply($query)
+        {
             $query->where('global_callable', true);
         }
     }, 'apply'];
@@ -358,8 +375,8 @@ test('global scope with non-closure callable works', function () {
 test('scope can access instance properties and methods', function () {
     TestScopeable::scope('complex', function () {
         $this->where('status', 'active')
-             ->orderBy('created_at', 'desc')
-             ->limit(10);
+            ->orderBy('created_at', 'desc')
+            ->limit(10);
     });
 
     $this->instance->withScope('complex');
@@ -423,7 +440,7 @@ test('removing same global scope twice is prevented', function () {
 
     $applied = $this->instance->getAppliedScopes();
     expect($applied)->toContain('!test');
-    expect(count(array_filter($applied, fn($s) => $s === '!test')))->toBe(1);
+    expect(count(array_filter($applied, fn ($s) => $s === '!test')))->toBe(1);
 
     // Manually calling recordRemovedScope again shouldn't duplicate
     $reflection = new ReflectionClass($this->instance);
@@ -432,5 +449,5 @@ test('removing same global scope twice is prevented', function () {
     $method->invoke($this->instance, 'test');
 
     $applied = $this->instance->getAppliedScopes();
-    expect(count(array_filter($applied, fn($s) => $s === '!test')))->toBe(1);
+    expect(count(array_filter($applied, fn ($s) => $s === '!test')))->toBe(1);
 });

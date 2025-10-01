@@ -1,8 +1,7 @@
 <?php
 
-use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletingScope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -10,7 +9,6 @@ use Mockery as m;
  * Tests for executing the actual code paths in SoftDeletingScope
  * to improve coverage of lines 49-54, 81-83, 96-100, 113-119, 132-138, 151-153, 166-168
  */
-
 class ScopeExecutionTestModel extends Model
 {
     protected string $table = 'test_table';
@@ -38,7 +36,7 @@ afterEach(function () {
 test('onDelete callback code path', function () {
     // The onDelete method doesn't exist in Bob's Builder class
     // We'll test that the extend method tries to set it
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
 
@@ -56,12 +54,12 @@ test('onDelete callback code path', function () {
 });
 
 test('restore macro executes restoration logic', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     // Test that the restore macro is properly defined
     $restoreClosure = null;
     $builder = m::mock(Builder::class);
-    $builder->shouldReceive('macro')->with('restore', m::type('Closure'))->once()->andReturnUsing(function($name, $closure) use (&$restoreClosure) {
+    $builder->shouldReceive('macro')->with('restore', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) use (&$restoreClosure) {
         $restoreClosure = $closure;
     });
 
@@ -87,11 +85,11 @@ test('restore macro executes restoration logic', function () {
 });
 
 test('withTrashed macro with false calls withoutTrashed', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     // Create mock builder
     $builder = m::mock(Builder::class);
-    $builder->shouldReceive('macro')->with('withTrashed', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) use ($builder) {
+    $builder->shouldReceive('macro')->with('withTrashed', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) {
         // Execute the closure immediately to test it
         $mockBuilder = m::mock(Builder::class);
         $mockBuilder->shouldReceive('withoutTrashed')->once()->andReturnSelf();
@@ -110,7 +108,7 @@ test('withTrashed macro with false calls withoutTrashed', function () {
 });
 
 test('withTrashed macro with true removes global scope', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')->with('withTrashed', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) use ($scope) {
@@ -131,12 +129,12 @@ test('withTrashed macro with true removes global scope', function () {
 });
 
 test('withoutTrashed macro adds whereNull constraint', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     // Test that the withoutTrashed macro is properly defined
     $withoutTrashedClosure = null;
     $builder = m::mock(Builder::class);
-    $builder->shouldReceive('macro')->with('withoutTrashed', m::type('Closure'))->once()->andReturnUsing(function($name, $closure) use (&$withoutTrashedClosure) {
+    $builder->shouldReceive('macro')->with('withoutTrashed', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) use (&$withoutTrashedClosure) {
         $withoutTrashedClosure = $closure;
     });
 
@@ -159,12 +157,12 @@ test('withoutTrashed macro adds whereNull constraint', function () {
 });
 
 test('onlyTrashed macro adds whereNotNull constraint', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     // Test that the onlyTrashed macro is properly defined
     $onlyTrashedClosure = null;
     $builder = m::mock(Builder::class);
-    $builder->shouldReceive('macro')->with('onlyTrashed', m::type('Closure'))->once()->andReturnUsing(function($name, $closure) use (&$onlyTrashedClosure) {
+    $builder->shouldReceive('macro')->with('onlyTrashed', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) use (&$onlyTrashedClosure) {
         $onlyTrashedClosure = $closure;
     });
 
@@ -187,7 +185,7 @@ test('onlyTrashed macro adds whereNotNull constraint', function () {
 });
 
 test('restoreOrCreate macro calls firstOrCreate with trashed', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')->with('restoreOrCreate', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) {
@@ -196,7 +194,7 @@ test('restoreOrCreate macro calls firstOrCreate with trashed', function () {
         $mockBuilder->shouldReceive('firstOrCreate')
             ->once()
             ->with(['id' => 1], ['name' => 'test'])
-            ->andReturn((object)['id' => 1, 'name' => 'test']);
+            ->andReturn((object) ['id' => 1, 'name' => 'test']);
 
         // Execute the closure - covers lines 151-153
         $result = $closure($mockBuilder, ['id' => 1], ['name' => 'test']);
@@ -213,7 +211,7 @@ test('restoreOrCreate macro calls firstOrCreate with trashed', function () {
 });
 
 test('createOrRestore macro calls createOrFirst with trashed', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')->with('createOrRestore', m::type('Closure'))->once()->andReturnUsing(function ($name, $closure) {
@@ -222,7 +220,7 @@ test('createOrRestore macro calls createOrFirst with trashed', function () {
         $mockBuilder->shouldReceive('createOrFirst')
             ->once()
             ->with(['id' => 1], ['name' => 'test'])
-            ->andReturn((object)['id' => 1, 'name' => 'test']);
+            ->andReturn((object) ['id' => 1, 'name' => 'test']);
 
         // Execute the closure - covers lines 166-168
         $result = $closure($mockBuilder, ['id' => 1], ['name' => 'test']);

@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Query;
 
+use Bob\Database\Connection;
 use Bob\Query\Builder;
 use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Processor;
-use Bob\Database\Connection;
 use Mockery as m;
 
 beforeEach(function () {
-    $this->grammar = new MySQLGrammar();
-    $this->processor = new Processor();
+    $this->grammar = new MySQLGrammar;
+    $this->processor = new Processor;
 
     $this->connection = m::mock(Connection::class);
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
@@ -78,7 +78,7 @@ test('exists() handles both array and object results from database', function ()
     // Some database drivers return objects instead of arrays
 
     // Test with stdClass object result
-    $resultObject = new \stdClass();
+    $resultObject = new \stdClass;
     $resultObject->exists = 0;
 
     $this->connection->shouldReceive('select')

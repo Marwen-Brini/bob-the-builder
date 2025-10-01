@@ -1,7 +1,7 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
 

@@ -21,7 +21,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      * The possible column modifiers
      */
     protected array $modifiers = [
-        'Increment', 'Nullable', 'Default', 'VirtualAs', 'StoredAs', 'GeneratedAs', 'Comment'
+        'Increment', 'Nullable', 'Default', 'VirtualAs', 'StoredAs', 'GeneratedAs', 'Comment',
     ];
 
     /**
@@ -74,7 +74,7 @@ class PostgreSQLGrammar extends SchemaGrammar
                 $this->getType($column)
             );
 
-            if (!$column->nullable) {
+            if (! $column->nullable) {
                 $changes[] = sprintf(
                     'alter column %s set not null',
                     $this->wrap($column->name)
@@ -86,7 +86,7 @@ class PostgreSQLGrammar extends SchemaGrammar
                 );
             }
 
-            if (!is_null($column->default)) {
+            if (! is_null($column->default)) {
                 $changes[] = sprintf(
                     'alter column %s set default %s',
                     $this->wrap($column->name),
@@ -107,7 +107,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     public function compileDrop(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
-        return 'drop table ' . $this->wrapTable($blueprint);
+        return 'drop table '.$this->wrapTable($blueprint);
     }
 
     /**
@@ -115,7 +115,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     public function compileDropIfExists(Blueprint $blueprint, Fluent $command, Connection $connection): string
     {
-        return 'drop table if exists ' . $this->wrapTable($blueprint);
+        return 'drop table if exists '.$this->wrapTable($blueprint);
     }
 
     /**
@@ -178,7 +178,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     public function compileTableExists(): string
     {
-        return "select * from information_schema.tables where table_catalog = current_database() and table_schema = current_schema() and table_name = ?";
+        return 'select * from information_schema.tables where table_catalog = current_database() and table_schema = current_schema() and table_name = ?';
     }
 
     /**
@@ -194,7 +194,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     public function compileColumnType(string $table, string $column): string
     {
-        return "select data_type from information_schema.columns where table_catalog = current_database() and table_schema = current_schema() and table_name = ? and column_name = ?";
+        return 'select data_type from information_schema.columns where table_catalog = current_database() and table_schema = current_schema() and table_name = ? and column_name = ?';
     }
 
     /**
@@ -205,7 +205,7 @@ class PostgreSQLGrammar extends SchemaGrammar
         return sprintf(
             'comment on table %s is %s',
             $this->wrapTable($blueprint),
-            "'" . str_replace("'", "''", $command->comment) . "'"
+            "'".str_replace("'", "''", $command->comment)."'"
         );
     }
 
@@ -270,7 +270,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function typeTinyInteger(Fluent $column): string
     {
-        return $column->autoIncrement && !$column->change ? 'smallserial' : 'smallint';
+        return $column->autoIncrement && ! $column->change ? 'smallserial' : 'smallint';
     }
 
     /**
@@ -278,7 +278,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function typeSmallInteger(Fluent $column): string
     {
-        return $column->autoIncrement && !$column->change ? 'smallserial' : 'smallint';
+        return $column->autoIncrement && ! $column->change ? 'smallserial' : 'smallint';
     }
 
     /**
@@ -286,7 +286,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function typeMediumInteger(Fluent $column): string
     {
-        return $column->autoIncrement && !$column->change ? 'serial' : 'integer';
+        return $column->autoIncrement && ! $column->change ? 'serial' : 'integer';
     }
 
     /**
@@ -294,7 +294,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function typeInteger(Fluent $column): string
     {
-        return $column->autoIncrement && !$column->change ? 'serial' : 'integer';
+        return $column->autoIncrement && ! $column->change ? 'serial' : 'integer';
     }
 
     /**
@@ -302,7 +302,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function typeBigInteger(Fluent $column): string
     {
-        return $column->autoIncrement && !$column->change ? 'bigserial' : 'bigint';
+        return $column->autoIncrement && ! $column->change ? 'bigserial' : 'bigint';
     }
 
     /**
@@ -388,7 +388,8 @@ class PostgreSQLGrammar extends SchemaGrammar
     protected function typeDateTime(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'timestamp' . $precision . ' without time zone';
+
+        return 'timestamp'.$precision.' without time zone';
     }
 
     /**
@@ -397,7 +398,8 @@ class PostgreSQLGrammar extends SchemaGrammar
     protected function typeDateTimeTz(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'timestamp' . $precision . ' with time zone';
+
+        return 'timestamp'.$precision.' with time zone';
     }
 
     /**
@@ -406,7 +408,8 @@ class PostgreSQLGrammar extends SchemaGrammar
     protected function typeTime(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'time' . $precision . ' without time zone';
+
+        return 'time'.$precision.' without time zone';
     }
 
     /**
@@ -415,7 +418,8 @@ class PostgreSQLGrammar extends SchemaGrammar
     protected function typeTimeTz(Fluent $column): string
     {
         $precision = isset($column->precision) ? "({$column->precision})" : '';
-        return 'time' . $precision . ' with time zone';
+
+        return 'time'.$precision.' with time zone';
     }
 
     /**
@@ -426,10 +430,10 @@ class PostgreSQLGrammar extends SchemaGrammar
         $precision = isset($column->precision) ? "({$column->precision})" : '';
 
         if ($column->useCurrent) {
-            return 'timestamp' . $precision . ' without time zone default CURRENT_TIMESTAMP';
+            return 'timestamp'.$precision.' without time zone default CURRENT_TIMESTAMP';
         }
 
-        return 'timestamp' . $precision . ' without time zone';
+        return 'timestamp'.$precision.' without time zone';
     }
 
     /**
@@ -440,10 +444,10 @@ class PostgreSQLGrammar extends SchemaGrammar
         $precision = isset($column->precision) ? "({$column->precision})" : '';
 
         if ($column->useCurrent) {
-            return 'timestamp' . $precision . ' with time zone default CURRENT_TIMESTAMP';
+            return 'timestamp'.$precision.' with time zone default CURRENT_TIMESTAMP';
         }
 
-        return 'timestamp' . $precision . ' with time zone';
+        return 'timestamp'.$precision.' with time zone';
     }
 
     /**
@@ -613,8 +617,8 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function modifyDefault(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->default)) {
-            return ' default ' . $this->getDefaultValue($column->default);
+        if (! is_null($column->default)) {
+            return ' default '.$this->getDefaultValue($column->default);
         }
 
         return '';
@@ -625,7 +629,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function modifyVirtualAs(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->virtualAs)) {
+        if (! is_null($column->virtualAs)) {
             // PostgreSQL doesn't support virtual columns directly
             // Would need to use a view or function
             return '';
@@ -639,7 +643,7 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function modifyStoredAs(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->storedAs)) {
+        if (! is_null($column->storedAs)) {
             return " generated always as ({$column->storedAs}) stored";
         }
 
@@ -651,8 +655,9 @@ class PostgreSQLGrammar extends SchemaGrammar
      */
     protected function modifyGeneratedAs(Blueprint $blueprint, Fluent $column): string
     {
-        if (!is_null($column->generatedAs)) {
+        if (! is_null($column->generatedAs)) {
             $identity = $column->always ? 'always' : 'by default';
+
             return " generated {$identity} as identity";
         }
 
@@ -705,7 +710,7 @@ class PostgreSQLGrammar extends SchemaGrammar
             'create index %s on %s%s (%s)',
             $this->wrap($command->index),
             $this->wrapTable($blueprint),
-            $command->algorithm ? ' using ' . strtolower($command->algorithm) : '',
+            $command->algorithm ? ' using '.strtolower($command->algorithm) : '',
             $this->columnize($command->columns)
         );
     }
@@ -817,7 +822,7 @@ class PostgreSQLGrammar extends SchemaGrammar
     protected function prefixArray(string $prefix, array $values): array
     {
         return array_map(function ($value) use ($prefix) {
-            return $prefix . ' ' . $value;
+            return $prefix.' '.$value;
         }, $values);
     }
 }

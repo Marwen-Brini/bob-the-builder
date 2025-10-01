@@ -18,7 +18,7 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: '✨ What\'s New (v2.2.0)', link: '/guide/whats-new' },
+            { text: '🎉 What\'s New (v3.0.0)', link: '/guide/whats-new' },
             { text: 'Introduction', link: '/guide/getting-started' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Configuration', link: '/guide/configuration' },
@@ -32,6 +32,16 @@ export default defineConfig({
             { text: 'Where Clauses', link: '/guide/where-clauses' },
             { text: 'Joins', link: '/guide/joins' },
             { text: 'Models', link: '/guide/models' }
+          ]
+        },
+        {
+          text: 'Schema & Migrations (v3.0)',
+          collapsed: false,
+          items: [
+            { text: '🗄️ Database Migrations', link: '/guide/migrations' },
+            { text: '🏗️ Schema Builder', link: '/guide/schema-builder' },
+            { text: '🌐 WordPress Schema', link: '/guide/wordpress-schema' },
+            { text: '🔍 Schema Inspector', link: '/guide/schema-inspector' }
           ]
         },
         {

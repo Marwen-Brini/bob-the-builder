@@ -1,9 +1,9 @@
 <?php
 
-use Bob\Database\Relations\BelongsTo;
-use Bob\Database\Model;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Database\Relations\BelongsTo;
+use Bob\Query\Builder;
 use Mockery as m;
 
 describe('BelongsTo Tests', function () {

@@ -119,6 +119,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null)->first();
         };
     }
@@ -130,6 +131,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null)->get();
         };
     }
@@ -141,6 +143,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null);
         };
     }
@@ -152,6 +155,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->orWhere($column, '=', $params[0] ?? null);
         };
     }
@@ -163,6 +167,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null)->first();
         };
     }
@@ -174,6 +179,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null)->count();
         };
     }
@@ -185,6 +191,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null)->exists();
         };
     }
@@ -196,6 +203,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->where($column, '=', $params[0] ?? null)->delete();
         };
     }
@@ -208,6 +216,7 @@ trait DynamicFinder
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
             $direction = strtolower($matches[2]);
+
             return $this->orderBy($column, $direction);
         };
     }
@@ -219,6 +228,7 @@ trait DynamicFinder
     {
         return function ($matches, $params) {
             $column = $this->camelToSnake($matches[1]);
+
             return $this->groupBy($column);
         };
     }

@@ -1,14 +1,14 @@
 <?php
 
-use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Query\Builder;
+use Bob\Query\Grammars\MySQLGrammar;
 use Mockery as m;
 
 describe('MySQLGrammar Tests', function () {
 
     beforeEach(function () {
-        $this->grammar = new MySQLGrammar();
+        $this->grammar = new MySQLGrammar;
         $this->connection = m::mock(Connection::class);
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn(m::mock(\Bob\Query\Processor::class));
@@ -21,7 +21,7 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('MySQLGrammar operators property', function () {
-        $grammar = new MySQLGrammar();
+        $grammar = new MySQLGrammar;
         $reflection = new ReflectionClass($grammar);
         $operatorsProperty = $reflection->getProperty('operators');
         $operatorsProperty->setAccessible(true);
@@ -34,8 +34,10 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('wrapValue method with regular value (lines 18-25)', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testWrapValue(string $value): string {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testWrapValue(string $value): string
+            {
                 return $this->wrapValue($value);
             }
         };
@@ -49,8 +51,10 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('wrapValue method with asterisk (lines 18-25)', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testWrapValue(string $value): string {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testWrapValue(string $value): string
+            {
                 return $this->wrapValue($value);
             }
         };
@@ -69,8 +73,10 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('compileJsonLength method (lines 32-37)', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testCompileJsonLength(string $column, string $operator, string $value): string {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testCompileJsonLength(string $column, string $operator, string $value): string
+            {
                 return $this->compileJsonLength($column, $operator, $value);
             }
         };
@@ -82,8 +88,10 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('wrapJsonFieldAndPath method (lines 39-47)', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testWrapJsonFieldAndPath(string $column): array {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testWrapJsonFieldAndPath(string $column): array
+            {
                 return $this->wrapJsonFieldAndPath($column);
             }
         };
@@ -100,8 +108,10 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('wrapJsonPath method (lines 49-52)', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testWrapJsonPath(string $value): string {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testWrapJsonPath(string $value): string
+            {
                 return $this->wrapJsonPath($value);
             }
         };
@@ -116,7 +126,7 @@ describe('MySQLGrammar Tests', function () {
     test('compileUpsert method (lines 54-65)', function () {
         $values = [
             ['name' => 'John', 'email' => 'john@example.com'],
-            ['name' => 'Jane', 'email' => 'jane@example.com']
+            ['name' => 'Jane', 'email' => 'jane@example.com'],
         ];
         $uniqueBy = ['email'];
         $update = ['name' => 'new_name', 'status' => 'updated'];
@@ -182,14 +192,20 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('MySQLGrammar JSON operations comprehensive test', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testWrapJsonFieldAndPath(string $column): array {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testWrapJsonFieldAndPath(string $column): array
+            {
                 return $this->wrapJsonFieldAndPath($column);
             }
-            public function testWrapJsonPath(string $value): string {
+
+            public function testWrapJsonPath(string $value): string
+            {
                 return $this->wrapJsonPath($value);
             }
-            public function testCompileJsonLength(string $column, string $operator, string $value): string {
+
+            public function testCompileJsonLength(string $column, string $operator, string $value): string
+            {
                 return $this->compileJsonLength($column, $operator, $value);
             }
         };
@@ -209,8 +225,10 @@ describe('MySQLGrammar Tests', function () {
     });
 
     test('MySQLGrammar wrapping edge cases', function () {
-        $grammar = new class extends MySQLGrammar {
-            public function testWrapValue(string $value): string {
+        $grammar = new class extends MySQLGrammar
+        {
+            public function testWrapValue(string $value): string
+            {
                 return $this->wrapValue($value);
             }
         };
@@ -232,7 +250,7 @@ describe('MySQLGrammar Tests', function () {
         // Test upsert with numeric keys
         $values = [
             ['id' => 1, 'name' => 'John'],
-            ['id' => 2, 'name' => 'Jane']
+            ['id' => 2, 'name' => 'Jane'],
         ];
         $uniqueBy = ['id'];
         $update = [0 => 'name', 1 => 'email']; // Using numeric keys

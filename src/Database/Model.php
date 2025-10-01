@@ -3,12 +3,11 @@
 namespace Bob\Database;
 
 use Bob\Contracts\ConnectionInterface;
-use Bob\Query\Builder;
-use Bob\Database\Relations;
 use Bob\Database\Eloquent\Scope;
+use Bob\Query\Builder;
 use Bob\Support\Collection;
-use JsonSerializable;
 use Closure;
+use JsonSerializable;
 
 /**
  * Base Model class that provides ActiveRecord-like functionality
@@ -201,8 +200,6 @@ class Model implements JsonSerializable
 
     /**
      * Check if the model needs to be booted and boot it if necessary.
-     *
-     * @return void
      */
     protected function bootIfNotBooted(): void
     {
@@ -216,8 +213,6 @@ class Model implements JsonSerializable
 
     /**
      * Perform any actions required before the model boots.
-     *
-     * @return void
      */
     protected static function booting(): void
     {
@@ -227,8 +222,6 @@ class Model implements JsonSerializable
     /**
      * The "boot" method of the model.
      * Override this in child classes to add global scopes.
-     *
-     * @return void
      */
     protected static function boot(): void
     {
@@ -238,8 +231,6 @@ class Model implements JsonSerializable
 
     /**
      * Perform any actions required after the model boots.
-     *
-     * @return void
      */
     protected static function booted(): void
     {
@@ -248,8 +239,6 @@ class Model implements JsonSerializable
 
     /**
      * Boot all of the bootable traits on the model.
-     *
-     * @return void
      */
     protected static function bootTraits(): void
     {
@@ -265,7 +254,7 @@ class Model implements JsonSerializable
         foreach ($traits as $trait) {
             // Get just the trait name without namespace
             $traitName = substr($trait, strrpos($trait, '\\') + 1);
-            $method = 'boot' . $traitName;
+            $method = 'boot'.$traitName;
 
             if (method_exists($class, $method) && ! in_array($method, static::$bootedMethods[$class] ?? [])) {
                 forward_static_call([$class, $method]);
@@ -313,12 +302,12 @@ class Model implements JsonSerializable
         }
 
         // If fillable is set, only allow those attributes
-        if (!empty($this->fillable)) {
+        if (! empty($this->fillable)) {
             return in_array($key, $this->fillable);
         }
 
         // If guarded is set, allow all except guarded
-        return !in_array($key, $this->guarded);
+        return ! in_array($key, $this->guarded);
     }
 
     /**
@@ -371,6 +360,7 @@ class Model implements JsonSerializable
             if ($relation instanceof Relations\Relation) {
                 $result = $relation->getResults();
                 $this->relations[$key] = $result;
+
                 return $result;
             }
         }
@@ -385,7 +375,7 @@ class Model implements JsonSerializable
     {
         // If model has an ID but empty original, check if it actually exists in DB
         if (isset($this->attributes[$this->primaryKey]) &&
-            !empty($this->attributes[$this->primaryKey]) &&
+            ! empty($this->attributes[$this->primaryKey]) &&
             empty($this->original)) {
 
             // Check database to see if record with this ID actually exists
@@ -396,6 +386,7 @@ class Model implements JsonSerializable
             if ($existing) {
                 // Record exists in DB, populate original and update
                 $this->original = $existing->getAttributes();
+
                 return $this->update();
             }
             // Record doesn't exist, treat as new (but keep the provided ID)
@@ -439,7 +430,7 @@ class Model implements JsonSerializable
     protected function update(): bool
     {
         // First check if anything is dirty before timestamps
-        if (!$this->isDirty()) {
+        if (! $this->isDirty()) {
             // Nothing dirty, no need to update
             return true;
         }
@@ -481,6 +472,7 @@ class Model implements JsonSerializable
             $this->syncChanges();
             $this->original = $this->attributes;
             $this->wasRecentlyCreated = false;
+
             return true;
         }
 
@@ -492,7 +484,7 @@ class Model implements JsonSerializable
      */
     public function delete(): bool
     {
-        if (!$this->canDelete()) {
+        if (! $this->canDelete()) {
             return false;
         }
 
@@ -558,7 +550,6 @@ class Model implements JsonSerializable
      *
      * @param  string|\Closure|Scope  $scope
      * @param  \Closure|Scope|null  $implementation
-     * @return void
      */
     public static function addGlobalScope($scope, $implementation = null): void
     {
@@ -575,7 +566,6 @@ class Model implements JsonSerializable
      * Determine if a model has a global scope.
      *
      * @param  string|Scope  $scope
-     * @return bool
      */
     public static function hasGlobalScope($scope): bool
     {
@@ -624,7 +614,8 @@ class Model implements JsonSerializable
     {
         $instance = new static;
         // Use qualified column name to avoid ambiguity with JOINs
-        $qualifiedKey = $instance->getTable() . '.' . $instance->primaryKey;
+        $qualifiedKey = $instance->getTable().'.'.$instance->primaryKey;
+
         return static::query()
             ->where($qualifiedKey, $id)
             ->first();
@@ -647,7 +638,7 @@ class Model implements JsonSerializable
     /**
      * Eager load relationships on the model
      *
-     * @param string|array $relations
+     * @param  string|array  $relations
      * @return $this
      */
     public function load($relations): self
@@ -691,7 +682,7 @@ class Model implements JsonSerializable
         }
 
         $attributes = is_object($data) ? (array) $data : $data;
-        $model = new static();
+        $model = new static;
 
         // Directly set attributes without fillable check for hydration
         foreach ($attributes as $key => $value) {
@@ -734,6 +725,7 @@ class Model implements JsonSerializable
                 $array[$key] = $value;
             }
         }
+
         return $array;
     }
 
@@ -743,11 +735,12 @@ class Model implements JsonSerializable
     protected function appendAccessors(array $array): array
     {
         foreach ($this->appends ?? [] as $key) {
-            $accessor = 'get' . str_replace('_', '', ucwords($key, '_')) . 'Attribute';
+            $accessor = 'get'.str_replace('_', '', ucwords($key, '_')).'Attribute';
             if (method_exists($this, $accessor)) {
                 $array[$key] = $this->$accessor();
             }
         }
+
         return $array;
     }
 
@@ -761,6 +754,7 @@ class Model implements JsonSerializable
                 $array[$key] = $this->serializeRelation($value);
             }
         }
+
         return $array;
     }
 
@@ -791,7 +785,7 @@ class Model implements JsonSerializable
      */
     protected function isVisible(string $key): bool
     {
-        return !in_array($key, $this->hidden ?? []);
+        return ! in_array($key, $this->hidden ?? []);
     }
 
     /**
@@ -834,7 +828,7 @@ class Model implements JsonSerializable
     {
         $value = $this->getAttribute($key);
 
-        if (!isset($this->casts[$key])) {
+        if (! isset($this->casts[$key])) {
             return $value;
         }
 
@@ -934,6 +928,7 @@ class Model implements JsonSerializable
         $scopeMethod = 'scope'.ucfirst($method);
         if (method_exists($instance, $scopeMethod)) {
             $query = static::query();
+
             // The scope method should return the builder for chaining
             return $instance->$scopeMethod($query, ...$arguments);
         }
@@ -1122,7 +1117,7 @@ class Model implements JsonSerializable
         // Sort tables alphabetically and join with underscore
         $tables = [
             str_replace('_', '', $this->getSnakeCase($first)),
-            str_replace('_', '', $this->getSnakeCase($second))
+            str_replace('_', '', $this->getSnakeCase($second)),
         ];
 
         sort($tables);
@@ -1257,7 +1252,6 @@ class Model implements JsonSerializable
     /**
      * Get a specific relationship value.
      *
-     * @param string $relation
      * @return mixed
      */
     public function getRelation(string $relation)
@@ -1271,14 +1265,14 @@ class Model implements JsonSerializable
     public function syncOriginal(): self
     {
         $this->original = $this->attributes;
+
         return $this;
     }
 
     /**
      * Get the original attribute values.
      *
-     * @param string|null $key
-     * @param mixed $default
+     * @param  mixed  $default
      * @return mixed
      */
     public function getOriginal(?string $key = null, $default = null)
@@ -1292,9 +1286,6 @@ class Model implements JsonSerializable
 
     /**
      * Determine if the model or any of the given attribute(s) have been modified.
-     *
-     * @param array|string|null $attributes
-     * @return bool
      */
     public function isDirty(array|string|null $attributes = null): bool
     {
@@ -1373,9 +1364,6 @@ class Model implements JsonSerializable
     /**
      * Register global scopes with the builder.
      * They will be applied when the query is executed.
-     *
-     * @param  Builder  $builder
-     * @return void
      */
     protected function registerGlobalScopes(Builder $builder): void
     {
@@ -1442,7 +1430,7 @@ class Model implements JsonSerializable
      */
     public function isClean(array|string|null $attributes = null): bool
     {
-        return !$this->isDirty($attributes);
+        return ! $this->isDirty($attributes);
     }
 
     /**
@@ -1519,7 +1507,7 @@ class Model implements JsonSerializable
             $except
         ));
 
-        $model = new static();
+        $model = new static;
         $model->fill($attributes);
 
         return $model;
@@ -1530,7 +1518,7 @@ class Model implements JsonSerializable
      */
     public function fresh($with = []): ?self
     {
-        if (!$this->exists()) {
+        if (! $this->exists()) {
             return null;
         }
 
@@ -1544,7 +1532,7 @@ class Model implements JsonSerializable
      */
     public function refresh(): self
     {
-        if (!$this->exists()) {
+        if (! $this->exists()) {
             return $this;
         }
 
@@ -1563,7 +1551,7 @@ class Model implements JsonSerializable
      */
     public function touch(): bool
     {
-        if (!$this->timestamps) {
+        if (! $this->timestamps) {
             return false;
         }
 
@@ -1581,7 +1569,7 @@ class Model implements JsonSerializable
             return false;
         }
 
-        return !is_null($this->getKey()) &&
+        return ! is_null($this->getKey()) &&
                $this->getKey() === $model->getKey() &&
                $this->getTable() === $model->getTable() &&
                get_class($this) === get_class($model);
@@ -1592,7 +1580,7 @@ class Model implements JsonSerializable
      */
     public function isNot($model): bool
     {
-        return !$this->is($model);
+        return ! $this->is($model);
     }
 
     /**
@@ -1600,7 +1588,7 @@ class Model implements JsonSerializable
      */
     public function push(): bool
     {
-        if (!$this->save()) {
+        if (! $this->save()) {
             return false;
         }
 
@@ -1620,7 +1608,7 @@ class Model implements JsonSerializable
     {
         $this->hidden = array_diff($this->hidden, (array) $attributes);
 
-        if (!empty($this->visible)) {
+        if (! empty($this->visible)) {
             $this->visible = array_merge($this->visible, (array) $attributes);
         }
 

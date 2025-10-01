@@ -48,10 +48,10 @@ class WordPressBlueprint extends Blueprint
      */
     public function wpDates(string $prefix = 'post'): void
     {
-        $this->wpDatetime($prefix . '_date');
-        $this->wpDatetimeGmt($prefix . '_date_gmt');
-        $this->wpDatetime($prefix . '_modified');
-        $this->wpDatetimeGmt($prefix . '_modified_gmt');
+        $this->wpDatetime($prefix.'_date');
+        $this->wpDatetimeGmt($prefix.'_date_gmt');
+        $this->wpDatetime($prefix.'_modified');
+        $this->wpDatetimeGmt($prefix.'_modified_gmt');
     }
 
     /**
@@ -167,6 +167,15 @@ class WordPressBlueprint extends Blueprint
     }
 
     /**
+     * Add WordPress timestamps (alias for wpDates)
+     * Matches Laravel-style naming convention
+     */
+    public function wpTimestamps(string $prefix = 'post'): void
+    {
+        $this->wpDates($prefix);
+    }
+
+    /**
      * Add all standard WordPress post columns
      */
     public function wpPost(): void
@@ -195,6 +204,7 @@ class WordPressBlueprint extends Blueprint
 
     /**
      * Add standard WordPress post indexes
+     *
      * @codeCoverageIgnoreStart
      */
     public function wpPostIndexes(): void
@@ -229,7 +239,7 @@ class WordPressBlueprint extends Blueprint
     public function wpMeta(string $objectType = 'post'): void
     {
         $this->bigIncrements('meta_id');
-        $this->unsignedBigInteger($objectType . '_id')->default(0)->index();
+        $this->unsignedBigInteger($objectType.'_id')->default(0)->index();
         $this->string('meta_key')->nullable()->index();
         $this->longText('meta_value')->nullable();
     }
@@ -258,6 +268,19 @@ class WordPressBlueprint extends Blueprint
         $this->string('name', 200)->default('')->index();
         $this->string('slug', 200)->default('')->index();
         $this->bigInteger('term_group')->default(0);
+    }
+
+    /**
+     * Add WordPress term relationship columns
+     */
+    public function wpTermRelationship(): void
+    {
+        $this->unsignedBigInteger('object_id')->default(0);
+        $this->unsignedBigInteger('term_taxonomy_id')->default(0);
+        $this->integer('term_order')->default(0);
+
+        $this->primary(['object_id', 'term_taxonomy_id']);
+        $this->index('term_taxonomy_id');
     }
 
     /**
@@ -398,6 +421,7 @@ class WordPressBlueprint extends Blueprint
 
     /**
      * Add WooCommerce product columns
+     *
      * @codeCoverageIgnoreStart
      */
     public function wcProduct(): void

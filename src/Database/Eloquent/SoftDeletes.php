@@ -15,15 +15,11 @@ trait SoftDeletes
 {
     /**
      * Indicates if the model is currently force deleting.
-     *
-     * @var bool
      */
     protected bool $forceDeleting = false;
 
     /**
      * Boot the soft deleting trait for a model.
-     *
-     * @return void
      */
     public static function bootSoftDeletes(): void
     {
@@ -32,8 +28,6 @@ trait SoftDeletes
 
     /**
      * Initialize the soft deleting trait for an instance.
-     *
-     * @return void
      */
     public function initializeSoftDeletes(): void
     {
@@ -62,8 +56,6 @@ trait SoftDeletes
 
     /**
      * Perform a model delete operation.
-     *
-     * @return bool
      */
     protected function performDeleteOnModel(): bool
     {
@@ -78,8 +70,6 @@ trait SoftDeletes
 
     /**
      * Perform the actual delete query on the model.
-     *
-     * @return bool
      */
     protected function runSoftDelete(): bool
     {
@@ -107,8 +97,6 @@ trait SoftDeletes
 
     /**
      * Restore a soft-deleted model instance.
-     *
-     * @return bool
      */
     public function restore(): bool
     {
@@ -137,9 +125,6 @@ trait SoftDeletes
 
     /**
      * Restore multiple soft-deleted models by their primary keys.
-     *
-     * @param  array  $ids
-     * @return int
      */
     public static function restoreMany(array $ids): int
     {
@@ -150,8 +135,6 @@ trait SoftDeletes
 
     /**
      * Determine if the model is currently force deleting.
-     *
-     * @return bool
      */
     public function isForceDeleting(): bool
     {
@@ -160,8 +143,6 @@ trait SoftDeletes
 
     /**
      * Get the name of the "deleted at" column.
-     *
-     * @return string
      */
     public function getDeletedAtColumn(): string
     {
@@ -170,8 +151,6 @@ trait SoftDeletes
 
     /**
      * Get the fully qualified "deleted at" column.
-     *
-     * @return string
      */
     public function getQualifiedDeletedAtColumn(): string
     {
@@ -180,8 +159,6 @@ trait SoftDeletes
 
     /**
      * Determine if the model instance has been soft-deleted.
-     *
-     * @return bool
      */
     public function trashed(): bool
     {
@@ -192,7 +169,6 @@ trait SoftDeletes
      * Register a "softDeleted" model event callback.
      *
      * @param  \Closure|string  $callback
-     * @return void
      */
     public static function softDeleted($callback): void
     {
@@ -203,7 +179,6 @@ trait SoftDeletes
      * Register a "restoring" model event callback.
      *
      * @param  \Closure|string  $callback
-     * @return void
      */
     public static function restoring($callback): void
     {
@@ -214,7 +189,6 @@ trait SoftDeletes
      * Register a "restored" model event callback.
      *
      * @param  \Closure|string  $callback
-     * @return void
      */
     public static function restored($callback): void
     {
@@ -225,7 +199,6 @@ trait SoftDeletes
      * Register a "forceDeleting" model event callback.
      *
      * @param  \Closure|string  $callback
-     * @return void
      */
     public static function forceDeleting($callback): void
     {
@@ -236,7 +209,6 @@ trait SoftDeletes
      * Register a "forceDeleted" model event callback.
      *
      * @param  \Closure|string  $callback
-     * @return void
      */
     public static function forceDeleted($callback): void
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bob\Database\Migrations;
 
 use Bob\Database\Connection;
+use Bob\Events\EventDispatcherInterface;
 use Bob\Schema\Schema;
 use Closure;
 use Exception;
@@ -48,6 +49,11 @@ class MigrationRunner
     protected ?Closure $errorHandler = null;
 
     /**
+     * Optional event dispatcher for migration events
+     */
+    protected ?EventDispatcherInterface $dispatcher = null;
+
+    /**
      * All of the migration files
      */
     protected array $files = [];
@@ -59,6 +65,7 @@ class MigrationRunner
 
     /**
      * Notes collected during migration run
+     *
      * @var string[]
      */
     protected array $notes = [];
@@ -74,7 +81,7 @@ class MigrationRunner
         $this->connection = $connection;
         $this->repository = $repository;
         $this->paths = $paths;
-        $this->loader = new DefaultMigrationLoader();
+        $this->loader = new DefaultMigrationLoader;
     }
 
     /**
@@ -83,6 +90,7 @@ class MigrationRunner
     public function setLoader(MigrationLoaderInterface $loader): self
     {
         $this->loader = $loader;
+
         return $this;
     }
 
@@ -92,6 +100,17 @@ class MigrationRunner
     public function setErrorHandler(?Closure $handler): self
     {
         $this->errorHandler = $handler;
+
+        return $this;
+    }
+
+    /**
+     * Set the event dispatcher
+     */
+    public function setEventDispatcher(?EventDispatcherInterface $dispatcher): self
+    {
+        $this->dispatcher = $dispatcher;
+
         return $this;
     }
 
@@ -106,9 +125,16 @@ class MigrationRunner
         $this->beforeRun();
 
         // First, ensure the repository exists
-        if (!$this->repository->repositoryExists()) {
+        if (! $this->repository->repositoryExists()) {
             $this->repository->createRepository();
             $this->note('Migration table created successfully.');
+
+            // Dispatch REPOSITORY_CREATED event
+            if ($this->dispatcher) {
+                $this->dispatcher->dispatch(MigrationEvents::REPOSITORY_CREATED, [
+                    'table' => $this->repository->getTable(),
+                ]);
+            }
         }
 
         $this->ran = [];
@@ -125,6 +151,7 @@ class MigrationRunner
         if (count($migrations) === 0) {
             $this->note('Nothing to migrate.');
             $this->afterRun([]);
+
             return [];
         }
 
@@ -144,6 +171,7 @@ class MigrationRunner
         // First we will just make sure that there are any migrations to run
         if (count($migrations) === 0) {
             $this->note('Nothing to migrate.');
+
             return;
         }
 
@@ -164,10 +192,19 @@ class MigrationRunner
     {
         if ($pretend) {
             $this->pretendToRun($migration, 'up');
+
             return;
         }
 
         $this->note("Migrating: {$file}");
+
+        // Dispatch BEFORE_MIGRATION event
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::BEFORE_MIGRATION, [
+                'migration' => $file,
+                'class' => get_class($migration),
+            ]);
+        }
 
         $startTime = microtime(true);
 
@@ -189,6 +226,15 @@ class MigrationRunner
 
             $time = round((microtime(true) - $startTime) * 1000, 2);
             $this->note("Migrated:  {$file} ({$time}ms)");
+
+            // Dispatch AFTER_MIGRATION event
+            if ($this->dispatcher) {
+                $this->dispatcher->dispatch(MigrationEvents::AFTER_MIGRATION, [
+                    'migration' => $file,
+                    'class' => get_class($migration),
+                    'time' => $time,
+                ]);
+            }
         } catch (Exception $e) {
             $this->note("Migration failed: {$file}");
 
@@ -213,11 +259,19 @@ class MigrationRunner
 
         $rolledBack = [];
 
+        // Dispatch BEFORE_ROLLBACK event
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::BEFORE_ROLLBACK, [
+                'options' => $options,
+            ]);
+        }
+
         // Get the last batch of migrations
         $migrations = $this->getMigrationsForRollback($options);
 
         if (count($migrations) === 0) {
             $this->note('Nothing to rollback.');
+
             return [];
         }
 
@@ -228,6 +282,13 @@ class MigrationRunner
             $migrationInstance = $this->resolve($file);
 
             $this->runDown($file, $migrationInstance, $options['pretend'] ?? false);
+        }
+
+        // Dispatch AFTER_ROLLBACK event
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::AFTER_ROLLBACK, [
+                'migrations' => $rolledBack,
+            ]);
         }
 
         return $rolledBack;
@@ -247,6 +308,7 @@ class MigrationRunner
 
         if (count($migrations) === 0) {
             $this->note('Nothing to rollback.');
+
             return [];
         }
 
@@ -268,6 +330,7 @@ class MigrationRunner
     {
         if ($pretend) {
             $this->pretendToRun($migration, 'down');
+
             return;
         }
 
@@ -344,7 +407,7 @@ class MigrationRunner
         $migrations = [];
 
         foreach ($files as $file => $path) {
-            if (!in_array($file, $ran)) {
+            if (! in_array($file, $ran)) {
                 $migration = $this->resolve($file);
 
                 if ($migration->shouldRun()) {
@@ -365,7 +428,7 @@ class MigrationRunner
 
         foreach ($this->paths as $path) {
             if (is_dir($path)) {
-                foreach (glob($path . '/*.php') as $file) {
+                foreach (glob($path.'/*.php') as $file) {
                     $files[$this->getMigrationName($file)] = $file;
                 }
             }
@@ -397,20 +460,20 @@ class MigrationRunner
         // Try to find the file in our paths
         $filePath = $this->findMigrationFile($file);
 
-        if (!$filePath) {
+        if (! $filePath) {
             throw new InvalidArgumentException("Migration [{$file}] not found.");
         }
 
         // Use the loader to load and get the class name
         $className = $this->loader->load($filePath);
 
-        if (!class_exists($className)) {
+        if (! class_exists($className)) {
             throw new InvalidArgumentException("Migration class [{$className}] not found in file [{$filePath}].");
         }
 
         $migration = new $className;
 
-        if (!$migration instanceof Migration) {
+        if (! $migration instanceof Migration) {
             throw new InvalidArgumentException("Class [{$className}] must extend Migration.");
         }
 
@@ -423,7 +486,7 @@ class MigrationRunner
     protected function findMigrationFile(string $file): ?string
     {
         foreach ($this->paths as $path) {
-            $fullPath = $path . '/' . $file . '.php';
+            $fullPath = $path.'/'.$file.'.php';
             if (file_exists($fullPath)) {
                 return $fullPath;
             }
@@ -519,7 +582,7 @@ class MigrationRunner
     {
         $this->connection->statement('SET FOREIGN_KEY_CHECKS = 0');
 
-        $tables = $this->connection->select("SHOW TABLES");
+        $tables = $this->connection->select('SHOW TABLES');
         $database = $this->connection->getConfig('database');
 
         foreach ($tables as $table) {
@@ -574,6 +637,38 @@ class MigrationRunner
         if ($description = $migration->description()) {
             $this->note("  Description: {$description}");
         }
+
+        if ($version = $migration->version()) {
+            $this->note("  Version: {$version}");
+        }
+
+        // Show transaction mode
+        $transactionMode = $migration->withinTransaction() ? 'within transaction' : 'without transaction';
+        $this->note("  Transaction: {$transactionMode}");
+
+        // Show dependencies for up migrations
+        if ($method === 'up' && ! empty($migration->dependencies())) {
+            $deps = implode(', ', $migration->dependencies());
+            $this->note("  Dependencies: {$deps}");
+        }
+
+        // Show connection if specified
+        if ($migration->getConnection()) {
+            $this->note("  Connection: {$migration->getConnection()}");
+        }
+
+        // Dispatch PRETEND event
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::PRETEND, [
+                'migration' => $name,
+                'method' => $method,
+                'description' => $migration->description(),
+                'version' => $migration->version(),
+                'withinTransaction' => $migration->withinTransaction(),
+                'dependencies' => $migration->dependencies(),
+                'connection' => $migration->getConnection(),
+            ]);
+        }
     }
 
     /**
@@ -581,23 +676,46 @@ class MigrationRunner
      */
     public function status(): array
     {
-        if (!$this->repository->repositoryExists()) {
-            return [
+        if (! $this->repository->repositoryExists()) {
+            $allMigrations = array_keys($this->getMigrationFiles());
+            $status = [
                 'ran' => [],
-                'pending' => array_keys($this->getMigrationFiles()),
-                'batches' => []
+                'pending' => $allMigrations,
+                'batches' => [],
+                'stats' => [
+                    'total' => count($allMigrations),
+                    'executed' => 0,
+                    'pending' => count($allMigrations),
+                    'last_batch' => 0,
+                ],
+            ];
+        } else {
+            $ran = $this->repository->getRan();
+            $all = array_keys($this->getMigrationFiles());
+            $pending = array_diff($all, $ran);
+            $batches = $this->repository->getMigrationBatches();
+
+            $status = [
+                'ran' => $ran,
+                'pending' => array_values($pending),
+                'batches' => $batches,
+                'stats' => [
+                    'total' => count($all),
+                    'executed' => count($ran),
+                    'pending' => count($pending),
+                    'last_batch' => ! empty($batches) ? max(array_values($batches)) : 0,
+                ],
             ];
         }
 
-        $ran = $this->repository->getRan();
-        $all = array_keys($this->getMigrationFiles());
-        $pending = array_diff($all, $ran);
+        // Dispatch STATUS_CHECK event
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::STATUS_CHECK, [
+                'status' => $status,
+            ]);
+        }
 
-        return [
-            'ran' => $ran,
-            'pending' => array_values($pending),
-            'batches' => $this->repository->getMigrationBatches()
-        ];
+        return $status;
     }
 
     /**
@@ -623,7 +741,7 @@ class MigrationRunner
      */
     public function addPath(string $path): void
     {
-        if (!in_array($path, $this->paths)) {
+        if (! in_array($path, $this->paths)) {
             $this->paths[] = $path;
         }
     }
@@ -691,29 +809,42 @@ class MigrationRunner
      */
     protected function beforeRun(): void
     {
-        // Extension point for subclasses
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::BEFORE_RUN, [
+                'paths' => $this->paths,
+            ]);
+        }
     }
 
     /**
      * Lifecycle hook: Called after running migrations
      * Override this method to add custom behavior
      *
-     * @param array $migrations The migrations that were run
+     * @param  array  $migrations  The migrations that were run
      */
     protected function afterRun(array $migrations): void
     {
-        // Extension point for subclasses
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::AFTER_RUN, [
+                'migrations' => $migrations,
+            ]);
+        }
     }
 
     /**
      * Error handler hook: Called when a migration fails
      * Override this method to add custom error handling
      *
-     * @param Exception $e The exception that was thrown
-     * @param string $migration The migration file that failed
+     * @param  Exception  $e  The exception that was thrown
+     * @param  string  $migration  The migration file that failed
      */
     protected function onError(Exception $e, string $migration): void
     {
-        // Extension point for subclasses
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(MigrationEvents::ERROR, [
+                'exception' => $e,
+                'migration' => $migration,
+            ]);
+        }
     }
 }

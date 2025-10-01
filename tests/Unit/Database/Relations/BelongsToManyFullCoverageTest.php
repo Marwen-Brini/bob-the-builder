@@ -1,24 +1,32 @@
 <?php
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
+use Bob\Database\Model;
 use Bob\Database\Relations\BelongsToMany;
 use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
 use Mockery as m;
 
-class TestBtmUser extends Model {
+class TestBtmUser extends Model
+{
     protected string $table = 'users';
+
     protected string $primaryKey = 'id';
+
     protected string $keyType = 'int';
+
     public bool $timestamps = true;
 }
 
-class TestBtmRole extends Model {
+class TestBtmRole extends Model
+{
     protected string $table = 'roles';
+
     protected string $primaryKey = 'id';
+
     protected string $keyType = 'int';
+
     public bool $timestamps = false;
 }
 
@@ -31,7 +39,7 @@ beforeEach(function () {
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
 
     // Mock table method to return a builder
-    $this->connection->shouldReceive('table')->andReturnUsing(function($table) {
+    $this->connection->shouldReceive('table')->andReturnUsing(function ($table) {
         $builder = m::mock(Builder::class);
         $builder->shouldReceive('insert')->andReturn(true);
         $builder->shouldReceive('delete')->andReturn(1);
@@ -40,15 +48,16 @@ beforeEach(function () {
         $builder->shouldReceive('from')->andReturnSelf();
         $builder->shouldReceive('setModel')->andReturnSelf();
         $builder->shouldReceive('get')->andReturn([]);  // Add get() expectation
+
         return $builder;
     });
 
-    $this->parent = new TestBtmUser();
+    $this->parent = new TestBtmUser;
     $this->parent->setAttribute('id', 1);
     $this->parent->setConnection($this->connection);
     $this->parent->timestamps = false; // Disable timestamps to avoid touch() issues
 
-    $this->related = new TestBtmRole();
+    $this->related = new TestBtmRole;
     $this->related->setConnection($this->connection);
 
     $this->builder = m::mock(Builder::class);
@@ -87,7 +96,7 @@ afterEach(function () {
 test('match sets empty array when parent key not in dictionary', function () {
     // Setup query mock
     $query = m::mock(Builder::class);
-    $query->shouldReceive('getModel')->andReturn(new TestBtmRole());
+    $query->shouldReceive('getModel')->andReturn(new TestBtmRole);
     $query->shouldReceive('getConnection')->andReturn($this->connection);
     $query->shouldReceive('join')->andReturnSelf();
     $query->shouldReceive('where')->andReturnSelf();
@@ -105,17 +114,17 @@ test('match sets empty array when parent key not in dictionary', function () {
     );
 
     // Create models with keys that won't match dictionary
-    $model1 = new TestBtmUser();
+    $model1 = new TestBtmUser;
     $model1->setAttribute('id', 99); // This ID won't be in dictionary
 
-    $model2 = new TestBtmUser();
+    $model2 = new TestBtmUser;
     $model2->setAttribute('id', 100); // This ID won't be in dictionary
 
     $models = [$model1, $model2];
 
     // Create result models (not stdClass) with pivot data
-    $result1 = new TestBtmRole();
-    $pivot = new \stdClass();
+    $result1 = new TestBtmRole;
+    $pivot = new \stdClass;
     $pivot->user_id = 1; // Different from model IDs (99, 100)
     $pivot->role_id = 1;
     $result1->setAttribute('pivot', $pivot);
@@ -134,7 +143,7 @@ test('match sets empty array when parent key not in dictionary', function () {
 test('getPivotColumnNames includes timestamp columns when withTimestamps is true', function () {
     // Setup query mock
     $query = m::mock(Builder::class);
-    $query->shouldReceive('getModel')->andReturn(new TestBtmRole());
+    $query->shouldReceive('getModel')->andReturn(new TestBtmRole);
     $query->shouldReceive('getConnection')->andReturn($this->connection);
     $query->shouldReceive('join')->andReturnSelf();
     $query->shouldReceive('where')->andReturnSelf();
@@ -194,26 +203,29 @@ test('sync handles array results from database', function () {
 
     $mockConnection->shouldReceive('table')->with('role_user')->andReturn($mockBuilder);
 
-    $parent = new TestBtmUser();
+    $parent = new TestBtmUser;
     $parent->setAttribute('id', 1);
     $parent->setConnection($mockConnection);
     $parent->timestamps = false;
 
     $query = m::mock(Builder::class);
     $query->shouldReceive('getConnection')->andReturn($mockConnection);
-    $query->shouldReceive('getModel')->andReturn(new TestBtmRole());
+    $query->shouldReceive('getModel')->andReturn(new TestBtmRole);
     $query->shouldReceive('join')->andReturnSelf();
     $query->shouldReceive('where')->andReturnSelf();
     $query->shouldReceive('whereNotNull')->andReturnSelf();
 
     // Create a custom BelongsToMany that returns our mocked pivot query
-    $relation = new class($query, $parent, 'role_user', 'user_id', 'role_id', 'id', 'id', 'roles') extends BelongsToMany {
+    $relation = new class($query, $parent, 'role_user', 'user_id', 'role_id', 'id', 'id', 'roles') extends BelongsToMany
+    {
         public $pivotQuery = null;
 
-        protected function newPivotQuery(): Builder {
+        protected function newPivotQuery(): Builder
+        {
             if ($this->pivotQuery) {
                 return $this->pivotQuery;
             }
+
             return parent::newPivotQuery();
         }
     };
@@ -228,10 +240,10 @@ test('sync handles array results from database', function () {
 
 // Test lines 125-128: addEagerConstraints - FIXED
 test('BelongsToMany addEagerConstraints adds whereIn constraint', function () {
-    $model1 = new TestBtmUser();
+    $model1 = new TestBtmUser;
     $model1->setAttribute('id', 1);
 
-    $model2 = new TestBtmUser();
+    $model2 = new TestBtmUser;
     $model2->setAttribute('id', 2);
 
     $models = [$model1, $model2];
@@ -245,8 +257,8 @@ test('BelongsToMany addEagerConstraints adds whereIn constraint', function () {
 
 // Test lines 133-159: initRelation and match
 test('BelongsToMany initRelation sets empty relation on models', function () {
-    $model1 = new TestBtmUser();
-    $model2 = new TestBtmUser();
+    $model1 = new TestBtmUser;
+    $model2 = new TestBtmUser;
 
     $models = [$model1, $model2];
 
@@ -258,23 +270,23 @@ test('BelongsToMany initRelation sets empty relation on models', function () {
 });
 
 test('BelongsToMany match sets related models with pivot data', function () {
-    $parent1 = new TestBtmUser();
+    $parent1 = new TestBtmUser;
     $parent1->setAttribute('id', 1);
 
-    $parent2 = new TestBtmUser();
+    $parent2 = new TestBtmUser;
     $parent2->setAttribute('id', 2);
 
-    $role1 = new TestBtmRole();
+    $role1 = new TestBtmRole;
     $role1->setAttribute('id', 10);
-    $role1->setAttribute('pivot', (object)['user_id' => 1]);
+    $role1->setAttribute('pivot', (object) ['user_id' => 1]);
 
-    $role2 = new TestBtmRole();
+    $role2 = new TestBtmRole;
     $role2->setAttribute('id', 20);
-    $role2->setAttribute('pivot', (object)['user_id' => 1]);
+    $role2->setAttribute('pivot', (object) ['user_id' => 1]);
 
-    $role3 = new TestBtmRole();
+    $role3 = new TestBtmRole;
     $role3->setAttribute('id', 30);
-    $role3->setAttribute('pivot', (object)['user_id' => 2]);
+    $role3->setAttribute('pivot', (object) ['user_id' => 2]);
 
     $models = [$parent1, $parent2];
     $results = [$role1, $role2, $role3];
@@ -303,17 +315,17 @@ test('BelongsToMany aliasedPivotColumns includes timestamp columns when withTime
 
 // Test lines 233-251: buildDictionary with edge cases
 test('BelongsToMany buildDictionary handles missing pivot data', function () {
-    $role1 = new TestBtmRole();
+    $role1 = new TestBtmRole;
     $role1->setAttribute('id', 10);
     // No pivot data
 
-    $role2 = new TestBtmRole();
+    $role2 = new TestBtmRole;
     $role2->setAttribute('id', 20);
-    $role2->setAttribute('pivot', (object)[]); // Empty pivot
+    $role2->setAttribute('pivot', (object) []); // Empty pivot
 
-    $role3 = new TestBtmRole();
+    $role3 = new TestBtmRole;
     $role3->setAttribute('id', 30);
-    $role3->setAttribute('pivot', (object)['user_id' => 1]);
+    $role3->setAttribute('pivot', (object) ['user_id' => 1]);
 
     $results = [$role1, $role2, $role3];
 
@@ -352,7 +364,7 @@ test('BelongsToMany getEager sets columns when null', function () {
 
 // Test lines 317-333: hydratePivotRelation
 test('BelongsToMany hydratePivotRelation extracts pivot columns', function () {
-    $model1 = new TestBtmRole();
+    $model1 = new TestBtmRole;
     $model1->setAttribute('id', 1);
     $model1->setAttribute('name', 'Admin');
     $model1->setAttribute('pivot_user_id', 10);
@@ -437,7 +449,7 @@ test('BelongsToMany attachMultiple handles array with attributes', function () {
     $ids = [
         1 => ['active' => true],
         2 => ['active' => false],
-        3
+        3,
     ];
 
     $reflection = new ReflectionClass($this->relation);
@@ -507,7 +519,7 @@ test('BelongsToMany addPivotValuesToAttachRecord adds pivot values', function ()
 
 // Test line 604: parseIds with Model instance
 test('BelongsToMany parseIds handles Model instance', function () {
-    $role = new TestBtmRole();
+    $role = new TestBtmRole;
     $role->setAttribute('id', 42);
 
     $reflection = new ReflectionClass($this->relation);
@@ -521,15 +533,15 @@ test('BelongsToMany parseIds handles Model instance', function () {
 
 // Test lines 619-622: getKeys with key parameter
 test('BelongsToMany getKeys extracts specified key from models', function () {
-    $model1 = new TestBtmUser();
+    $model1 = new TestBtmUser;
     $model1->setAttribute('id', 1);
     $model1->setAttribute('uuid', 'abc123');
 
-    $model2 = new TestBtmUser();
+    $model2 = new TestBtmUser;
     $model2->setAttribute('id', 2);
     $model2->setAttribute('uuid', 'def456');
 
-    $model3 = new TestBtmUser();
+    $model3 = new TestBtmUser;
     $model3->setAttribute('id', 3);
     $model3->setAttribute('uuid', 'def456'); // Duplicate
 
@@ -627,10 +639,10 @@ test('BelongsToMany __call returns result when not builder', function () {
 
 // Test line 623: getKeys without key parameter
 test('BelongsToMany getKeys uses primary key when no key specified', function () {
-    $model1 = new TestBtmUser();
+    $model1 = new TestBtmUser;
     $model1->setAttribute('id', 10);
 
-    $model2 = new TestBtmUser();
+    $model2 = new TestBtmUser;
     $model2->setAttribute('id', 20);
 
     $models = [$model1, $model2];
@@ -699,8 +711,8 @@ test('BelongsToMany newPivotQuery creates query for pivot table', function () {
 
 // Test line 155: initRelation with empty relation
 test('BelongsToMany initRelation sets empty array on models', function () {
-    $model1 = new TestBtmUser();
-    $model2 = new TestBtmUser();
+    $model1 = new TestBtmUser;
+    $model2 = new TestBtmUser;
     $models = [$model1, $model2];
 
     $result = $this->relation->initRelation($models, 'roles');
@@ -731,7 +743,7 @@ test('BelongsToMany getSelectColumns uses custom timestamp columns', function ()
 // Test line 495: sync with existing records returns them as stdClass
 test('BelongsToMany sync returns stdClass results from database', function () {
     // Mock the connection to return stdClass results from get()
-    $this->connection->shouldReceive('table')->andReturnUsing(function($table) {
+    $this->connection->shouldReceive('table')->andReturnUsing(function ($table) {
         $builder = m::mock(Builder::class);
         $builder->shouldReceive('insert')->andReturn(true);
         $builder->shouldReceive('delete')->andReturn(1);
@@ -741,7 +753,7 @@ test('BelongsToMany sync returns stdClass results from database', function () {
         $builder->shouldReceive('setModel')->andReturnSelf();
 
         // Return stdClass objects to trigger the else branch
-        $result = new \stdClass();
+        $result = new \stdClass;
         $result->role_id = 1;
         $builder->shouldReceive('get')->andReturn([$result]);
 

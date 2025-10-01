@@ -35,7 +35,7 @@ test('wpDate columns', function () {
     $columns = $this->blueprint->getColumns();
     expect($columns)->toHaveCount(4);
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('post_date');
     expect($columnNames)->toContain('post_date_gmt');
     expect($columnNames)->toContain('post_modified');
@@ -89,7 +89,7 @@ test('wpPost complete', function () {
     // WordPress post table has many columns
     expect(count($columns))->toBeGreaterThan(20);
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
 
     // Check essential columns exist
     expect($columnNames)->toContain('ID');
@@ -107,7 +107,7 @@ test('wpUser complete', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
 
     expect($columnNames)->toContain('ID');
     expect($columnNames)->toContain('user_login');
@@ -123,7 +123,7 @@ test('wpMeta columns', function () {
     $columns = $this->blueprint->getColumns();
     expect($columns)->toHaveCount(4);
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('meta_id');
     expect($columnNames)->toContain('post_id');
     expect($columnNames)->toContain('meta_key');
@@ -135,7 +135,7 @@ test('wpTaxonomy columns', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('term_taxonomy_id');
     expect($columnNames)->toContain('term_id');
     expect($columnNames)->toContain('taxonomy');
@@ -145,7 +145,7 @@ test('wpTaxonomy columns', function () {
 
     // Check for unique constraint
     $commands = $this->blueprint->getCommands();
-    $uniqueCommands = array_filter($commands, fn($cmd) => $cmd->name === 'unique');
+    $uniqueCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'unique');
     expect($uniqueCommands)->toHaveCount(1);
 });
 
@@ -154,7 +154,7 @@ test('wpTerm columns', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('term_id');
     expect($columnNames)->toContain('name');
     expect($columnNames)->toContain('slug');
@@ -166,14 +166,14 @@ test('wpOption columns', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('option_id');
     expect($columnNames)->toContain('option_name');
     expect($columnNames)->toContain('option_value');
     expect($columnNames)->toContain('autoload');
 
     // Check for unique constraint on option_name
-    $optionNameColumn = array_filter($columns, fn($col) => $col->name === 'option_name');
+    $optionNameColumn = array_filter($columns, fn ($col) => $col->name === 'option_name');
     $optionNameColumn = array_values($optionNameColumn)[0];
     expect($optionNameColumn->unique)->toBeTrue();
 });
@@ -183,7 +183,7 @@ test('wpComment columns', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('comment_ID');
     expect($columnNames)->toContain('comment_post_ID');
     expect($columnNames)->toContain('comment_author');
@@ -211,7 +211,7 @@ test('wpForeign keys', function () {
 
     // Check foreign key commands were added
     $commands = $this->blueprint->getCommands();
-    $foreignCommands = array_filter($commands, fn($cmd) => $cmd->name === 'foreign');
+    $foreignCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'foreign');
     expect($foreignCommands)->toHaveCount(3);
 });
 
@@ -220,7 +220,7 @@ test('wooCommerce order columns', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
 
     // Check essential WooCommerce order columns
     expect($columnNames)->toContain('order_id');
@@ -241,7 +241,7 @@ test('wooCommerce order item columns', function () {
 
     $columns = $this->blueprint->getColumns();
 
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('order_item_id');
     expect($columnNames)->toContain('order_item_name');
     expect($columnNames)->toContain('order_item_type');
@@ -249,7 +249,7 @@ test('wooCommerce order item columns', function () {
 
     // Check foreign key to orders table
     $commands = $this->blueprint->getCommands();
-    $foreignCommands = array_filter($commands, fn($cmd) => $cmd->name === 'foreign');
+    $foreignCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'foreign');
     expect($foreignCommands)->toHaveCount(1);
 });
 
@@ -259,7 +259,7 @@ test('wooCommerce hpos structure', function () {
     $columns = $this->blueprint->getColumns();
 
     // HPOS includes all order columns plus additional indexes
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
     expect($columnNames)->toContain('order_id');
     expect($columnNames)->toContain('customer_id');
     expect($columnNames)->toContain('status');
@@ -267,7 +267,7 @@ test('wooCommerce hpos structure', function () {
 
     // Check that indexes are added
     $commands = $this->blueprint->getCommands();
-    $indexCommands = array_filter($commands, fn($cmd) => $cmd->name === 'index');
+    $indexCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'index');
     expect(count($indexCommands))->toBeGreaterThan(3);
 });
 
@@ -275,7 +275,7 @@ test('custom prefix for wpDates', function () {
     $this->blueprint->wpDates('comment');
 
     $columns = $this->blueprint->getColumns();
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
 
     expect($columnNames)->toContain('comment_date');
     expect($columnNames)->toContain('comment_date_gmt');
@@ -290,7 +290,7 @@ test('inheritance from blueprint', function () {
     $this->blueprint->timestamps();
 
     $columns = $this->blueprint->getColumns();
-    $columnNames = array_map(fn($col) => $col->name, $columns);
+    $columnNames = array_map(fn ($col) => $col->name, $columns);
 
     expect($columnNames)->toContain('custom_field');
     expect($columnNames)->toContain('custom_number');

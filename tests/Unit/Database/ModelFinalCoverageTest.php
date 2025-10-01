@@ -1,16 +1,16 @@
 <?php
 
-use Bob\Database\Model;
 use Bob\Database\Eloquent\Scope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 
 /**
  * Final tests to cover remaining Model lines 254 and 565
  */
-
 class FinalCoverageModel extends Model
 {
     protected string $table = 'final_coverage';
+
     protected bool $timestamps = false;
 }
 
@@ -35,7 +35,7 @@ test('line 254: class_uses returns false scenario', function () {
     // when the class doesn't exist. However, we can test that bootTraits
     // handles this gracefully by using reflection to mock the behavior
 
-    $model = new FinalCoverageModel();
+    $model = new FinalCoverageModel;
 
     // We'll test the bootTraits method with a class that has no traits
     // The conditional check is still executed even if class_uses returns an array
@@ -52,7 +52,7 @@ test('line 254: class_uses returns false scenario', function () {
 
 test('line 565: getGlobalScope with scope object that does not exist', function () {
     // Create a scope instance
-    $scope = new MockScope();
+    $scope = new MockScope;
 
     // Try to get it without adding it first - this should hit line 565
     $result = FinalCoverageModel::getGlobalScope($scope);
@@ -69,18 +69,19 @@ test('getGlobalScope with non-existent scope class string', function () {
 
 test('line 565: getGlobalScope with different scope object instances', function () {
     // Add one scope instance
-    $scope1 = new MockScope();
+    $scope1 = new MockScope;
     FinalCoverageModel::addGlobalScope($scope1);
 
     // Try to get a different instance of the same class
-    $scope2 = new MockScope();
+    $scope2 = new MockScope;
     $result = FinalCoverageModel::getGlobalScope($scope2);
 
     // Should find it by class name (both are MockScope)
     expect($result)->toBe($scope1);
 
     // Now test with a completely different class that doesn't exist
-    $nonExistentScope = new class implements Scope {
+    $nonExistentScope = new class implements Scope
+    {
         public function apply(Builder $builder, Model $model): void {}
     };
 
@@ -90,10 +91,12 @@ test('line 565: getGlobalScope with different scope object instances', function 
 
 test('bootTraits with actual trait usage', function () {
     // Create a class that uses a trait to ensure bootTraits works properly
-    $testClass = new class extends Model {
+    $testClass = new class extends Model
+    {
         use \Bob\Database\Eloquent\SoftDeletes;
 
         protected string $table = 'test_with_trait';
+
         protected bool $timestamps = false;
     };
 
@@ -113,16 +116,16 @@ test('comprehensive global scope edge cases', function () {
     // Test various edge cases to ensure all paths are covered
 
     // 1. Add scope by string and closure
-    FinalCoverageModel::addGlobalScope('test_scope', function($builder) {
+    FinalCoverageModel::addGlobalScope('test_scope', function ($builder) {
         $builder->where('test', true);
     });
 
     // 2. Add scope by object
-    $objectScope = new MockScope();
+    $objectScope = new MockScope;
     FinalCoverageModel::addGlobalScope($objectScope);
 
     // 3. Add scope by closure only
-    $closureScope = function($builder) {
+    $closureScope = function ($builder) {
         $builder->where('closure_test', true);
     };
     FinalCoverageModel::addGlobalScope($closureScope);
@@ -134,10 +137,11 @@ test('comprehensive global scope edge cases', function () {
 
     // Test non-existent retrievals (should hit null coalescing operators)
     expect(FinalCoverageModel::getGlobalScope('non_existent'))->toBeNull();
-    expect(FinalCoverageModel::getGlobalScope(new MockScope()))->toBe($objectScope); // Same class
+    expect(FinalCoverageModel::getGlobalScope(new MockScope))->toBe($objectScope); // Same class
 
     // Create a scope of a different class
-    $differentScope = new class implements Scope {
+    $differentScope = new class implements Scope
+    {
         public function apply(Builder $builder, Model $model): void {}
     };
     expect(FinalCoverageModel::getGlobalScope($differentScope))->toBeNull(); // Different class

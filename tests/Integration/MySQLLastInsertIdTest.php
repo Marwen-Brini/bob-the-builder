@@ -3,7 +3,6 @@
 namespace Tests\Integration;
 
 use Bob\Database\Connection;
-use PDO;
 
 uses()->group('mysql');
 
@@ -19,9 +18,9 @@ beforeAll(function () {
         $_SERVER['MYSQL_TEST_PASSWORD'] = $_ENV['MYSQL_PASSWORD'] ?? 'password';
         $_SERVER['MYSQL_TEST_DATABASE'] = $_ENV['MYSQL_DATABASE'] ?? 'bob_test';
         $_SERVER['MYSQL_TEST_PORT'] = $_ENV['MYSQL_PORT'] ?? 3306;
-    } elseif (!isset($_SERVER['MYSQL_TEST_HOST'])) {
+    } elseif (! isset($_SERVER['MYSQL_TEST_HOST'])) {
         // Local environment - try to load from config file
-        $configFile = __DIR__ . '/../../tests/config/database.php';
+        $configFile = __DIR__.'/../../tests/config/database.php';
         if (file_exists($configFile)) {
             $config = require $configFile;
             $_SERVER['MYSQL_TEST_HOST'] = $config['host'] ?? null;
@@ -35,7 +34,7 @@ beforeAll(function () {
 
 beforeEach(function () {
     // Skip if MySQL is not configured
-    if (!isset($_SERVER['MYSQL_TEST_HOST'])) {
+    if (! isset($_SERVER['MYSQL_TEST_HOST'])) {
         $this->markTestSkipped('MySQL test database not configured');
     }
 
@@ -73,7 +72,7 @@ beforeEach(function () {
             )
         ');
     } catch (\Exception $e) {
-        $this->markTestSkipped('Could not connect to MySQL: ' . $e->getMessage());
+        $this->markTestSkipped('Could not connect to MySQL: '.$e->getMessage());
     }
 });
 
@@ -103,7 +102,7 @@ test('MySQL lastInsertId returns the ID of the last inserted row', function () {
 test('MySQL insertGetId works correctly', function () {
     $id = $this->connection->insertGetId('users', [
         'name' => 'John Doe',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ]);
 
     expect($id)->toBe('1');
@@ -120,14 +119,14 @@ test('MySQL lastInsertId works with large auto-increment values', function () {
 
     $id = $this->connection->insertGetId('users', [
         'name' => 'User with large ID',
-        'email' => 'large@example.com'
+        'email' => 'large@example.com',
     ]);
 
     expect($id)->toBe('1000000');
 
     $nextId = $this->connection->insertGetId('users', [
         'name' => 'Next User',
-        'email' => 'next@example.com'
+        'email' => 'next@example.com',
     ]);
 
     expect($nextId)->toBe('1000001');
@@ -138,14 +137,14 @@ test('MySQL lastInsertId with transactions', function () {
 
     $id1 = $this->connection->insertGetId('users', [
         'name' => 'Transaction User 1',
-        'email' => 'trans1@example.com'
+        'email' => 'trans1@example.com',
     ]);
 
     expect($id1)->toBe('1');
 
     $id2 = $this->connection->insertGetId('users', [
         'name' => 'Transaction User 2',
-        'email' => 'trans2@example.com'
+        'email' => 'trans2@example.com',
     ]);
 
     expect($id2)->toBe('2');
@@ -161,7 +160,7 @@ test('MySQL lastInsertId behavior with rollback', function () {
     // Insert a record outside transaction
     $id1 = $this->connection->insertGetId('users', [
         'name' => 'User 1',
-        'email' => 'user1@example.com'
+        'email' => 'user1@example.com',
     ]);
 
     expect($id1)->toBe('1');
@@ -170,7 +169,7 @@ test('MySQL lastInsertId behavior with rollback', function () {
 
     $id2 = $this->connection->insertGetId('users', [
         'name' => 'User 2',
-        'email' => 'user2@example.com'
+        'email' => 'user2@example.com',
     ]);
 
     // The lastInsertId should be available before rollback
@@ -196,19 +195,19 @@ test('MySQL lastInsertId behavior with rollback', function () {
 test('MySQL insertGetId with multiple tables', function () {
     $userId = $this->connection->insertGetId('users', [
         'name' => 'Blog Author',
-        'email' => 'author@example.com'
+        'email' => 'author@example.com',
     ]);
 
     $postId1 = $this->connection->insertGetId('posts', [
         'title' => 'First Post',
         'content' => 'Content 1',
-        'user_id' => $userId
+        'user_id' => $userId,
     ]);
 
     $postId2 = $this->connection->insertGetId('posts', [
         'title' => 'Second Post',
         'content' => 'Content 2',
-        'user_id' => $userId
+        'user_id' => $userId,
     ]);
 
     expect($userId)->toBe('1');

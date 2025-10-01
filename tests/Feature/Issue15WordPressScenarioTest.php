@@ -9,11 +9,12 @@ use Bob\Query\Builder as BobBuilder;
 /**
  * Test Issue #15 with exact WordPress scenario from the bug report
  */
-
 class CategoryWordPress extends Model
 {
     protected string $table = 'terms';
+
     protected string $primaryKey = 'term_id';
+
     public bool $timestamps = false;
 
     // WordPress-like fillable (parent is from JOINed table, not fillable)
@@ -24,8 +25,8 @@ class CategoryWordPress extends Model
         // Global scope that adds JOINed fields (like WordPress taxonomies)
         static::addGlobalScope('category_taxonomy', function (BobBuilder $builder) {
             $builder->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
-                   ->where('term_taxonomy.taxonomy', 'category')
-                   ->select('terms.*', 'term_taxonomy.parent', 'term_taxonomy.count');
+                ->where('term_taxonomy.taxonomy', 'category')
+                ->select('terms.*', 'term_taxonomy.parent', 'term_taxonomy.count');
         });
     }
 }
@@ -76,10 +77,8 @@ test('ISSUE #15: WordPress scenario - JOINed field assignment', function () {
     expect($category->name)->toBe('Technology');
     expect($category->parent)->toBe(0); // From JOINed term_taxonomy table
 
-
     // The reported issue: assign JOINed field value
     $category->parent = 5;
-
 
     // This is where the issue should occur
     $result = $category->save();
@@ -87,7 +86,6 @@ test('ISSUE #15: WordPress scenario - JOINed field assignment', function () {
     // Check what was actually updated
     $termData = $this->connection->table('terms')->where('term_id', 1)->first();
     $taxonomyData = $this->connection->table('term_taxonomy')->where('term_id', 1)->first();
-
 
     // The issue: save() tries to update terms.parent, but that column doesn't exist!
     // It should update term_taxonomy.parent instead, but the model doesn't know that
@@ -139,7 +137,7 @@ test('ISSUE #15: The real issue - fillable vs direct assignment conflict', funct
 
     $queries = $this->connection->getQueryLog();
 
-    if (!empty($queries)) {
+    if (! empty($queries)) {
     }
 
     // The issue might be:

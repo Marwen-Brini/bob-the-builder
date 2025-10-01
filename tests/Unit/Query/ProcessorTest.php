@@ -1,14 +1,14 @@
 <?php
 
-use Bob\Query\Processor;
 use Bob\Contracts\BuilderInterface;
 use Bob\Database\Connection;
+use Bob\Query\Processor;
 use Mockery as m;
 
 describe('Processor Tests', function () {
 
     beforeEach(function () {
-        $this->processor = new Processor();
+        $this->processor = new Processor;
     });
 
     afterEach(function () {
@@ -24,7 +24,7 @@ describe('Processor Tests', function () {
         $results = [
             ['id' => 1, 'name' => 'John'],
             ['id' => 2, 'name' => 'Jane'],
-            ['id' => 3, 'name' => 'Bob']
+            ['id' => 3, 'name' => 'Bob'],
         ];
 
         $processed = $this->processor->processSelect($query, $results);
@@ -45,7 +45,7 @@ describe('Processor Tests', function () {
         $query = m::mock(BuilderInterface::class);
         $results = [
             ['id' => 1, 'data' => ['nested' => 'value']],
-            ['id' => 2, 'data' => null]
+            ['id' => 2, 'data' => null],
         ];
 
         $processed = $this->processor->processSelect($query, $results);
@@ -151,7 +151,7 @@ describe('Processor Tests', function () {
             ['column' => 'id', 'type' => 'integer'],
             ['column' => 'name', 'type' => 'varchar'],
             ['column' => 'email', 'type' => 'varchar'],
-            ['column' => 'created_at', 'type' => 'timestamp']
+            ['column' => 'created_at', 'type' => 'timestamp'],
         ];
 
         $processed = $this->processor->processColumnTypeListing($types);
@@ -171,7 +171,7 @@ describe('Processor Tests', function () {
         $types = [
             ['column' => 'data', 'type' => 'json', 'nullable' => true],
             ['column' => 'amount', 'type' => 'decimal(10,2)', 'default' => '0.00'],
-            ['column' => 'is_active', 'type' => 'boolean', 'default' => false]
+            ['column' => 'is_active', 'type' => 'boolean', 'default' => false],
         ];
 
         $processed = $this->processor->processColumnTypeListing($types);

@@ -32,6 +32,7 @@ class HasOne extends HasOneOrMany
     protected function executeQuery()
     {
         $result = $this->getQueryResult();
+
         return $this->processQueryResult($result);
     }
 
@@ -102,6 +103,7 @@ class HasOne extends HasOneOrMany
     {
         $instance = $this->createNewRelatedInstance();
         $this->setForeignKeyOnInstance($instance, $parent);
+
         return $instance;
     }
 

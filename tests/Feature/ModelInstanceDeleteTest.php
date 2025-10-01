@@ -35,9 +35,12 @@ afterEach(function () {
 });
 
 // Create a User model for testing
-class TestDeleteUser extends Model {
+class TestDeleteUser extends Model
+{
     protected string $table = 'users';
+
     protected string $primaryKey = 'id';
+
     protected bool $timestamps = false; // SQLite doesn't auto-update timestamps
 }
 
@@ -73,7 +76,7 @@ test('can delete multiple model instances', function () {
 });
 
 test('cannot delete non-existent model', function () {
-    $user = new TestDeleteUser();
+    $user = new TestDeleteUser;
     $user->id = 999; // Non-existent ID
 
     $result = $user->delete();
@@ -96,9 +99,12 @@ test('delete with custom primary key', function () {
         ['title' => 'Second Post', 'content' => 'Content 2'],
     ]);
 
-    class Post extends Model {
+    class Post extends Model
+    {
         protected string $table = 'posts';
+
         protected string $primaryKey = 'post_id';
+
         protected bool $timestamps = false;
     }
 

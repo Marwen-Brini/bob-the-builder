@@ -4,10 +4,9 @@
 // CONVERTED TO PEST - Original PHPUnit code commented below for reference
 // =============================================================================
 
-use Bob\Schema\Blueprint;
-use Bob\Schema\SchemaGrammar;
-use Bob\Schema\Grammars\MySQLGrammar;
 use Bob\Database\Connection;
+use Bob\Schema\Blueprint;
+use Bob\Schema\Grammars\MySQLGrammar;
 
 afterEach(function () {
     \Mockery::close();
@@ -34,12 +33,12 @@ test('addFluentIndexesFromColumns', function () {
     $mockConnection->shouldReceive('getConfig')->andReturn(null);
     $mockConnection->shouldReceive('getTablePrefix')->andReturn('');
 
-    $grammar = new MySQLGrammar();
+    $grammar = new MySQLGrammar;
     $blueprint->build($mockConnection, $grammar);
 
     // Check that index commands were added
     $commands = $blueprint->getCommands();
-    $commandNames = array_map(fn($cmd) => $cmd->name, $commands);
+    $commandNames = array_map(fn ($cmd) => $cmd->name, $commands);
 
     expect($commandNames)->toContain('primary');
     expect($commandNames)->toContain('unique');
@@ -59,7 +58,7 @@ test('constrainedColumnWithInferredTable', function () {
     $mockConnection->shouldReceive('getConfig')->andReturn(null);
     $mockConnection->shouldReceive('getTablePrefix')->andReturn('');
 
-    $grammar = new MySQLGrammar();
+    $grammar = new MySQLGrammar;
     $blueprint->build($mockConnection, $grammar);
 
     // Check that foreign key command was added
@@ -89,7 +88,7 @@ test('constrainedColumnWithCascadeOptions', function () {
     $mockConnection->shouldReceive('getConfig')->andReturn(null);
     $mockConnection->shouldReceive('getTablePrefix')->andReturn('');
 
-    $grammar = new MySQLGrammar();
+    $grammar = new MySQLGrammar;
     $blueprint->build($mockConnection, $grammar);
 
     // Verify foreign key was created with cascade options
@@ -112,12 +111,12 @@ test('addFluentCommands', function () {
     $mockConnection->shouldReceive('getConfig')->andReturn(null);
     $mockConnection->shouldReceive('getTablePrefix')->andReturn('');
 
-    $grammar = new MySQLGrammar();
+    $grammar = new MySQLGrammar;
     $blueprint->build($mockConnection, $grammar);
 
     // Check that fluent commands were added
     $commands = $blueprint->getCommands();
-    $commandNames = array_map(fn($cmd) => $cmd->name, $commands);
+    $commandNames = array_map(fn ($cmd) => $cmd->name, $commands);
 
     expect($commandNames)->toContain('Comment');
     expect($commandNames)->toContain('Charset');
@@ -170,7 +169,7 @@ test('dropMethods', function () {
     $blueprint->dropSoftDeletes('custom_deleted_at');
 
     $commands = $blueprint->getCommands();
-    $commandNames = array_map(fn($cmd) => $cmd->name, $commands);
+    $commandNames = array_map(fn ($cmd) => $cmd->name, $commands);
 
     expect($commandNames)->toContain('dropPrimary');
     expect($commandNames)->toContain('dropUnique');

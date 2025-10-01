@@ -52,6 +52,7 @@ class QueryCache
 
         if ($this->isExpired($item)) {
             $this->forget($key);
+
             return null;
         }
 
@@ -85,8 +86,10 @@ class QueryCache
     {
         if ($this->has($key)) {
             unset($this->cache[$key]);
+
             return true;
         }
+
         return false;
     }
 
@@ -180,6 +183,7 @@ class QueryCache
                 $removed++;
             }
         }
+
         return $removed;
     }
 
@@ -196,6 +200,7 @@ class QueryCache
     protected function createCacheItem(mixed $value, ?int $ttl = null): array
     {
         $currentTime = $this->getCurrentTime();
+
         return [
             'value' => $value,
             'expires' => $currentTime + ($ttl ?? $this->ttl),
@@ -233,7 +238,7 @@ class QueryCache
 
     public function generateKey(string $query, array $bindings = []): string
     {
-        return md5($query . serialize($bindings));
+        return md5($query.serialize($bindings));
     }
 
     /**

@@ -1,84 +1,103 @@
 <?php
 
-use Bob\Query\Grammar;
-use Bob\Query\Builder;
 use Bob\Contracts\BuilderInterface;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
+use Bob\Query\Grammar;
 use Bob\Query\Processor;
 use Mockery as m;
 
 // Create a concrete Grammar implementation for testing protected methods
-class ConcreteGrammar extends Grammar {
-    public function testWhereRaw(BuilderInterface $query, array $where): string {
+class ConcreteGrammar extends Grammar
+{
+    public function testWhereRaw(BuilderInterface $query, array $where): string
+    {
         return $this->whereRaw($query, $where);
     }
 
-    public function testWhereExists(BuilderInterface $query, array $where): string {
+    public function testWhereExists(BuilderInterface $query, array $where): string
+    {
         return $this->whereExists($query, $where);
     }
 
-    public function testWhereNotExists(BuilderInterface $query, array $where): string {
+    public function testWhereNotExists(BuilderInterface $query, array $where): string
+    {
         return $this->whereNotExists($query, $where);
     }
 
-    public function testWhereNested(BuilderInterface $query, array $where): string {
+    public function testWhereNested(BuilderInterface $query, array $where): string
+    {
         return $this->whereNested($query, $where);
     }
 
-    public function testWhereColumn(BuilderInterface $query, array $where): string {
+    public function testWhereColumn(BuilderInterface $query, array $where): string
+    {
         return $this->whereColumn($query, $where);
     }
 
-    public function testWhereSub(BuilderInterface $query, array $where): string {
+    public function testWhereSub(BuilderInterface $query, array $where): string
+    {
         return $this->whereSub($query, $where);
     }
 
-    public function testWhereInSub(BuilderInterface $query, array $where): string {
+    public function testWhereInSub(BuilderInterface $query, array $where): string
+    {
         return $this->whereInSub($query, $where);
     }
 
-    public function testWhereNotInSub(BuilderInterface $query, array $where): string {
+    public function testWhereNotInSub(BuilderInterface $query, array $where): string
+    {
         return $this->whereNotInSub($query, $where);
     }
 
-    public function testWhereNotIn(BuilderInterface $query, array $where): string {
+    public function testWhereNotIn(BuilderInterface $query, array $where): string
+    {
         return $this->whereNotIn($query, $where);
     }
 
-    public function testCompileAggregate(BuilderInterface $query, array $aggregate): string {
+    public function testCompileAggregate(BuilderInterface $query, array $aggregate): string
+    {
         return $this->compileAggregate($query, $aggregate);
     }
 
-    public function testCompileColumns(BuilderInterface $query, array $columns): string {
+    public function testCompileColumns(BuilderInterface $query, array $columns): string
+    {
         return $this->compileColumns($query, $columns);
     }
 
-    public function testCompileJoins(BuilderInterface $query, array $joins): string {
+    public function testCompileJoins(BuilderInterface $query, array $joins): string
+    {
         return $this->compileJoins($query, $joins);
     }
 
-    public function testCompileJoinConstraint(array $where): string {
+    public function testCompileJoinConstraint(array $where): string
+    {
         return $this->compileJoinConstraint($where);
     }
 
-    public function testCompileHaving(array $having): string {
+    public function testCompileHaving(array $having): string
+    {
         return $this->compileHaving($having);
     }
 
-    public function testCompileOrders(BuilderInterface $query, array $orders): string {
+    public function testCompileOrders(BuilderInterface $query, array $orders): string
+    {
         return $this->compileOrders($query, $orders);
     }
 
-    public function testCompileUnions(BuilderInterface $query): string {
+    public function testCompileUnions(BuilderInterface $query): string
+    {
         return $this->compileUnions($query);
     }
 
-    public function testCompileUnion(array $union): string {
+    public function testCompileUnion(array $union): string
+    {
         return $this->compileUnion($union);
     }
 
-    public function testWhereBetween(BuilderInterface $query, array $where): string {
+    public function testWhereBetween(BuilderInterface $query, array $where): string
+    {
         return $this->whereBetween($query, $where);
     }
 }
@@ -86,7 +105,7 @@ class ConcreteGrammar extends Grammar {
 beforeEach(function () {
     $this->connection = m::mock(Connection::class);
     $this->processor = m::mock(Processor::class);
-    $this->grammar = new ConcreteGrammar();
+    $this->grammar = new ConcreteGrammar;
 
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -105,7 +124,7 @@ test('Grammar compileAggregate with distinct', function () {
 
     $aggregate = [
         'function' => 'count',
-        'columns' => ['email']
+        'columns' => ['email'],
     ];
 
     $result = $this->grammar->testCompileAggregate($query, $aggregate);
@@ -125,18 +144,18 @@ test('Grammar compileColumns with aggregate returns empty', function () {
 
 // Test lines 104-123 - compileJoins with multiple joins
 test('Grammar compileJoins with multiple joins', function () {
-    $join1 = new stdClass();
+    $join1 = new stdClass;
     $join1->table = 'posts';
     $join1->type = 'inner';
     $join1->wheres = [
-        ['type' => 'Column', 'first' => 'users.id', 'operator' => '=', 'second' => 'posts.user_id', 'boolean' => 'and']
+        ['type' => 'Column', 'first' => 'users.id', 'operator' => '=', 'second' => 'posts.user_id', 'boolean' => 'and'],
     ];
 
-    $join2 = new stdClass();
+    $join2 = new stdClass;
     $join2->table = 'comments';
     $join2->type = 'left';
     $join2->wheres = [
-        ['type' => 'Column', 'first' => 'posts.id', 'operator' => '=', 'second' => 'comments.post_id', 'boolean' => 'and']
+        ['type' => 'Column', 'first' => 'posts.id', 'operator' => '=', 'second' => 'comments.post_id', 'boolean' => 'and'],
     ];
 
     $result = $this->grammar->testCompileJoins($this->builder, [$join1, $join2]);
@@ -153,7 +172,7 @@ test('Grammar compileJoinConstraint with boolean', function () {
         'operator' => '=',
         'second' => 'posts.user_id',
         'boolean' => 'or',
-        'previous' => true
+        'previous' => true,
     ];
 
     $result = $this->grammar->testCompileJoinConstraint($where);
@@ -166,7 +185,7 @@ test('Grammar compileJoinConstraint with Raw type', function () {
     $where = [
         'type' => 'Raw',
         'sql' => 'users.active = 1',
-        'boolean' => 'and'
+        'boolean' => 'and',
     ];
 
     $result = $this->grammar->testCompileJoinConstraint($where);
@@ -182,7 +201,7 @@ test('Grammar compileHaving with Basic type', function () {
         'column' => 'count(*)',
         'operator' => '>',
         'value' => 5,
-        'boolean' => 'and'
+        'boolean' => 'and',
     ];
 
     $result = $this->grammar->testCompileHaving($having);
@@ -195,7 +214,7 @@ test('Grammar compileHaving with Raw type', function () {
     $having = [
         'type' => 'Raw',
         'sql' => 'sum(amount) > 1000',
-        'boolean' => 'and'
+        'boolean' => 'and',
     ];
 
     $result = $this->grammar->testCompileHaving($having);
@@ -212,7 +231,7 @@ test('Grammar compileOrders with empty orders', function () {
 
 test('Grammar compileOrders with Raw type', function () {
     $orders = [
-        ['type' => 'Raw', 'sql' => 'FIELD(status, "active", "pending", "inactive")']
+        ['type' => 'Raw', 'sql' => 'FIELD(status, "active", "pending", "inactive")'],
     ];
 
     $result = $this->grammar->testCompileOrders($this->builder, $orders);
@@ -255,7 +274,7 @@ test('Grammar whereIn with subquery', function () {
 
     $where = [
         'column' => 'user_id',
-        'values' => $subQuery
+        'values' => $subQuery,
     ];
 
     // Mock the compileSelect method
@@ -275,7 +294,7 @@ test('Grammar whereIn with subquery', function () {
 test('Grammar whereIn with empty values returns false condition', function () {
     $where = [
         'column' => 'id',
-        'values' => []
+        'values' => [],
     ];
 
     $reflection = new ReflectionClass($this->grammar);
@@ -293,7 +312,7 @@ test('Grammar whereInSub', function () {
 
     $where = [
         'column' => 'user_id',
-        'query' => $subQuery
+        'query' => $subQuery,
     ];
 
     // Mock the compileSelect method
@@ -311,7 +330,7 @@ test('Grammar whereNotInSub', function () {
 
     $where = [
         'column' => 'user_id',
-        'query' => $subQuery
+        'query' => $subQuery,
     ];
 
     // Mock the compileSelect method
@@ -328,7 +347,7 @@ test('Grammar whereNotInSub', function () {
 test('Grammar whereNotIn with values', function () {
     $where = [
         'column' => 'status',
-        'values' => ['pending', 'cancelled']
+        'values' => ['pending', 'cancelled'],
     ];
 
     $result = $this->grammar->testWhereNotIn($this->builder, $where);
@@ -339,7 +358,7 @@ test('Grammar whereNotIn with values', function () {
 test('Grammar whereNotIn with empty values returns true condition', function () {
     $where = [
         'column' => 'id',
-        'values' => []
+        'values' => [],
     ];
 
     $result = $this->grammar->testWhereNotIn($this->builder, $where);
@@ -351,7 +370,7 @@ test('Grammar whereNotIn with empty values returns true condition', function () 
 test('Grammar whereRaw returns raw SQL', function () {
     $where = [
         'sql' => 'YEAR(created_at) = 2023',
-        'boolean' => 'and'
+        'boolean' => 'and',
     ];
 
     $result = $this->grammar->testWhereRaw($this->builder, $where);
@@ -364,7 +383,7 @@ test('Grammar whereExists', function () {
     $subQuery = m::mock(BuilderInterface::class);
 
     $where = [
-        'query' => $subQuery
+        'query' => $subQuery,
     ];
 
     // Mock the compileSelect method
@@ -380,7 +399,7 @@ test('Grammar whereNotExists', function () {
     $subQuery = m::mock(BuilderInterface::class);
 
     $where = [
-        'query' => $subQuery
+        'query' => $subQuery,
     ];
 
     // Mock the compileSelect method
@@ -396,11 +415,11 @@ test('Grammar whereNotExists', function () {
 test('Grammar whereNested', function () {
     $nestedQuery = m::mock(BuilderInterface::class);
     $nestedQuery->shouldReceive('getWheres')->andReturn([
-        ['type' => 'Basic', 'column' => 'age', 'operator' => '>', 'value' => 18, 'boolean' => 'and']
+        ['type' => 'Basic', 'column' => 'age', 'operator' => '>', 'value' => 18, 'boolean' => 'and'],
     ]);
 
     $where = [
-        'query' => $nestedQuery
+        'query' => $nestedQuery,
     ];
 
     // Mock the compileWheres method using shouldAllowMockingProtectedMethods
@@ -418,7 +437,7 @@ test('Grammar whereColumn', function () {
     $where = [
         'first' => 'created_at',
         'operator' => '<',
-        'second' => 'updated_at'
+        'second' => 'updated_at',
     ];
 
     $result = $this->grammar->testWhereColumn($this->builder, $where);
@@ -433,7 +452,7 @@ test('Grammar whereSub', function () {
     $where = [
         'column' => 'total',
         'operator' => '>',
-        'query' => $subQuery
+        'query' => $subQuery,
     ];
 
     // Mock the compileSelect method
@@ -451,7 +470,7 @@ test('Grammar whereBetween with not flag', function () {
     $where = [
         'column' => 'age',
         'not' => true,
-        'values' => [18, 65]
+        'values' => [18, 65],
     ];
 
     $result = $this->grammar->testWhereBetween($this->builder, $where);

@@ -10,10 +10,10 @@ use Bob\Schema\Fluent;
 use Bob\Schema\Grammars\SQLiteGrammar;
 
 beforeEach(function () {
-    $this->grammar = new SQLiteGrammar();
+    $this->grammar = new SQLiteGrammar;
     $this->connection = new Connection([
         'driver' => 'sqlite',
-        'database' => ':memory:'
+        'database' => ':memory:',
     ]);
 });
 
@@ -22,6 +22,7 @@ function callProtectedMethodSQLite($object, string $method, array $args = [])
     $reflection = new ReflectionClass($object);
     $method = $reflection->getMethod($method);
     $method->setAccessible(true);
+
     return $method->invokeArgs($object, $args);
 }
 
@@ -98,7 +99,7 @@ test('get foreign key', function () {
         'on' => 'users',
         'references' => ['id'],
         'onDelete' => 'cascade',
-        'onUpdate' => 'restrict'
+        'onUpdate' => 'restrict',
     ]);
 
     $sql = callProtectedMethodSQLite($this->grammar, 'getForeignKey', [$foreign]);
@@ -111,7 +112,7 @@ test('get foreign key without actions', function () {
         'name' => 'foreign',
         'columns' => ['user_id'],
         'on' => 'users',
-        'references' => ['id']
+        'references' => ['id'],
     ]);
 
     $sql = callProtectedMethodSQLite($this->grammar, 'getForeignKey', [$foreign]);
@@ -433,7 +434,7 @@ test('compile fulltext throws exception', function () {
     $blueprint = new Blueprint('posts');
     $command = new Fluent(['columns' => ['content']]);
 
-    expect(fn() => $this->grammar->compileFulltext($blueprint, $command))
+    expect(fn () => $this->grammar->compileFulltext($blueprint, $command))
         ->toThrow(RuntimeException::class, 'SQLite does not support fulltext indexes. Use FTS virtual tables instead.');
 })->group('unit', 'sqlite-grammar');
 
@@ -441,7 +442,7 @@ test('compile spatial index throws exception', function () {
     $blueprint = new Blueprint('places');
     $command = new Fluent(['columns' => ['location']]);
 
-    expect(fn() => $this->grammar->compileSpatialIndex($blueprint, $command))
+    expect(fn () => $this->grammar->compileSpatialIndex($blueprint, $command))
         ->toThrow(RuntimeException::class, 'SQLite does not support spatial indexes.');
 })->group('unit', 'sqlite-grammar');
 
@@ -457,7 +458,7 @@ test('compile drop primary throws exception', function () {
     $blueprint = new Blueprint('users');
     $command = new Fluent([]);
 
-    expect(fn() => $this->grammar->compileDropPrimary($blueprint, $command))
+    expect(fn () => $this->grammar->compileDropPrimary($blueprint, $command))
         ->toThrow(RuntimeException::class, 'SQLite does not support dropping primary keys.');
 })->group('unit', 'sqlite-grammar');
 
@@ -481,7 +482,7 @@ test('compile drop foreign throws exception', function () {
     $blueprint = new Blueprint('posts');
     $command = new Fluent(['index' => 'posts_user_id_foreign']);
 
-    expect(fn() => $this->grammar->compileDropForeign($blueprint, $command))
+    expect(fn () => $this->grammar->compileDropForeign($blueprint, $command))
         ->toThrow(RuntimeException::class, 'SQLite does not support dropping foreign keys.');
 })->group('unit', 'sqlite-grammar');
 

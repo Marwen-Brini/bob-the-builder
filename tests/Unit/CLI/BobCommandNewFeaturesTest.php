@@ -79,8 +79,10 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand schema command with table', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function getTableSchema($connection, $driver, $table): array {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function getTableSchema($connection, $driver, $table): array
+            {
                 return [
                     ['column_name' => 'id', 'data_type' => 'integer'],
                     ['column_name' => 'name', 'data_type' => 'varchar'],
@@ -105,8 +107,10 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand export command JSON format', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function getConnectionConfigWithDefaults($driver): array {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => ':memory:'];
             }
         };
@@ -123,8 +127,10 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand export command CSV format', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function getConnectionConfigWithDefaults($driver): array {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 return ['driver' => 'sqlite', 'database' => ':memory:'];
             }
         };
@@ -168,19 +174,22 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand uses configuration from .bob.json', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function loadConfig(): void {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function loadConfig(): void
+            {
                 $this->config = [
                     'connections' => [
                         'mysql' => [
                             'host' => 'config-host',
                             'database' => 'config-db',
-                        ]
-                    ]
+                        ],
+                    ],
                 ];
             }
 
-            public function getConfig($driver) {
+            public function getConfig($driver)
+            {
                 return $this->getConnectionConfig($driver, []);
             }
         };
@@ -191,8 +200,10 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand getConnectionConfigWithDefaults', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testGetDefaults($driver) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testGetDefaults($driver)
+            {
                 return $this->getConnectionConfigWithDefaults($driver);
             }
         };
@@ -210,8 +221,10 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand getTableSchema for different drivers', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testGetSchema($driver, $table) {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testGetSchema($driver, $table)
+            {
                 // Use real in-memory SQLite connection for testing
                 $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => ':memory:']);
 
@@ -221,6 +234,7 @@ describe('BobCommand New Features Tests', function () {
                 }
 
                 $result = $this->getTableSchema($connection, $driver, $table);
+
                 return is_array($result) ? $result : [];
             }
         };
@@ -259,14 +273,16 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand execute with results output', function () {
-        $command = new class(['bob']) extends BobCommand {
+        $command = new class(['bob']) extends BobCommand
+        {
             private $setupDone = false;
 
-            protected function getConnectionConfigWithDefaults($driver): array {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 // Create persistent database file for this test
-                $dbFile = sys_get_temp_dir() . '/test_bob_' . uniqid() . '.db';
+                $dbFile = sys_get_temp_dir().'/test_bob_'.uniqid().'.db';
 
-                if (!$this->setupDone) {
+                if (! $this->setupDone) {
                     $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => $dbFile]);
                     $connection->statement('CREATE TABLE users (id INTEGER, name TEXT)');
                     $connection->statement('INSERT INTO users VALUES (1, "John"), (2, "Jane")');
@@ -305,11 +321,14 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand export CSV with actual data', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function getConnectionConfigWithDefaults($driver): array {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function getConnectionConfigWithDefaults($driver): array
+            {
                 $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => ':memory:']);
                 $connection->statement('CREATE TABLE users (id INTEGER, name TEXT)');
                 $connection->statement('INSERT INTO users VALUES (1, "John Doe"), (2, "Jane Smith")');
+
                 return ['driver' => 'sqlite', 'database' => ':memory:'];
             }
         };
@@ -334,8 +353,10 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand build with --execute and real results', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function getConnectionConfig($driver, $args): array {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function getConnectionConfig($driver, $args): array
+            {
                 return ['driver' => 'sqlite', 'database' => ':memory:'];
             }
         };
@@ -352,19 +373,22 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand config with connection settings', function () {
-        $command = new class(['bob']) extends BobCommand {
-            protected function loadConfig(): void {
+        $command = new class(['bob']) extends BobCommand
+        {
+            protected function loadConfig(): void
+            {
                 $this->config = [
                     'connections' => [
                         'pgsql' => [
                             'host' => 'pg-host',
                             'port' => 5433,
-                        ]
-                    ]
+                        ],
+                    ],
                 ];
             }
 
-            public function testConfig() {
+            public function testConfig()
+            {
                 return $this->getConnectionConfigWithDefaults('pgsql');
             }
         };
@@ -375,9 +399,12 @@ describe('BobCommand New Features Tests', function () {
     });
 
     test('BobCommand getTableSchema returns empty for unknown driver', function () {
-        $command = new class(['bob']) extends BobCommand {
-            public function testUnknownDriver() {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testUnknownDriver()
+            {
                 $connection = new \Bob\Database\Connection(['driver' => 'sqlite', 'database' => ':memory:']);
+
                 return $this->getTableSchema($connection, 'unknown', 'table');
             }
         };

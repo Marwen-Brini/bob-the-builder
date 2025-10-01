@@ -5,20 +5,22 @@
 // =============================================================================
 
 use Bob\Database\Connection;
-use Bob\Schema\Schema;
 use Bob\Schema\Blueprint;
+use Bob\Schema\Schema;
 
 beforeEach(function () {
     // Check if MySQL configuration exists
-    if (!file_exists(__DIR__ . '/../../config/database.php')) {
+    if (! file_exists(__DIR__.'/../../config/database.php')) {
         $this->skipTests = true;
+
         return;
     }
 
-    $config = require __DIR__ . '/../../config/database.php';
+    $config = require __DIR__.'/../../config/database.php';
 
-    if (!isset($config['mysql'])) {
+    if (! isset($config['mysql'])) {
         $this->skipTests = true;
+
         return;
     }
 
@@ -33,7 +35,7 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    if (!$this->skipTests) {
+    if (! $this->skipTests) {
         dropMySQLTestTables();
     }
 });
@@ -43,7 +45,7 @@ function dropMySQLTestTables(): void
     Schema::disableForeignKeyConstraints();
 
     $tables = ['posts', 'users', 'test_table', 'products', 'orders',
-              'categories', 'tags', 'comments', 'renamed_table'];
+        'categories', 'tags', 'comments', 'renamed_table'];
 
     foreach ($tables as $table) {
         try {
@@ -356,8 +358,8 @@ test('index management', function () {
     });
 
     // Check indexes exist
-    $indexes = $this->connection->select("SHOW INDEX FROM test_table");
-    $indexNames = array_map(fn($idx) => $idx->Key_name, $indexes);
+    $indexes = $this->connection->select('SHOW INDEX FROM test_table');
+    $indexNames = array_map(fn ($idx) => $idx->Key_name, $indexes);
 
     expect($indexNames)->toContain('unique_email');
     expect($indexNames)->toContain('idx_username');

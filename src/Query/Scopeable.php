@@ -55,7 +55,7 @@ trait Scopeable
      */
     public function withScope(string $scope, ...$parameters): static
     {
-        if (!static::hasLocalScope($scope)) {
+        if (! static::hasLocalScope($scope)) {
             throw new InvalidArgumentException("Scope [{$scope}] not found.");
         }
 
@@ -92,13 +92,13 @@ trait Scopeable
     public function withoutGlobalScope(string $scope): static
     {
         $this->recordRemovedScope($scope);
+
         return $this;
     }
 
     /**
      * Remove multiple global scopes.
      *
-     * @param  array  $scopes
      * @return $this
      */
     public function withoutGlobalScopes(array $scopes = []): static
@@ -275,7 +275,7 @@ trait Scopeable
      */
     protected function recordAppliedScope(string $scope): void
     {
-        if (!$this->hasAppliedScope($scope)) {
+        if (! $this->hasAppliedScope($scope)) {
             $this->appliedScopes[] = $scope;
         }
     }
@@ -286,7 +286,7 @@ trait Scopeable
     protected function recordRemovedScope(string $scope): void
     {
         $removedMarker = "!{$scope}";
-        if (!in_array($removedMarker, $this->appliedScopes, true)) {
+        if (! in_array($removedMarker, $this->appliedScopes, true)) {
             $this->appliedScopes[] = $removedMarker;
         }
     }

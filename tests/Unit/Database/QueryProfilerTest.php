@@ -3,7 +3,7 @@
 use Bob\Database\QueryProfiler;
 
 test('QueryProfiler can be created and enabled', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
 
     expect($profiler)->toBeInstanceOf(QueryProfiler::class);
     expect($profiler->isEnabled())->toBeFalse();
@@ -16,7 +16,7 @@ test('QueryProfiler can be created and enabled', function () {
 });
 
 test('QueryProfiler records queries', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $id = $profiler->start('SELECT * FROM users', []);
@@ -34,7 +34,7 @@ test('QueryProfiler records queries', function () {
 });
 
 test('QueryProfiler tracks multiple queries', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $id1 = $profiler->start('SELECT * FROM users', []);
@@ -51,7 +51,7 @@ test('QueryProfiler tracks multiple queries', function () {
 });
 
 test('QueryProfiler identifies slow queries', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
     $profiler->setSlowQueryThreshold(5); // 5ms
 
@@ -71,7 +71,7 @@ test('QueryProfiler identifies slow queries', function () {
 });
 
 test('QueryProfiler calculates statistics', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $id1 = $profiler->start('SELECT * FROM users', []);
@@ -96,7 +96,7 @@ test('QueryProfiler calculates statistics', function () {
 });
 
 test('QueryProfiler resets data', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $id = $profiler->start('SELECT * FROM users', []);
@@ -111,7 +111,7 @@ test('QueryProfiler resets data', function () {
 });
 
 test('QueryProfiler get slowest queries', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
     $profiler->setSlowQueryThreshold(1); // 1ms threshold to capture all
 
@@ -134,7 +134,7 @@ test('QueryProfiler get slowest queries', function () {
 });
 
 test('QueryProfiler generates report', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $id1 = $profiler->start('SELECT * FROM users WHERE id = ?', [1]);
@@ -153,7 +153,7 @@ test('QueryProfiler generates report', function () {
 });
 
 test('QueryProfiler handles queries that are not ended', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $id = $profiler->start('SELECT * FROM users', []);
@@ -165,7 +165,7 @@ test('QueryProfiler handles queries that are not ended', function () {
 });
 
 test('QueryProfiler handles disabled state', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     // Profiler is disabled by default
 
     $id = $profiler->start('SELECT * FROM users', []);
@@ -176,7 +176,7 @@ test('QueryProfiler handles disabled state', function () {
 });
 
 test('QueryProfiler setSlowQueryThreshold', function () {
-    $profiler = new QueryProfiler();
+    $profiler = new QueryProfiler;
     $profiler->enable();
 
     $profiler->setSlowQueryThreshold(100);

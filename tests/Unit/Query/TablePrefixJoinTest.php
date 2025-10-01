@@ -2,18 +2,17 @@
 
 namespace Tests\Unit\Query;
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
-use Bob\Query\JoinClause;
+use Bob\Query\Builder;
 use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\Grammars\SQLiteGrammar;
 use Bob\Query\Grammars\PostgreSQLGrammar;
+use Bob\Query\Grammars\SQLiteGrammar;
 use Bob\Query\Processor;
 use Mockery as m;
 
 beforeEach(function () {
     $this->connection = m::mock(Connection::class);
-    $this->processor = new Processor();
+    $this->processor = new Processor;
 });
 
 afterEach(function () {
@@ -22,7 +21,7 @@ afterEach(function () {
 
 describe('MySQL Table Prefix in JOINs', function () {
     beforeEach(function () {
-        $this->grammar = new MySQLGrammar();
+        $this->grammar = new MySQLGrammar;
         $this->grammar->setTablePrefix('wp_');
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -48,9 +47,9 @@ describe('MySQL Table Prefix in JOINs', function () {
     test('join with closure applies prefix correctly', function () {
         $builder = new Builder($this->connection);
         $builder->from('posts')
-            ->join('users', function($join) {
+            ->join('users', function ($join) {
                 $join->on('posts.author_id', '=', 'users.id')
-                     ->where('users.status', '=', 'active');
+                    ->where('users.status', '=', 'active');
             })
             ->select('*');
 
@@ -150,7 +149,7 @@ describe('MySQL Table Prefix in JOINs', function () {
 
 describe('SQLite Table Prefix in JOINs', function () {
     beforeEach(function () {
-        $this->grammar = new SQLiteGrammar();
+        $this->grammar = new SQLiteGrammar;
         $this->grammar->setTablePrefix('wp_');
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -172,7 +171,7 @@ describe('SQLite Table Prefix in JOINs', function () {
 
 describe('PostgreSQL Table Prefix in JOINs', function () {
     beforeEach(function () {
-        $this->grammar = new PostgreSQLGrammar();
+        $this->grammar = new PostgreSQLGrammar;
         $this->grammar->setTablePrefix('wp_');
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -194,7 +193,7 @@ describe('PostgreSQL Table Prefix in JOINs', function () {
 
 describe('Table Prefix Edge Cases', function () {
     beforeEach(function () {
-        $this->grammar = new MySQLGrammar();
+        $this->grammar = new MySQLGrammar;
         $this->grammar->setTablePrefix('wp_');
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -271,7 +270,7 @@ describe('Table Prefix Edge Cases', function () {
 
 describe('Table Prefix Bug Scenarios', function () {
     beforeEach(function () {
-        $this->grammar = new MySQLGrammar();
+        $this->grammar = new MySQLGrammar;
         $this->grammar->setTablePrefix('wp_');
         $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
         $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);

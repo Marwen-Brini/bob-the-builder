@@ -10,11 +10,11 @@ use Bob\Schema\Fluent;
 use Bob\Schema\Grammars\MySQLGrammar;
 
 beforeEach(function () {
-    $this->grammar = new MySQLGrammar();
+    $this->grammar = new MySQLGrammar;
     $this->connection = new Connection([
         'driver' => 'mysql',
         'host' => 'localhost',
-        'database' => 'test'
+        'database' => 'test',
     ]);
 });
 
@@ -113,7 +113,7 @@ test('compile index', function () {
     $command = new Fluent([
         'name' => 'index',
         'index' => 'users_email_index',
-        'columns' => ['email']
+        'columns' => ['email'],
     ]);
     $sql = $this->grammar->compileIndex($blueprint, $command, $this->connection);
 
@@ -125,7 +125,7 @@ test('compile unique', function () {
     $command = new Fluent([
         'name' => 'unique',
         'index' => 'users_email_unique',
-        'columns' => ['email']
+        'columns' => ['email'],
     ]);
     $sql = $this->grammar->compileUnique($blueprint, $command, $this->connection);
 
@@ -137,7 +137,7 @@ test('compile primary', function () {
     $command = new Fluent([
         'name' => 'primary',
         'columns' => ['id'],
-        'index' => 'users_id_primary'
+        'index' => 'users_id_primary',
     ]);
     $sql = $this->grammar->compilePrimary($blueprint, $command, $this->connection);
 
@@ -149,7 +149,7 @@ test('compile fulltext', function () {
     $command = new Fluent([
         'name' => 'fulltext',
         'index' => 'posts_content_fulltext',
-        'columns' => ['title', 'content']
+        'columns' => ['title', 'content'],
     ]);
     $sql = $this->grammar->compileFulltext($blueprint, $command, $this->connection);
 
@@ -161,7 +161,7 @@ test('compile spatial index', function () {
     $command = new Fluent([
         'name' => 'spatialIndex',
         'index' => 'places_location_spatialindex',
-        'columns' => ['location']
+        'columns' => ['location'],
     ]);
     $sql = $this->grammar->compileSpatialIndex($blueprint, $command, $this->connection);
 
@@ -176,7 +176,7 @@ test('compile foreign', function () {
         'on' => 'users',
         'references' => ['id'],
         'onDelete' => 'cascade',
-        'onUpdate' => 'restrict'
+        'onUpdate' => 'restrict',
     ]);
     $sql = $this->grammar->compileForeign($blueprint, $command, $this->connection);
 
@@ -353,7 +353,7 @@ test('rename index', function () {
     $command = new Fluent([
         'name' => 'renameIndex',
         'from' => 'old_index',
-        'to' => 'new_index'
+        'to' => 'new_index',
     ]);
     $sql = $this->grammar->compileRenameIndex($blueprint, $command, $this->connection);
 
@@ -364,7 +364,7 @@ test('auto increment starting values', function () {
     $blueprint = new Blueprint('users');
     $command = new Fluent([
         'name' => 'autoIncrement',
-        'column' => new Fluent(['name' => 'id', 'from' => 1000])
+        'column' => new Fluent(['name' => 'id', 'from' => 1000]),
     ]);
     $sql = $this->grammar->compileAutoIncrementStartingValues($blueprint, $command, $this->connection);
 
@@ -376,7 +376,7 @@ test('comment', function () {
     $command = new Fluent([
         'name' => 'comment',
         'column' => new Fluent(['name' => 'name', 'comment' => 'User full name']),
-        'value' => 'User full name'
+        'value' => 'User full name',
     ]);
     $sql = $this->grammar->compileComment($blueprint, $command, $this->connection);
 

@@ -7,7 +7,7 @@
 use Bob\Schema\ColumnDefinition;
 
 beforeEach(function () {
-    $this->column = new ColumnDefinition();
+    $this->column = new ColumnDefinition;
 });
 
 test('nullable', function () {

@@ -1,12 +1,8 @@
 <?php
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
+use Bob\Database\Model;
 use Bob\Query\Builder;
-use Bob\Database\Relations\HasOne;
-use Bob\Database\Relations\HasMany;
-use Bob\Database\Relations\BelongsTo;
-use Bob\Database\Relations\BelongsToMany;
 use Bob\Support\Collection;
 use Mockery as m;
 
@@ -14,6 +10,7 @@ use Mockery as m;
 class CoverageTestModel extends Model
 {
     protected string $table = 'test_models';
+
     public bool $timestamps = false;
 }
 
@@ -69,18 +66,21 @@ class NoGuardModel extends Model
 class TimestampModel extends Model
 {
     protected string $table = 'timestamp_models';
+
     public bool $timestamps = true;
 }
 
 class HiddenModel extends Model
 {
     protected $hidden = ['password', 'secret'];
+
     protected $visible = ['name', 'email'];
+
     protected $appends = ['full_name'];
 
     public function getFullNameAttribute()
     {
-        return ($this->attributes['first_name'] ?? '') . ' ' . ($this->attributes['last_name'] ?? '');
+        return ($this->attributes['first_name'] ?? '').' '.($this->attributes['last_name'] ?? '');
     }
 }
 
@@ -90,7 +90,7 @@ class AppendsTestModel extends Model
 
     public function getFullNameAttribute()
     {
-        return ($this->attributes['first_name'] ?? '') . ' ' . ($this->attributes['last_name'] ?? '');
+        return ($this->attributes['first_name'] ?? '').' '.($this->attributes['last_name'] ?? '');
     }
 }
 
@@ -103,7 +103,7 @@ class CastModel extends Model
         'metadata' => 'array',
         'config' => 'object',
         'data' => 'json',
-        'created_at' => 'datetime'
+        'created_at' => 'datetime',
     ];
 }
 
@@ -137,32 +137,32 @@ describe('Model Coverage Tests', function () {
     test('Model getConnection throws exception when not set (line 93)', function () {
         Model::setConnection(null);
 
-        expect(fn() => Model::getConnection())
+        expect(fn () => Model::getConnection())
             ->toThrow(\RuntimeException::class, 'No database connection configured for models');
     });
 
     test('Model auto-generates table name from class name (lines 122-124)', function () {
-        $model = new AutoTableModel();
+        $model = new AutoTableModel;
         expect($model->getTable())->toBe('auto_table_models');
     });
 
     test('Model pluralize handles y ending (lines 143-144)', function () {
-        $model = new TestCity();
+        $model = new TestCity;
         expect($model->getTable())->toBe('test_cities');
     });
 
     test('Model pluralize handles s ending (lines 147-148)', function () {
-        $model = new TestBus();
+        $model = new TestBus;
         expect($model->getTable())->toBe('test_buses');
     });
 
     test('Model pluralize adds s normally (line 151)', function () {
-        $model = new AutoTableModel();
+        $model = new AutoTableModel;
         expect($model->getTable())->toBe('auto_table_models');
     });
 
     test('Model isFillable with empty fillable and guarded (line 185)', function () {
-        $model = new NoGuardModel();
+        $model = new NoGuardModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('isFillable');
@@ -172,7 +172,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model isFillable with guarded attributes (line 194)', function () {
-        $model = new GuardedModel();
+        $model = new GuardedModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('isFillable');
@@ -183,13 +183,13 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getAttributes returns all attributes (line 212)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
 
         expect($model->getAttributes())->toBe([
             'name' => 'Test',
-            'email' => 'test@example.com'
+            'email' => 'test@example.com',
         ]);
     });
 
@@ -199,15 +199,16 @@ describe('Model Coverage Tests', function () {
 
         $connection->shouldReceive('table')->once()->with('timestamp_models')->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
-        $builder->shouldReceive('insertGetId')->once()->andReturnUsing(function($attributes) {
+        $builder->shouldReceive('insertGetId')->once()->andReturnUsing(function ($attributes) {
             expect($attributes)->toHaveKey('created_at');
             expect($attributes)->toHaveKey('updated_at');
+
             return 1;
         });
 
         Model::setConnection($connection);
 
-        $model = new TimestampModel();
+        $model = new TimestampModel;
         $model->setAttribute('name', 'Test');
         $saved = $model->save();
 
@@ -225,14 +226,14 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
 
         expect($model->save())->toBeFalse();
     });
 
     test('Model update returns true when not dirty (line 293)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->syncOriginal();
 
@@ -251,15 +252,16 @@ describe('Model Coverage Tests', function () {
         $connection->shouldReceive('table')->once()->with('timestamp_models')->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
         $builder->shouldReceive('where')->once()->andReturn($builder);
-        $builder->shouldReceive('update')->once()->andReturnUsing(function($attributes) {
+        $builder->shouldReceive('update')->once()->andReturnUsing(function ($attributes) {
             expect($attributes)->toHaveKey('updated_at');
             expect($attributes)->toHaveKey('name');
+
             return 1;
         });
 
         Model::setConnection($connection);
 
-        $model = new TimestampModel();
+        $model = new TimestampModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal();
         $model->setAttribute('name', 'Updated');
@@ -272,7 +274,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model update returns true when no dirty attributes after timestamp (line 304)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal();
 
@@ -296,7 +298,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal();
 
@@ -308,7 +310,7 @@ describe('Model Coverage Tests', function () {
         $builder = m::mock(Builder::class);
 
         // Create a fresh model instance to return
-        $freshModel = new CoverageTestModel();
+        $freshModel = new CoverageTestModel;
         $freshModel->setAttribute('id', 1);
         $freshModel->setAttribute('name', 'Fresh');
         $freshModel->syncOriginal();
@@ -321,7 +323,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Old');
         $model->syncOriginal(); // Mark as existing
@@ -332,7 +334,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model isDirty with specific attributes (lines 386-408)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
         $model->syncOriginal();
@@ -354,7 +356,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model isClean method (line 439)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->syncOriginal();
 
@@ -367,7 +369,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model wasChanged method (lines 458-466)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Original');
         $model->setAttribute('email', 'original@example.com');
         $model->syncOriginal();
@@ -388,7 +390,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getOriginal with key (lines 487-495)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
         $model->syncOriginal();
@@ -400,7 +402,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model only method (line 506)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
         $model->setAttribute('password', 'secret');
@@ -408,12 +410,12 @@ describe('Model Coverage Tests', function () {
         $only = $model->only(['name', 'email']);
         expect($only)->toBe([
             'name' => 'Test',
-            'email' => 'test@example.com'
+            'email' => 'test@example.com',
         ]);
     });
 
     test('Model syncOriginal method (line 518)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
 
@@ -425,7 +427,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model syncChanges method (lines 530, 532)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Original');
         $model->syncOriginal();
 
@@ -440,7 +442,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getChanges method (lines 538-545)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Original');
         $model->syncOriginal();
 
@@ -453,7 +455,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model replicate method (line 578)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Original');
 
@@ -465,13 +467,13 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model is method (lines 604-607)', function () {
-        $model1 = new CoverageTestModel();
+        $model1 = new CoverageTestModel;
         $model1->setAttribute('id', 1);
 
-        $model2 = new CoverageTestModel();
+        $model2 = new CoverageTestModel;
         $model2->setAttribute('id', 1);
 
-        $model3 = new CoverageTestModel();
+        $model3 = new CoverageTestModel;
         $model3->setAttribute('id', 2);
 
         expect($model1->is($model2))->toBeTrue();
@@ -480,10 +482,10 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model isNot method (lines 620-626)', function () {
-        $model1 = new CoverageTestModel();
+        $model1 = new CoverageTestModel;
         $model1->setAttribute('id', 1);
 
-        $model2 = new CoverageTestModel();
+        $model2 = new CoverageTestModel;
         $model2->setAttribute('id', 2);
 
         expect($model1->isNot($model2))->toBeTrue();
@@ -501,7 +503,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
 
         expect($model->push())->toBeTrue();
@@ -514,14 +516,15 @@ describe('Model Coverage Tests', function () {
         $connection->shouldReceive('table')->once()->with('timestamp_models')->andReturn($builder);
         $builder->shouldReceive('setModel')->once();
         $builder->shouldReceive('where')->once()->andReturn($builder);
-        $builder->shouldReceive('update')->once()->andReturnUsing(function($attributes) {
+        $builder->shouldReceive('update')->once()->andReturnUsing(function ($attributes) {
             expect($attributes)->toHaveKey('updated_at');
+
             return 1;
         });
 
         Model::setConnection($connection);
 
-        $model = new TimestampModel();
+        $model = new TimestampModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal();
 
@@ -529,7 +532,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model makeVisible and makeHidden methods (lines 755-763)', function () {
-        $model = new HiddenModel();
+        $model = new HiddenModel;
         $model->setAttribute('name', 'John');
         $model->setAttribute('email', 'john@example.com');
         $model->setAttribute('password', 'secret');
@@ -553,7 +556,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model castAttribute with various types (lines 792-807)', function () {
-        $model = new CastModel();
+        $model = new CastModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('castAttribute');
@@ -596,7 +599,7 @@ describe('Model Coverage Tests', function () {
     test('Model mutateAttributeForArray with accessor (lines 823-869)', function () {
         // This functionality is tested through toArray with appends
         // The accessor is called when the attribute is appended
-        $model = new HiddenModel();
+        $model = new HiddenModel;
         $model->setAttribute('first_name', 'John');
         $model->setAttribute('last_name', 'Doe');
 
@@ -611,12 +614,12 @@ describe('Model Coverage Tests', function () {
         $connection = m::mock(Connection::class);
         Model::setConnection($connection);
 
-        $model = new RelationModel();
+        $model = new RelationModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Test');
 
         // Mock a loaded relation
-        $related = new RelationModel();
+        $related = new RelationModel;
         $related->setAttribute('id', 2);
         $related->setAttribute('name', 'Child');
 
@@ -633,12 +636,12 @@ describe('Model Coverage Tests', function () {
 
     test('Model getArrayableRelations (lines 905-916)', function () {
         // This functionality is tested through toArray with relations
-        $model = new RelationModel();
+        $model = new RelationModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Parent');
 
         // Set up loaded relations
-        $child = new RelationModel();
+        $child = new RelationModel;
         $child->setAttribute('id', 2);
         $child->setAttribute('name', 'Child');
 
@@ -653,25 +656,25 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getRelation returns null when not loaded (line 938)', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
         expect($model->getRelation('parent'))->toBeNull();
     });
 
     test('Model relationLoaded method (lines 988-996)', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
         expect($model->relationLoaded('parent'))->toBeFalse();
 
         // Load a relation
-        $parent = new RelationModel();
+        $parent = new RelationModel;
         $model->setRelation('parent', $parent);
 
         expect($model->relationLoaded('parent'))->toBeTrue();
     });
 
     test('Model setRelation method (lines 1015-1043)', function () {
-        $model = new RelationModel();
-        $parent = new RelationModel();
+        $model = new RelationModel;
+        $parent = new RelationModel;
 
         $model->setRelation('parent', $parent);
         expect($model->relationLoaded('parent'))->toBeTrue();
@@ -679,8 +682,8 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model unsetRelation method', function () {
-        $model = new RelationModel();
-        $parent = new RelationModel();
+        $model = new RelationModel;
+        $parent = new RelationModel;
 
         $model->setRelation('parent', $parent);
         expect($model->relationLoaded('parent'))->toBeTrue();
@@ -690,7 +693,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model toArray with appends', function () {
-        $model = new HiddenModel();
+        $model = new HiddenModel;
         $model->setAttribute('first_name', 'John');
         $model->setAttribute('last_name', 'Doe');
         $model->setAttribute('email', 'john@example.com');
@@ -711,7 +714,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model toJson method', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
 
@@ -724,7 +727,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model jsonSerialize method', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
 
         $data = $model->jsonSerialize();
@@ -738,7 +741,7 @@ describe('Model Coverage Tests', function () {
 
         Model::clearConnection();
 
-        expect(function() {
+        expect(function () {
             Model::getConnection();
         })->toThrow(\RuntimeException::class);
     });
@@ -763,7 +766,7 @@ describe('Model Coverage Tests', function () {
         $connection = m::mock(Connection::class);
         $builder = m::mock(Builder::class);
 
-        $foundModel = new CoverageTestModel();
+        $foundModel = new CoverageTestModel;
         $foundModel->setAttribute('id', 1);
         $foundModel->setAttribute('name', 'Found');
         $foundModel->syncOriginal();
@@ -791,7 +794,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        expect(function() {
+        expect(function () {
             CoverageTestModel::findOrFail(999);
         })->toThrow(\RuntimeException::class, 'Model not found with ID: 999');
     });
@@ -818,7 +821,7 @@ describe('Model Coverage Tests', function () {
         $connection = m::mock(Connection::class);
         $builder = m::mock(Builder::class);
 
-        $firstModel = new CoverageTestModel();
+        $firstModel = new CoverageTestModel;
         $firstModel->setAttribute('id', 1);
         $firstModel->setAttribute('name', 'First');
 
@@ -835,7 +838,7 @@ describe('Model Coverage Tests', function () {
 
     test('Model hydrate method (lines 422-440)', function () {
         // Test with object data
-        $data = (object)['id' => 1, 'name' => 'Hydrated', 'email' => 'test@example.com'];
+        $data = (object) ['id' => 1, 'name' => 'Hydrated', 'email' => 'test@example.com'];
         $model = CoverageTestModel::hydrate($data);
 
         expect($model)->toBeInstanceOf(CoverageTestModel::class);
@@ -855,7 +858,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model __unset magic method (lines 637-639)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
 
@@ -907,7 +910,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal(); // Mark as existing
 
@@ -916,12 +919,12 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getForeignKey method (lines 813-816)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         expect($model->getForeignKey())->toBe('coverage_test_model_id');
     });
 
     test('Model qualifyColumn method (lines 891-896)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         // Test with already qualified column
         expect($model->qualifyColumn('table.column'))->toBe('table.column');
@@ -931,14 +934,14 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getRelationValue method (lines 901-912)', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
         // Test when relation not loaded
         expect($model->getAttribute('nonExistentRelation'))->toBeNull();
     });
 
     test('Model newInstance method (lines 1073-1080)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $new = $model->newInstance(['name' => 'New Instance']);
 
@@ -948,22 +951,22 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getModel method (lines 1085-1088)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         expect($model->getModel())->toBe($model);
     });
 
     test('Model getIncrementing method (lines 1093-1096)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         expect($model->getIncrementing())->toBeTrue();
     });
 
     test('Model getKeyType method (lines 1101-1104)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         expect($model->getKeyType())->toBe('int');
     });
 
     test('Model refresh method when not exists (line 1213)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         // Model doesn't exist (no original attributes)
 
@@ -976,7 +979,7 @@ describe('Model Coverage Tests', function () {
         $connection = m::mock(Connection::class);
         $builder = m::mock(Builder::class);
 
-        $freshModel = new CoverageTestModel();
+        $freshModel = new CoverageTestModel;
         $freshModel->setAttribute('id', 1);
         $freshModel->setAttribute('name', 'Fresh');
         $freshModel->syncOriginal();
@@ -988,7 +991,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Old');
         $model->syncOriginal();
@@ -999,7 +1002,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model touch method with timestamps disabled (line 1233)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->timestamps = false;
 
         expect($model->touch())->toBeFalse();
@@ -1015,22 +1018,22 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
 
         expect($model->push())->toBeFalse();
     });
 
     test('Model __toString method (lines 1311-1314)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
 
-        expect((string)$model)->toBe('{"name":"Test","email":"test@example.com"}');
+        expect((string) $model)->toBe('{"name":"Test","email":"test@example.com"}');
     });
 
     test('Model getSnakeCase method (lines 1316-1334)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('getSnakeCase');
@@ -1043,8 +1046,10 @@ describe('Model Coverage Tests', function () {
 
     test('Model guessBelongsToRelation method', function () {
         // Create a mock with backtrace
-        $model = new class extends Model {
-            public function testMethod() {
+        $model = new class extends Model
+        {
+            public function testMethod()
+            {
                 return $this->guessBelongsToRelation();
             }
 
@@ -1054,7 +1059,7 @@ describe('Model Coverage Tests', function () {
 
                 foreach ($backtrace as $trace) {
                     if (isset($trace['function']) &&
-                        !in_array($trace['function'], ['guessBelongsToRelation', 'belongsTo', 'testMethod'])) {
+                        ! in_array($trace['function'], ['guessBelongsToRelation', 'belongsTo', 'testMethod'])) {
                         return $trace['function'];
                     }
                 }
@@ -1067,7 +1072,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model setAppends method (lines 1322-1327)', function () {
-        $model = new AppendsTestModel();
+        $model = new AppendsTestModel;
 
         $result = $model->setAppends(['full_name', 'another']);
 
@@ -1084,7 +1089,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model joiningTable method (lines 849-860)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('joiningTable');
@@ -1101,7 +1106,7 @@ describe('Model Coverage Tests', function () {
         $builder = m::mock(Builder::class);
 
         // Setup for parent relation query
-        $parentModel = new RelationModel();
+        $parentModel = new RelationModel;
         $parentModel->setAttribute('id', 1);
         $parentModel->setAttribute('name', 'Parent');
 
@@ -1113,7 +1118,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new RelationModel();
+        $model = new RelationModel;
         $model->setAttribute('parent_id', 1);
 
         // This will trigger getRelationshipFromMethod through getAttribute
@@ -1123,9 +1128,9 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getRelationValue with loaded relation (lines 903-905)', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
-        $related = new RelationModel();
+        $related = new RelationModel;
         $related->setAttribute('id', 2);
         $related->setAttribute('name', 'Related');
 
@@ -1140,8 +1145,10 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getRelationshipFromMethod with invalid return (lines 921-925)', function () {
-        $model = new class extends Model {
-            public function invalidRelation() {
+        $model = new class extends Model
+        {
+            public function invalidRelation()
+            {
                 return 'not a relation';
             }
         };
@@ -1150,13 +1157,13 @@ describe('Model Coverage Tests', function () {
         $method = $reflection->getMethod('getRelationshipFromMethod');
         $method->setAccessible(true);
 
-        expect(function() use ($method, $model) {
+        expect(function () use ($method, $model) {
             $method->invoke($model, 'invalidRelation');
         })->toThrow(\LogicException::class);
     });
 
     test('Model getForeignKeyForBelongsTo method (lines 821-824)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('getForeignKeyForBelongsTo');
@@ -1167,7 +1174,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model __get with exists property (line 228)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         // Model doesn't exist initially
         expect($model->exists)->toBeFalse();
@@ -1179,9 +1186,9 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model __get returns loaded relation (line 238)', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
-        $related = new RelationModel();
+        $related = new RelationModel;
         $related->setAttribute('id', 2);
         $related->setAttribute('name', 'Related');
 
@@ -1192,7 +1199,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getRelationValue when method not exists (lines 907-911)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('getRelationValue');
@@ -1207,7 +1214,7 @@ describe('Model Coverage Tests', function () {
         // Line 447: hydrateMany static method
         $data = [
             ['id' => 1, 'name' => 'First'],
-            ['id' => 2, 'name' => 'Second']
+            ['id' => 2, 'name' => 'Second'],
         ];
 
         $reflection = new ReflectionClass(CoverageTestModel::class);
@@ -1230,27 +1237,27 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
 
         expect($model->save())->toBeFalse();
     });
 
     test('Model lines 1311-1316 (__toString)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->setAttribute('email', 'test@example.com');
 
-        expect((string)$model)->toBe('{"name":"Test","email":"test@example.com"}');
+        expect((string) $model)->toBe('{"name":"Test","email":"test@example.com"}');
 
         // Test with empty model
-        $empty = new CoverageTestModel();
-        expect((string)$empty)->toBe('[]');
+        $empty = new CoverageTestModel;
+        expect((string) $empty)->toBe('[]');
     });
 
     // Tests for refactored methods
     test('Model getVisibleAttributes method', function () {
-        $model = new HiddenModel();
+        $model = new HiddenModel;
         $model->setAttribute('name', 'Visible');
         $model->setAttribute('password', 'Secret');
         $model->setAttribute('email', 'test@example.com');
@@ -1266,7 +1273,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model isVisible method', function () {
-        $model = new HiddenModel();
+        $model = new HiddenModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('isVisible');
@@ -1279,7 +1286,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model appendAccessors method', function () {
-        $model = new HiddenModel();
+        $model = new HiddenModel;
         $model->setAttribute('first_name', 'John');
         $model->setAttribute('last_name', 'Doe');
 
@@ -1294,14 +1301,14 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model serializeRelation method', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('serializeRelation');
         $method->setAccessible(true);
 
         // Test with Model
-        $related = new RelationModel();
+        $related = new RelationModel;
         $related->setAttribute('id', 1);
         $result = $method->invoke($model, $related);
         expect($result)->toBeArray();
@@ -1325,7 +1332,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model prepareAttributesForUpdate method', function () {
-        $model = new TimestampModel();
+        $model = new TimestampModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Test');
         $model->syncOriginal();
@@ -1352,7 +1359,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal();
 
@@ -1365,7 +1372,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model canDelete method', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('canDelete');
@@ -1392,7 +1399,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
 
         $reflection = new ReflectionClass($model);
@@ -1404,9 +1411,9 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getLoadedRelation method', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
-        $related = new RelationModel();
+        $related = new RelationModel;
         $related->setAttribute('id', 1);
         $model->setRelation('testRelation', $related);
 
@@ -1419,7 +1426,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model hasRelationMethod method', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('hasRelationMethod');
@@ -1441,7 +1448,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->syncOriginal();
 
@@ -1454,9 +1461,9 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model appendRelations method', function () {
-        $model = new RelationModel();
+        $model = new RelationModel;
 
-        $related = new RelationModel();
+        $related = new RelationModel;
         $related->setAttribute('id', 2);
         $model->setRelation('child', $related);
 
@@ -1472,7 +1479,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model append method with string (lines 1370-1375)', function () {
-        $model = new AppendsTestModel(); // Use model with appends property
+        $model = new AppendsTestModel; // Use model with appends property
 
         // Test with string
         $result = $model->append('virtual_field');
@@ -1496,7 +1503,7 @@ describe('Model Coverage Tests', function () {
         $builder = m::mock(Builder::class);
 
         // Setup for parent relation query
-        $parentModel = new RelationModel();
+        $parentModel = new RelationModel;
         $parentModel->setAttribute('id', 1);
         $parentModel->setAttribute('name', 'Parent');
 
@@ -1508,7 +1515,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new RelationModel();
+        $model = new RelationModel;
         $model->setAttribute('parent_id', 1);
 
         // This will trigger the tap callback which sets the relation
@@ -1520,12 +1527,12 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model line 138 getPrimaryKey', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         expect($model->getPrimaryKey())->toBe('id');
     });
 
     test('Model prepareAttributesForUpdate when nothing dirty (line 306)', function () {
-        $model = new TimestampModel();
+        $model = new TimestampModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Test');
         $model->syncOriginal();
@@ -1542,7 +1549,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model canDelete when not exists returns false (line 351)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         // Model doesn't exist (no original attributes)
 
         $reflection = new ReflectionClass($model);
@@ -1553,7 +1560,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model lines 607, 619, 633 - castAttribute edge cases', function () {
-        $model = new CastModel();
+        $model = new CastModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('castAttribute');
@@ -1573,7 +1580,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model line 793 - makeVisible method', function () {
-        $model = new HiddenModel();
+        $model = new HiddenModel;
 
         $model->makeVisible(['password']);
 
@@ -1586,7 +1593,8 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model line 825 - makeHidden method', function () {
-        $model = new class extends Model {
+        $model = new class extends Model
+        {
             protected $hidden = [];  // Initialize hidden
         };
 
@@ -1602,7 +1610,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model getSnakeCase already lowercase (line 1393)', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
 
         $reflection = new ReflectionClass($model);
         $method = $reflection->getMethod('getSnakeCase');
@@ -1613,8 +1621,10 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model guessBelongsToRelation method (line 1024)', function () {
-        $model = new class extends Model {
-            public function user() {
+        $model = new class extends Model
+        {
+            public function user()
+            {
                 return $this->guessBelongsToRelation();
             }
         };
@@ -1626,7 +1636,7 @@ describe('Model Coverage Tests', function () {
     });
 
     test('Model line 1115 - isDirty returns false for non-existent attribute', function () {
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('name', 'Test');
         $model->syncOriginal();
 
@@ -1644,7 +1654,7 @@ describe('Model Coverage Tests', function () {
 
         Model::setConnection($connection);
 
-        $model = new CoverageTestModel();
+        $model = new CoverageTestModel;
         $model->setAttribute('id', 1);
         $model->setAttribute('name', 'Test');
         $model->syncOriginal();

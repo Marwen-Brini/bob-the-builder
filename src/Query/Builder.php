@@ -9,7 +9,6 @@ use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
 use Bob\Database\Expression;
-use Bob\Query\RelationshipLoader;
 use Closure;
 
 class Builder implements BuilderInterface
@@ -142,9 +141,8 @@ class Builder implements BuilderInterface
     /**
      * Add a subquery select expression to the query.
      *
-     * @param \Closure|Builder|string $query
-     * @param string $as
-     * @return self
+     * @param  \Closure|Builder|string  $query
+     * @param  string  $as
      */
     public function selectSub($query, $as): self
     {
@@ -162,7 +160,7 @@ class Builder implements BuilderInterface
             $this->addBinding($bindings, 'select');
         }
 
-        return $this->selectRaw('(' . $query . ') as ' . $this->grammar->wrap($as));
+        return $this->selectRaw('('.$query.') as '.$this->grammar->wrap($as));
     }
 
     public function addSelect($column): self
@@ -191,9 +189,6 @@ class Builder implements BuilderInterface
 
     /**
      * Set the distinct flag for the query.
-     *
-     * @param bool $value
-     * @return self
      */
     public function distinct(bool $value = true): self
     {
@@ -223,9 +218,8 @@ class Builder implements BuilderInterface
     /**
      * Set a raw from clause.
      *
-     * @param string $expression
-     * @param array $bindings
-     * @return self
+     * @param  string  $expression
+     * @param  array  $bindings
      */
     public function fromRaw($expression, $bindings = []): self
     {
@@ -397,9 +391,8 @@ class Builder implements BuilderInterface
     /**
      * Add an "or where in" clause to the query.
      *
-     * @param string $column
-     * @param mixed $values
-     * @return self
+     * @param  string  $column
+     * @param  mixed  $values
      */
     public function orWhereIn($column, $values): self
     {
@@ -409,9 +402,8 @@ class Builder implements BuilderInterface
     /**
      * Add an "or where not in" clause to the query.
      *
-     * @param string $column
-     * @param mixed $values
-     * @return self
+     * @param  string  $column
+     * @param  mixed  $values
      */
     public function orWhereNotIn($column, $values): self
     {
@@ -482,9 +474,6 @@ class Builder implements BuilderInterface
 
     /**
      * Add an "or where exists" clause to the query.
-     *
-     * @param Closure $callback
-     * @return self
      */
     public function orWhereExists(Closure $callback): self
     {
@@ -493,9 +482,6 @@ class Builder implements BuilderInterface
 
     /**
      * Add an "or where not exists" clause to the query.
-     *
-     * @param Closure $callback
-     * @return self
      */
     public function orWhereNotExists(Closure $callback): self
     {
@@ -505,11 +491,10 @@ class Builder implements BuilderInterface
     /**
      * Add a where in with integers clause to the query.
      *
-     * @param string $column
-     * @param array $values
-     * @param string $boolean
-     * @param bool $not
-     * @return self
+     * @param  string  $column
+     * @param  array  $values
+     * @param  string  $boolean
+     * @param  bool  $not
      */
     public function whereIntegerInRaw($column, $values, $boolean = 'and', $not = false): self
     {
@@ -526,10 +511,9 @@ class Builder implements BuilderInterface
     /**
      * Add a where not in with integers clause to the query.
      *
-     * @param string $column
-     * @param array $values
-     * @param string $boolean
-     * @return self
+     * @param  string  $column
+     * @param  array  $values
+     * @param  string  $boolean
      */
     public function whereIntegerNotInRaw($column, $values, $boolean = 'and'): self
     {
@@ -539,9 +523,8 @@ class Builder implements BuilderInterface
     /**
      * Add an or where in with integers clause to the query.
      *
-     * @param string $column
-     * @param array $values
-     * @return self
+     * @param  string  $column
+     * @param  array  $values
      */
     public function orWhereIntegerInRaw($column, $values): self
     {
@@ -551,9 +534,8 @@ class Builder implements BuilderInterface
     /**
      * Add an or where not in with integers clause to the query.
      *
-     * @param string $column
-     * @param array $values
-     * @return self
+     * @param  string  $column
+     * @param  array  $values
      */
     public function orWhereIntegerNotInRaw($column, $values): self
     {
@@ -674,6 +656,7 @@ class Builder implements BuilderInterface
             foreach ($first as $conditions) {
                 $this->whereColumn(...$conditions);
             }
+
             return $this;
         }
 
@@ -757,6 +740,7 @@ class Builder implements BuilderInterface
     protected function simpleCrossJoin($table): self
     {
         $this->joins[] = $this->newJoinClause('cross', $table);
+
         return $this;
     }
 
@@ -771,6 +755,7 @@ class Builder implements BuilderInterface
             // $parentQuery is actually the type, $type is actually the table
             return new JoinClause($this, $parentQuery, $type);
         }
+
         // New signature: newJoinClause($parentQuery, $type, $table)
         return new JoinClause($parentQuery, $type, $table);
     }
@@ -800,7 +785,7 @@ class Builder implements BuilderInterface
      */
     protected function mergeBindingsForType(string $type, array $bindings): void
     {
-        if (!isset($this->bindings[$type])) {
+        if (! isset($this->bindings[$type])) {
             $this->bindings[$type] = [];
         }
         $this->bindings[$type] = array_merge($this->bindings[$type], $bindings);
@@ -809,16 +794,15 @@ class Builder implements BuilderInterface
     /**
      * Add a "join where" clause to the query.
      *
-     * @param string $table
-     * @param string $first
-     * @param string $operator
-     * @param string $second
+     * @param  string  $table
+     * @param  string  $first
+     * @param  string  $operator
+     * @param  string  $second
      * @param \\Closure $where
-     * @return self
      */
     public function joinWhere($table, $first, $operator, $second, $where): self
     {
-        return $this->join($table, function($join) use ($first, $operator, $second, $where) {
+        return $this->join($table, function ($join) use ($first, $operator, $second, $where) {
             $join->on($first, $operator, $second);
             $where($join);
         });
@@ -827,16 +811,15 @@ class Builder implements BuilderInterface
     /**
      * Add a "left join where" clause to the query.
      *
-     * @param string $table
-     * @param string $first
-     * @param string $operator
-     * @param string $second
+     * @param  string  $table
+     * @param  string  $first
+     * @param  string  $operator
+     * @param  string  $second
      * @param \\Closure $where
-     * @return self
      */
     public function leftJoinWhere($table, $first, $operator, $second, $where): self
     {
-        return $this->leftJoin($table, function($join) use ($first, $operator, $second, $where) {
+        return $this->leftJoin($table, function ($join) use ($first, $operator, $second, $where) {
             $join->on($first, $operator, $second);
             $where($join);
         });
@@ -891,9 +874,8 @@ class Builder implements BuilderInterface
     /**
      * Add a raw or having clause to the query.
      *
-     * @param string $sql
-     * @param array $bindings
-     * @return self
+     * @param  string  $sql
+     * @param  array  $bindings
      */
     public function orHavingRaw($sql, $bindings = []): self
     {
@@ -908,6 +890,7 @@ class Builder implements BuilderInterface
         $type = 'Between';
         $this->havings[] = compact('type', 'column', 'values', 'boolean', 'not');
         $this->addBinding($values, 'having');
+
         return $this;
     }
 
@@ -958,9 +941,7 @@ class Builder implements BuilderInterface
     /**
      * Remove all existing orders and optionally add a new one.
      *
-     * @param string|null $column
-     * @param string $direction
-     * @return self
+     * @param  string|null  $column
      */
     public function reorder(mixed $column = null, string $direction = 'asc'): self
     {
@@ -1050,7 +1031,7 @@ class Builder implements BuilderInterface
             }
 
             // Handle eager loading
-            if (!empty($this->eagerLoad)) {
+            if (! empty($this->eagerLoad)) {
                 $models = $this->eagerLoadRelations($models);
             }
 
@@ -1073,7 +1054,7 @@ class Builder implements BuilderInterface
      */
     protected function hydrateModel($data)
     {
-        if (!$this->shouldHydrateModel()) {
+        if (! $this->shouldHydrateModel()) {
             return $data;
         }
 
@@ -1120,6 +1101,7 @@ class Builder implements BuilderInterface
         foreach ($items as $item) {
             $models[] = $this->hydrateModel($item);
         }
+
         return $models;
     }
 
@@ -1163,7 +1145,7 @@ class Builder implements BuilderInterface
     {
         $result = $this->first([$column]);
 
-        if (!$result) {
+        if (! $result) {
             return null;
         }
 
@@ -1233,7 +1215,7 @@ class Builder implements BuilderInterface
             // Generate cache key from the SQL and bindings
             $sql = $this->grammar->compileExists($this);
             $bindings = $this->getBindings();
-            $cacheKey = 'exists_' . md5($sql . serialize($bindings));
+            $cacheKey = 'exists_'.md5($sql.serialize($bindings));
 
             // Check if we have a cached result
             $cached = $queryCache->get($cacheKey);
@@ -1273,9 +1255,6 @@ class Builder implements BuilderInterface
 
     /**
      * Parse the result of an exists query.
-     *
-     * @param  array  $results
-     * @return bool
      */
     protected function parseExistsResult(array $results): bool
     {
@@ -1424,7 +1403,7 @@ class Builder implements BuilderInterface
         $bindingTypes = ['select', 'from', 'join', 'where', 'groupBy', 'having', 'order', 'union', 'unionOrder'];
 
         foreach ($bindingTypes as $type) {
-            if (!in_array($type, $except)) {
+            if (! in_array($type, $except)) {
                 $clone->bindings[$type] = [];
             }
         }
@@ -1578,7 +1557,7 @@ class Builder implements BuilderInterface
         }
 
         // Normalize values
-        if (!is_array(reset($values))) {
+        if (! is_array(reset($values))) {
             $values = [$values];
         }
 
@@ -1654,7 +1633,7 @@ class Builder implements BuilderInterface
         }
 
         return $this->orderBy($column, 'desc')
-                    ->limit($perPage);
+            ->limit($perPage);
     }
 
     /**
@@ -1669,7 +1648,7 @@ class Builder implements BuilderInterface
         }
 
         return $this->orderBy($column, 'asc')
-                    ->limit($perPage);
+            ->limit($perPage);
     }
 
     /**
@@ -1677,7 +1656,7 @@ class Builder implements BuilderInterface
      */
     protected function removeExistingOrdersFor(string $column): array
     {
-        if (!$this->hasOrders()) {
+        if (! $this->hasOrders()) {
             return [];
         }
 
@@ -1691,7 +1670,7 @@ class Builder implements BuilderInterface
      */
     protected function hasOrders(): bool
     {
-        return isset($this->orders) && !empty($this->orders);
+        return isset($this->orders) && ! empty($this->orders);
     }
 
     /**
@@ -1751,19 +1730,19 @@ class Builder implements BuilderInterface
      */
     protected function addRawBindings(array $bindings, string $type): void
     {
-        if (!empty($bindings)) {
+        if (! empty($bindings)) {
             $this->addBinding($bindings, $type);
         }
     }
 
     public function when($value, callable $callback, ?callable $default = null): self
     {
-        return $this->conditionalCall((bool)$value, $value, $callback, $default);
+        return $this->conditionalCall((bool) $value, $value, $callback, $default);
     }
 
     public function unless($value, callable $callback, ?callable $default = null): self
     {
-        return $this->conditionalCall(!$value, $value, $callback, $default);
+        return $this->conditionalCall(! $value, $value, $callback, $default);
     }
 
     /**
@@ -1784,8 +1763,7 @@ class Builder implements BuilderInterface
      * Add a union statement to the query.
      *
      * @param Builder|\\Closure $query
-     * @param bool $all
-     * @return self
+     * @param  bool  $all
      */
     public function union($query, $all = false): self
     {
@@ -1804,7 +1782,6 @@ class Builder implements BuilderInterface
      * Add a union all statement to the query.
      *
      * @param Builder|\\Closure $query
-     * @return self
      */
     public function unionAll($query): self
     {
@@ -1814,8 +1791,7 @@ class Builder implements BuilderInterface
     /**
      * Set the lock value for the query.
      *
-     * @param bool|string $value
-     * @return self
+     * @param  bool|string  $value
      */
     public function lock($value = true): self
     {
@@ -1826,8 +1802,6 @@ class Builder implements BuilderInterface
 
     /**
      * Lock the selected rows in the table for updating.
-     *
-     * @return self
      */
     public function lockForUpdate(): self
     {
@@ -1836,8 +1810,6 @@ class Builder implements BuilderInterface
 
     /**
      * Share lock the selected rows in the table.
-     *
-     * @return self
      */
     public function sharedLock(): self
     {
@@ -1848,9 +1820,8 @@ class Builder implements BuilderInterface
      * Apply the callback if the given value is truthy.
      * Alias for the "when" method for better readability.
      *
-     * @param mixed $value
-     * @param callable $callback
-     * @return self
+     * @param  mixed  $value
+     * @param  callable  $callback
      */
     public function tap($callback): self
     {
@@ -1917,7 +1888,7 @@ class Builder implements BuilderInterface
         }
 
         // Don't use wrap() on the alias as it might get prefixed
-        $expression = '(' . $query->toSql() . ') as `' . str_replace('`', '', $as) . '`';
+        $expression = '('.$query->toSql().') as `'.str_replace('`', '', $as).'`';
 
         $this->addBinding($query->getBindings(), 'join');
 
@@ -1941,7 +1912,7 @@ class Builder implements BuilderInterface
         }
 
         // Don't use wrap() on the alias as it might get prefixed
-        $expression = '(' . $query->toSql() . ') as `' . str_replace('`', '', $as) . '`';
+        $expression = '('.$query->toSql().') as `'.str_replace('`', '', $as).'`';
 
         $this->addBinding($query->getBindings(), 'join');
 
@@ -1963,6 +1934,7 @@ class Builder implements BuilderInterface
         // Clone the builder to avoid modifying the original when applying scopes
         $query = clone $this;
         $query->applyScopes();
+
         return $query->grammar->compileSelect($query);
     }
 
@@ -1978,13 +1950,11 @@ class Builder implements BuilderInterface
     /**
      * Set the bindings on the query builder.
      *
-     * @param array $bindings
-     * @param string $type
-     * @return self
+     * @param  string  $type
      */
     public function setBindings(array $bindings, $type = 'where'): self
     {
-        if (!isset($this->bindings[$type])) {
+        if (! isset($this->bindings[$type])) {
             $this->bindings[$type] = [];
         }
 
@@ -1996,9 +1966,8 @@ class Builder implements BuilderInterface
     /**
      * Merge an array of wheres into the current wheres.
      *
-     * @param array $wheres
-     * @param array $bindings
-     * @return self
+     * @param  array  $wheres
+     * @param  array  $bindings
      */
     public function mergeWheres($wheres, $bindings): self
     {
@@ -2030,8 +1999,6 @@ class Builder implements BuilderInterface
 
     /**
      * Use the write PDO connection for this query.
-     *
-     * @return self
      */
     public function useWritePdo(): self
     {
@@ -2063,6 +2030,7 @@ class Builder implements BuilderInterface
                 $cleaned[] = $binding;
             }
         }
+
         return $cleaned;
     }
 
@@ -2099,9 +2067,6 @@ class Builder implements BuilderInterface
 
     /**
      * Check if a global scope has been removed.
-     *
-     * @param  string  $scope
-     * @return bool
      */
     public function hasRemovedGlobalScope(string $scope): bool
     {
@@ -2112,7 +2077,6 @@ class Builder implements BuilderInterface
      * Register a global scope with the builder (from Model).
      * This is different from addGlobalScope which is for instance scopes.
      *
-     * @param  string  $identifier
      * @param  \Closure|object  $scope
      * @return $this
      */
@@ -2122,7 +2086,6 @@ class Builder implements BuilderInterface
 
         return $this;
     }
-
 
     /**
      * Enable caching for exists() queries.
@@ -2152,8 +2115,6 @@ class Builder implements BuilderInterface
 
     /**
      * Check if exists caching is enabled.
-     *
-     * @return bool
      */
     public function isExistsCachingEnabled(): bool
     {
@@ -2195,7 +2156,6 @@ class Builder implements BuilderInterface
     /**
      * Remove all or passed registered global scopes.
      *
-     * @param  array|null  $scopes
      * @return $this
      */
     public function withoutGlobalScopes(?array $scopes = null): self
@@ -2217,8 +2177,6 @@ class Builder implements BuilderInterface
 
     /**
      * Get the global scopes for this builder instance.
-     *
-     * @return array
      */
     public function getGlobalScopes(): array
     {
@@ -2310,7 +2268,6 @@ class Builder implements BuilderInterface
         return $this;
     }
 
-
     /**
      * Clone the query without any bindings.
      */
@@ -2349,7 +2306,7 @@ class Builder implements BuilderInterface
         // Get the relation instance from the first model
         $firstModel = $this->getFirstModel($models);
 
-        if (!$firstModel || !method_exists($firstModel, $name)) {
+        if (! $firstModel || ! method_exists($firstModel, $name)) {
             return;
         }
 
@@ -2368,7 +2325,7 @@ class Builder implements BuilderInterface
      */
     protected function getFirstModel(array $models)
     {
-        if (empty($models) || !$this->model) {
+        if (empty($models) || ! $this->model) {
             return null;
         }
 
@@ -2380,7 +2337,7 @@ class Builder implements BuilderInterface
      */
     protected function getRelationshipLoader(): RelationshipLoader
     {
-        return new RelationshipLoader();
+        return new RelationshipLoader;
     }
 
     /**
@@ -2403,7 +2360,7 @@ class Builder implements BuilderInterface
         }
 
         return array_filter($keys, function ($key) {
-            return !is_null($key);
+            return ! is_null($key);
         });
     }
 
@@ -2417,6 +2374,7 @@ class Builder implements BuilderInterface
 
     /**
      * Build a dictionary of related models keyed by their foreign key.
+     *
      * @deprecated Use RelationshipLoader instead
      */
     protected function buildDictionary(array $related, $relation): array
@@ -2462,83 +2420,83 @@ class Builder implements BuilderInterface
     {
         return clone $this;
     }
-    
+
     // Getter methods for interface compliance
     public function getAggregate(): ?array
     {
         return $this->aggregate;
     }
-    
+
     public function getColumns(): ?array
     {
         return $this->columns;
     }
-    
+
     public function getDistinct(): bool
     {
         return $this->distinct;
     }
-    
+
     public function getFrom(): ?string
     {
         return $this->from;
     }
-    
+
     public function getJoins(): ?array
     {
         return $this->joins;
     }
-    
+
     public function getWheres(): array
     {
         return $this->wheres;
     }
-    
+
     public function getGroups(): ?array
     {
         return $this->groups;
     }
-    
+
     public function getHavings(): ?array
     {
         return $this->havings;
     }
-    
+
     public function getOrders(): ?array
     {
         return $this->orders;
     }
-    
+
     public function getLimit(): ?int
     {
         return $this->limit;
     }
-    
+
     public function getOffset(): ?int
     {
         return $this->offset;
     }
-    
+
     public function getUnions(): ?array
     {
         return $this->unions;
     }
-    
+
     public function getUnionLimit(): ?int
     {
         return $this->unionLimit;
     }
-    
+
     public function getUnionOffset(): ?int
     {
         return $this->unionOffset;
     }
-    
+
     public function getUnionOrders(): ?array
     {
         return $this->unionOrders;
     }
-    
+
     public function getLock()
     {
         return $this->lock;
@@ -2546,9 +2504,6 @@ class Builder implements BuilderInterface
 
     /**
      * Check if a string contains an aggregate function
-     *
-     * @param string $column
-     * @return bool
      */
     protected function isAggregateFunction(string $column): bool
     {
@@ -2573,7 +2528,7 @@ class Builder implements BuilderInterface
         foreach ($aggregateFunctions as $function) {
             // Check for function with optional space before parenthesis
             // This regex matches: FUNCTION( or FUNCTION (
-            $pattern = '/\b' . preg_quote($function, '/') . '\s*\(/';
+            $pattern = '/\b'.preg_quote($function, '/').'\s*\(/';
             if (preg_match($pattern, $normalizedColumn)) {
                 return true;
             }
@@ -2623,7 +2578,7 @@ class Builder implements BuilderInterface
 
         // Check if model has a scope method
         if ($this->model !== null) {
-            $scopeMethod = 'scope' . ucfirst($method);
+            $scopeMethod = 'scope'.ucfirst($method);
             if (method_exists($this->model, $scopeMethod)) {
                 // Call the scope method on the model, passing this builder
                 return $this->model->$scopeMethod($this, ...$parameters);
@@ -2733,5 +2688,4 @@ class JoinClause extends Builder
     {
         return $this->on($first, $operator, $second, 'or');
     }
-
 }

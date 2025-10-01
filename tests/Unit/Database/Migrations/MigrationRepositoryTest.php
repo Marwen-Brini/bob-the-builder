@@ -60,7 +60,7 @@ test('deleteRepository drops migration table', function () {
 
     // First create the table to ensure it exists
     Schema::setConnection($this->realConnection);
-    if (!Schema::hasTable('test_migrations')) {
+    if (! Schema::hasTable('test_migrations')) {
         Schema::create('test_migrations', function ($table) {
             $table->id();
             $table->string('migration');
@@ -84,7 +84,7 @@ test('deleteRepository drops custom migration table', function () {
 
     // First create the table
     Schema::setConnection($this->realConnection);
-    if (!Schema::hasTable('custom_migrations')) {
+    if (! Schema::hasTable('custom_migrations')) {
         Schema::create('custom_migrations', function ($table) {
             $table->id();
             $table->string('migration');

@@ -28,14 +28,17 @@ test('model respects timestamps = false on insert', function () {
         )
     ');
 
-    class WPPost extends Model {
+    class WPPost extends Model
+    {
         protected string $table = 'wp_posts';
+
         protected string $primaryKey = 'ID';
+
         protected bool $timestamps = false; // WordPress doesn't use created_at/updated_at
     }
 
     // This should NOT try to set created_at/updated_at
-    $post = new WPPost();
+    $post = new WPPost;
     $post->post_title = 'Test Post';
     $post->post_content = 'Test content';
     $post->post_status = 'publish';
@@ -67,12 +70,15 @@ test('model respects timestamps = false on update', function () {
     $this->connection->table('wp_posts')->insert([
         'post_title' => 'Original Title',
         'post_content' => 'Original content',
-        'post_status' => 'publish'
+        'post_status' => 'publish',
     ]);
 
-    class WPPostUpdate extends Model {
+    class WPPostUpdate extends Model
+    {
         protected string $table = 'wp_posts';
+
         protected string $primaryKey = 'ID';
+
         protected bool $timestamps = false;
     }
 
@@ -101,13 +107,15 @@ test('model with timestamps = true sets timestamps correctly', function () {
         )
     ');
 
-    class TimestampedPost extends Model {
+    class TimestampedPost extends Model
+    {
         protected string $table = 'posts';
+
         protected bool $timestamps = true; // Default behavior
     }
 
     // Insert with timestamps
-    $post = new TimestampedPost();
+    $post = new TimestampedPost;
     $post->title = 'Test Post';
     $result = $post->save();
 
@@ -136,17 +144,21 @@ test('static create method respects timestamps setting', function () {
         )
     ');
 
-    class WPUser extends Model {
+    class WPUser extends Model
+    {
         protected string $table = 'wp_users';
+
         protected string $primaryKey = 'ID';
+
         protected bool $timestamps = false;
+
         protected array $fillable = ['user_login', 'user_email'];
     }
 
     // This should work without timestamp columns
     $user = WPUser::create([
         'user_login' => 'testuser',
-        'user_email' => 'test@example.com'
+        'user_email' => 'test@example.com',
     ]);
 
     expect($user)->toBeInstanceOf(WPUser::class);
@@ -166,7 +178,7 @@ test('query builder insert does not add timestamps', function () {
     // Direct query builder insert should never add timestamps
     $result = $this->connection->table('wp_options')->insert([
         'option_name' => 'test_option',
-        'option_value' => 'test_value'
+        'option_value' => 'test_value',
     ]);
 
     expect($result)->toBeTrue();
@@ -190,14 +202,18 @@ test('model with custom timestamp column names', function () {
         )
     ');
 
-    class CustomTimestampPost extends Model {
+    class CustomTimestampPost extends Model
+    {
         protected string $table = 'custom_posts';
+
         protected bool $timestamps = true;
+
         protected string $createdAt = 'created';  // Custom column name
+
         protected string $updatedAt = 'modified'; // Custom column name
     }
 
-    $post = new CustomTimestampPost();
+    $post = new CustomTimestampPost;
     $post->title = 'Test';
     $result = $post->save();
 
@@ -225,14 +241,17 @@ test('touch method respects timestamps setting', function () {
         )
     ');
 
-    class WPComment extends Model {
+    class WPComment extends Model
+    {
         protected string $table = 'wp_comments';
+
         protected string $primaryKey = 'comment_ID';
+
         protected bool $timestamps = false;
     }
 
     $this->connection->table('wp_comments')->insert([
-        'comment_content' => 'Test comment'
+        'comment_content' => 'Test comment',
     ]);
 
     $comment = WPComment::find(1);

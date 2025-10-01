@@ -2,12 +2,11 @@
 
 use Bob\Database\Connection;
 use Bob\Query\Builder;
-use Bob\Database\Expression;
 
 beforeEach(function () {
     $this->connection = Mockery::mock(Connection::class);
-    $this->grammar = new \Bob\Query\Grammars\MySQLGrammar();
-    $this->processor = new \Bob\Query\Processor();
+    $this->grammar = new \Bob\Query\Grammars\MySQLGrammar;
+    $this->processor = new \Bob\Query\Processor;
 
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -32,8 +31,10 @@ test('addGlobalScope adds a closure scope', function () {
 });
 
 test('addGlobalScope adds a scope class', function () {
-    $scope = new class {
-        public function apply(Builder $builder, $model) {
+    $scope = new class
+    {
+        public function apply(Builder $builder, $model)
+        {
             $builder->where('published', true);
         }
     };
@@ -108,7 +109,7 @@ test('applyScopes applies closure scopes', function () {
 
     $scope = function (Builder $builder) {
         $builder->where('active', true)
-                ->where('published', true);
+            ->where('published', true);
     };
 
     $this->builder->addGlobalScope('filters', $scope);
@@ -120,24 +121,26 @@ test('applyScopes applies closure scopes', function () {
         'column' => 'active',
         'operator' => '=',
         'value' => true,
-        'boolean' => 'and'
+        'boolean' => 'and',
     ]);
     expect($this->builder->wheres[1])->toBe([
         'type' => 'Basic',
         'column' => 'published',
         'operator' => '=',
         'value' => true,
-        'boolean' => 'and'
+        'boolean' => 'and',
     ]);
 });
 
 test('applyScopes applies scope classes', function () {
     $this->builder->from('posts');
 
-    $scope = new class {
-        public function apply(Builder $builder, $model) {
+    $scope = new class
+    {
+        public function apply(Builder $builder, $model)
+        {
             $builder->where('status', 'active')
-                    ->orderBy('created_at', 'desc');
+                ->orderBy('created_at', 'desc');
         }
     };
 
@@ -150,12 +153,12 @@ test('applyScopes applies scope classes', function () {
         'column' => 'status',
         'operator' => '=',
         'value' => 'active',
-        'boolean' => 'and'
+        'boolean' => 'and',
     ]);
     expect($this->builder->orders)->toHaveCount(1);
     expect($this->builder->orders[0])->toBe([
         'column' => 'created_at',
-        'direction' => 'desc'
+        'direction' => 'desc',
     ]);
 });
 
@@ -180,7 +183,7 @@ test('applyScopes does not apply removed scopes', function () {
         'column' => 'published',
         'operator' => '=',
         'value' => true,
-        'boolean' => 'and'
+        'boolean' => 'and',
     ]);
 });
 
@@ -326,8 +329,10 @@ test('multiple global scopes are applied in order', function () {
 });
 
 test('withoutGlobalScope can remove scope by class name', function () {
-    $scopeClass = new class {
-        public function apply(Builder $builder, $model) {
+    $scopeClass = new class
+    {
+        public function apply(Builder $builder, $model)
+        {
             $builder->where('test', true);
         }
     };
@@ -343,7 +348,8 @@ test('withoutGlobalScope can remove scope by class name', function () {
 
 test('global scopes work with model integration', function () {
     // Create a test model class
-    $model = new class extends \Bob\Database\Model {
+    $model = new class extends \Bob\Database\Model
+    {
         protected string $table = 'posts';
     };
 
@@ -366,7 +372,7 @@ test('global scopes work with model integration', function () {
             true
         )
         ->andReturn([
-            ['id' => 1, 'title' => 'Test Post', 'post_type' => 'post']
+            ['id' => 1, 'title' => 'Test Post', 'post_type' => 'post'],
         ]);
 
     $results = $this->builder->get();
@@ -405,10 +411,10 @@ test('scope with complex query modifications', function () {
 
     $complexScope = function (Builder $builder) {
         $builder->where('status', 'active')
-                ->where('created_at', '>=', '2024-01-01')
-                ->whereNotNull('published_at')
-                ->orderBy('priority', 'desc')
-                ->orderBy('created_at', 'desc');
+            ->where('created_at', '>=', '2024-01-01')
+            ->whereNotNull('published_at')
+            ->orderBy('priority', 'desc')
+            ->orderBy('created_at', 'desc');
     };
 
     $this->builder->addGlobalScope('complex', $complexScope);

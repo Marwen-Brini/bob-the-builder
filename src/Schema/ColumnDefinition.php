@@ -18,6 +18,7 @@ class ColumnDefinition extends Fluent
     public function nullable(bool $value = true): self
     {
         $this->nullable = $value;
+
         return $this;
     }
 
@@ -27,6 +28,7 @@ class ColumnDefinition extends Fluent
     public function default(mixed $value): self
     {
         $this->default = $value;
+
         return $this;
     }
 
@@ -36,6 +38,7 @@ class ColumnDefinition extends Fluent
     public function unsigned(bool $value = true): self
     {
         $this->unsigned = $value;
+
         return $this;
     }
 
@@ -45,6 +48,7 @@ class ColumnDefinition extends Fluent
     public function autoIncrement(bool $value = true): self
     {
         $this->autoIncrement = $value;
+
         return $this;
     }
 
@@ -54,6 +58,7 @@ class ColumnDefinition extends Fluent
     public function primary(bool $value = true): self
     {
         $this->primary = $value;
+
         return $this;
     }
 
@@ -63,6 +68,7 @@ class ColumnDefinition extends Fluent
     public function unique(bool $value = true): self
     {
         $this->unique = $value;
+
         return $this;
     }
 
@@ -72,6 +78,7 @@ class ColumnDefinition extends Fluent
     public function index(bool $value = true): self
     {
         $this->index = $value;
+
         return $this;
     }
 
@@ -81,6 +88,7 @@ class ColumnDefinition extends Fluent
     public function fulltext(bool $value = true): self
     {
         $this->fulltext = $value;
+
         return $this;
     }
 
@@ -90,6 +98,7 @@ class ColumnDefinition extends Fluent
     public function spatialIndex(bool $value = true): self
     {
         $this->spatialIndex = $value;
+
         return $this;
     }
 
@@ -99,6 +108,7 @@ class ColumnDefinition extends Fluent
     public function comment(string $comment): self
     {
         $this->comment = $comment;
+
         return $this;
     }
 
@@ -108,6 +118,7 @@ class ColumnDefinition extends Fluent
     public function charset(string $charset): self
     {
         $this->charset = $charset;
+
         return $this;
     }
 
@@ -117,6 +128,7 @@ class ColumnDefinition extends Fluent
     public function collation(string $collation): self
     {
         $this->collation = $collation;
+
         return $this;
     }
 
@@ -126,6 +138,7 @@ class ColumnDefinition extends Fluent
     public function after(string $column): self
     {
         $this->after = $column;
+
         return $this;
     }
 
@@ -135,6 +148,7 @@ class ColumnDefinition extends Fluent
     public function first(): self
     {
         $this->first = true;
+
         return $this;
     }
 
@@ -144,6 +158,7 @@ class ColumnDefinition extends Fluent
     public function change(): self
     {
         $this->change = true;
+
         return $this;
     }
 
@@ -153,6 +168,7 @@ class ColumnDefinition extends Fluent
     public function useCurrent(): self
     {
         $this->useCurrent = true;
+
         return $this;
     }
 
@@ -162,6 +178,7 @@ class ColumnDefinition extends Fluent
     public function useCurrentOnUpdate(): self
     {
         $this->useCurrentOnUpdate = true;
+
         return $this;
     }
 
@@ -171,6 +188,7 @@ class ColumnDefinition extends Fluent
     public function virtualAs(string $expression): self
     {
         $this->virtualAs = $expression;
+
         return $this;
     }
 
@@ -180,6 +198,7 @@ class ColumnDefinition extends Fluent
     public function storedAs(string $expression): self
     {
         $this->storedAs = $expression;
+
         return $this;
     }
 
@@ -189,6 +208,7 @@ class ColumnDefinition extends Fluent
     public function generatedAs(string $expression): self
     {
         $this->generatedAs = $expression;
+
         return $this;
     }
 
@@ -198,6 +218,7 @@ class ColumnDefinition extends Fluent
     public function always(): self
     {
         $this->always = true;
+
         return $this;
     }
 
@@ -207,6 +228,7 @@ class ColumnDefinition extends Fluent
     public function invisible(): self
     {
         $this->invisible = true;
+
         return $this;
     }
 
@@ -216,6 +238,7 @@ class ColumnDefinition extends Fluent
     public function from(int $startingValue): self
     {
         $this->from = $startingValue;
+
         return $this;
     }
 
@@ -237,6 +260,7 @@ class ColumnDefinition extends Fluent
             'column' => $column,
             'indexName' => $indexName,
         ];
+
         return $this;
     }
 
@@ -246,6 +270,7 @@ class ColumnDefinition extends Fluent
     public function cascadeOnDelete(): self
     {
         $this->onDelete = 'cascade';
+
         return $this;
     }
 
@@ -255,6 +280,7 @@ class ColumnDefinition extends Fluent
     public function restrictOnDelete(): self
     {
         $this->onDelete = 'restrict';
+
         return $this;
     }
 
@@ -264,6 +290,7 @@ class ColumnDefinition extends Fluent
     public function cascadeOnUpdate(): self
     {
         $this->onUpdate = 'cascade';
+
         return $this;
     }
 
@@ -273,6 +300,7 @@ class ColumnDefinition extends Fluent
     public function restrictOnUpdate(): self
     {
         $this->onUpdate = 'restrict';
+
         return $this;
     }
 
@@ -282,6 +310,7 @@ class ColumnDefinition extends Fluent
     public function persisted(): self
     {
         $this->persisted = true;
+
         return $this;
     }
 }

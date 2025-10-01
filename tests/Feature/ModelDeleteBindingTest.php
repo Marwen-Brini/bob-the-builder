@@ -47,16 +47,21 @@ afterEach(function () {
     Model::clearConnection();
 });
 
-class TestBindingPost extends Model {
+class TestBindingPost extends Model
+{
     protected string $table = 'posts';
+
     protected bool $timestamps = false;
 }
 
-class TestBindingPostWithScopes extends Model {
+class TestBindingPostWithScopes extends Model
+{
     protected string $table = 'posts';
+
     protected bool $timestamps = false;
 
-    protected static function boot(): void {
+    protected static function boot(): void
+    {
         parent::boot();
         // This could add bindings that shouldn't be in delete
         static::addGlobalScope('published', function (Builder $builder) {

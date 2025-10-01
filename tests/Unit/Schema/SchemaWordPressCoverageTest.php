@@ -5,11 +5,9 @@
 // =============================================================================
 
 use Bob\Database\Connection;
-use Bob\Schema\Blueprint;
+use Bob\Schema\Grammars\MySQLGrammar;
 use Bob\Schema\Schema;
 use Bob\Schema\WordPressBlueprint;
-use Bob\Schema\Grammars\MySQLGrammar;
-use Bob\Schema\Grammars\SQLiteGrammar;
 
 beforeEach(function () {
     // Set up a mock connection
@@ -19,7 +17,7 @@ beforeEach(function () {
     $connection->shouldReceive('getConfig')->with('charset')->andReturn(null);
     $connection->shouldReceive('getConfig')->with('collation')->andReturn(null);
     $connection->shouldReceive('statement')->andReturn(true);
-    $connection->shouldReceive('getSchemaGrammar')->andReturn(new MySQLGrammar());
+    $connection->shouldReceive('getSchemaGrammar')->andReturn(new MySQLGrammar);
 
     Schema::setConnection($connection);
 });
@@ -38,15 +36,16 @@ test('createWordPress method (covers lines 63-67)', function () {
     $connection->shouldReceive('getConfig')->with('collation')->andReturn(null);
     $connection->shouldReceive('statement')
         ->once()
-        ->withArgs(function($sql) use (&$statementCalled) {
+        ->withArgs(function ($sql) use (&$statementCalled) {
             $statementCalled = true;
             // Check that SQL contains WordPress-specific features
             expect(strtolower($sql))->toContain('create table');
+
             return true;
         })
         ->andReturn(true);
 
-    $grammar = new MySQLGrammar();
+    $grammar = new MySQLGrammar;
     $connection->shouldReceive('getSchemaGrammar')->andReturn($grammar);
 
     Schema::setConnection($connection);
@@ -70,7 +69,7 @@ test('tableWordPress method (covers lines 86-89)', function () {
         ->atLeast()->once()
         ->andReturn(true);
 
-    $grammar = new MySQLGrammar();
+    $grammar = new MySQLGrammar;
     $connection->shouldReceive('getSchemaGrammar')->andReturn($grammar);
 
     Schema::setConnection($connection);
@@ -86,6 +85,48 @@ test('tableWordPress method (covers lines 86-89)', function () {
 });
 
 test('dropAllTables method (covers line 306)', function () {
-    expect(fn() => Schema::dropAllTables())
-        ->toThrow(\RuntimeException::class, 'Drop all tables is not yet implemented');
+    $connection = Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('sqlite');
+    $connection->shouldReceive('statement')->with('PRAGMA foreign_keys = OFF');
+    $connection->shouldReceive('select')
+        ->with("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        ->andReturn([]);
+    $connection->shouldReceive('statement')->with('PRAGMA foreign_keys = ON');
+
+    Schema::setConnection($connection);
+    Schema::dropAllTables();
+
+    expect(true)->toBeTrue();
+});
+
+test('wpTimestamps method calls wpDates (covers line 175)', function () {
+    $connection = \Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('mysql');
+    $connection->shouldReceive('getTablePrefix')->andReturn('');
+    $connection->shouldReceive('getConfig')->with('charset')->andReturn(null);
+    $connection->shouldReceive('getConfig')->with('collation')->andReturn(null);
+    $connection->shouldReceive('statement')
+        ->once()
+        ->withArgs(function ($sql) {
+            // Check that SQL contains the date columns created by wpDates
+            expect(strtolower($sql))->toContain('post_date')
+                ->and(strtolower($sql))->toContain('post_date_gmt')
+                ->and(strtolower($sql))->toContain('post_modified')
+                ->and(strtolower($sql))->toContain('post_modified_gmt');
+
+            return true;
+        })
+        ->andReturn(true);
+
+    $grammar = new MySQLGrammar;
+    $connection->shouldReceive('getSchemaGrammar')->andReturn($grammar);
+
+    Schema::setConnection($connection);
+
+    Schema::createWordPress('test_timestamps', function (WordPressBlueprint $table) {
+        $table->wpId();
+        $table->wpTimestamps(); // This should call wpDates internally
+    });
+
+    expect(true)->toBeTrue();
 });

@@ -1,8 +1,8 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
 use Mockery as m;
@@ -27,7 +27,7 @@ test('where with closure calls whereNested', function () {
 
     $builder->where(function ($query) {
         $query->where('name', 'John')
-              ->orWhere('name', 'Jane');
+            ->orWhere('name', 'Jane');
     });
 
     $wheres = $builder->wheres;
@@ -185,6 +185,7 @@ test('chunk stops when callback returns false', function () {
     $processed = 0;
     $result = $builder->chunk(2, function ($users) use (&$processed) {
         $processed++;
+
         return false; // Stop chunking
     });
 
@@ -269,7 +270,7 @@ test('join with closure', function () {
 
     $builder->join('posts', function ($join) {
         $join->on('users.id', '=', 'posts.user_id')
-             ->where('posts.published', '=', true);
+            ->where('posts.published', '=', true);
     });
 
     $joins = $builder->joins;

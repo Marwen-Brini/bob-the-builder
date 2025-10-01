@@ -1,11 +1,9 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
-use Bob\Database\Expression;
-use Bob\Query\JoinClause;
 use Mockery as m;
 
 beforeEach(function () {
@@ -299,6 +297,7 @@ test('Builder toRawSql replaces bindings in SQL', function () {
 // Test line 1910 - find with array of IDs
 test('Builder find with array of IDs', function () {
     $this->markTestSkipped('Complex mock setup');
+
     return;
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users where id in (?, ?)');
     // find() uses selectOne for single ID
@@ -322,7 +321,7 @@ test('Builder find with array of IDs', function () {
 test('Builder value returns single column value', function () {
     $this->grammar->shouldReceive('compileSelect')->andReturn('select name from users limit 1');
     $this->connection->shouldReceive('select')->andReturn([
-        (object) ['name' => 'John']
+        (object) ['name' => 'John'],
     ]);
     $this->connection->shouldReceive('selectOne')->andReturn((object) ['name' => 'John']);
     $this->processor->shouldReceive('processSelect')->andReturnUsing(function ($query, $results) {
@@ -343,7 +342,7 @@ test('Builder soleValue returns single value from sole record', function () {
 test('Builder get with columns array', function () {
     $this->grammar->shouldReceive('compileSelect')->andReturn('select id, name from users');
     $this->connection->shouldReceive('select')->andReturn([
-        (object) ['id' => 1, 'name' => 'John']
+        (object) ['id' => 1, 'name' => 'John'],
     ]);
     $this->processor->shouldReceive('processSelect')->andReturnUsing(function ($query, $results) {
         return $results;
@@ -357,6 +356,7 @@ test('Builder get with columns array', function () {
 // Test line 2008 - runSelect
 test('Builder runSelect handles pretend mode', function () {
     $this->markTestSkipped('Complex mock setup');
+
     return;
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users');
     $this->connection->shouldReceive('pretending')->andReturn(true);

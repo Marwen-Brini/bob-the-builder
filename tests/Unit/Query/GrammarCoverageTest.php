@@ -1,17 +1,16 @@
 <?php
 
-use Bob\Query\Grammar;
-use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
+use Bob\Query\Grammars\MySQLGrammar;
 use Bob\Query\Processor;
 use Mockery as m;
 
 beforeEach(function () {
     $this->connection = m::mock(Connection::class);
     $this->processor = m::mock(Processor::class);
-    $this->grammar = new MySQLGrammar();  // Use concrete implementation
+    $this->grammar = new MySQLGrammar;  // Use concrete implementation
 
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -44,7 +43,7 @@ test('Grammar compileInsert', function () {
     $builder = $this->builder->from('users');
 
     $sql = $this->grammar->compileInsert($builder, [
-        ['name' => 'John', 'email' => 'john@example.com']
+        ['name' => 'John', 'email' => 'john@example.com'],
     ]);
 
     expect($sql)->toContain('insert into');
@@ -57,7 +56,7 @@ test('Grammar compileInsertGetId', function () {
 
     $sql = $this->grammar->compileInsertGetId($builder, [
         'name' => 'John',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ], 'id');
 
     expect($sql)->toContain('insert into');
@@ -68,7 +67,7 @@ test('Grammar compileUpdate', function () {
 
     $sql = $this->grammar->compileUpdate($builder, [
         'name' => 'Jane',
-        'email' => 'jane@example.com'
+        'email' => 'jane@example.com',
     ]);
 
     expect($sql)->toContain('update');

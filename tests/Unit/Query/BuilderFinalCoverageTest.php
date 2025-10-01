@@ -1,27 +1,23 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
-use Bob\Query\Grammar;
-use Bob\Query\Processor;
-use Bob\Database\Model;
+use Bob\Query\Builder;
 use Bob\Query\Grammars\MySQLGrammar;
-use Bob\Query\JoinClause;
-use Bob\Database\Expression;
+use Bob\Query\Processor;
 
 describe('Builder Final Coverage Tests', function () {
 
     beforeEach(function () {
         $this->connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
-        $this->grammar = new MySQLGrammar();
-        $this->processor = new Processor();
+        $this->grammar = new MySQLGrammar;
+        $this->processor = new Processor;
         $this->builder = new Builder($this->connection, $this->grammar, $this->processor);
     });
 
     // Line 747: joinWhere method
     test('joinWhere adds join with additional where condition', function () {
         $this->builder->from('users')
-            ->joinWhere('posts', 'users.id', '=', 'posts.user_id', function($join) {
+            ->joinWhere('posts', 'users.id', '=', 'posts.user_id', function ($join) {
                 $join->where('posts.published', '=', 1);
             });
 
@@ -61,7 +57,7 @@ describe('Builder Final Coverage Tests', function () {
     // Line 1313: leftJoinWhere
     test('leftJoinWhere adds left join with where condition', function () {
         $this->builder->from('users')
-            ->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function($join) {
+            ->leftJoinWhere('posts', 'users.id', '=', 'posts.user_id', function ($join) {
                 $join->where('posts.status', '=', 'active');
             });
 
@@ -239,7 +235,7 @@ describe('Builder Final Coverage Tests', function () {
 
     test('whereJsonDoesntContain checks JSON field does not contain value', function () {
         // Check if the method exists first
-        if (!method_exists($this->builder, 'whereJsonDoesntContain')) {
+        if (! method_exists($this->builder, 'whereJsonDoesntContain')) {
             $this->markTestSkipped('whereJsonDoesntContain method not implemented');
         }
 
@@ -276,11 +272,14 @@ describe('Builder Final Coverage Tests', function () {
         $dumped = false;
 
         // Override dd to capture instead of exiting
-        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder {
+        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder
+        {
             public $dumped = false;
 
-            public function dd() {
+            public function dd()
+            {
                 $this->dumped = true;
+
                 return ['sql' => $this->toSql(), 'bindings' => $this->getBindings()];
             }
         };
@@ -295,11 +294,14 @@ describe('Builder Final Coverage Tests', function () {
 
     // Line 2275: dump
     test('dump outputs query and returns builder', function () {
-        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder {
+        $builder = new class($this->connection, $this->grammar, $this->processor) extends Builder
+        {
             public $dumped = false;
 
-            public function dump() {
+            public function dump()
+            {
                 $this->dumped = true;
+
                 return $this;
             }
         };
@@ -315,7 +317,7 @@ describe('Builder Final Coverage Tests', function () {
     test('stopPretending disables pretend mode', function () {
         // Check if stopPretending method exists
         $reflection = new ReflectionClass($this->builder);
-        if (!$reflection->hasMethod('stopPretending')) {
+        if (! $reflection->hasMethod('stopPretending')) {
             $this->markTestSkipped('stopPretending method not implemented');
         }
 

@@ -1,8 +1,8 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletingScope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -26,8 +26,8 @@ afterEach(function () {
 });
 
 test('apply adds whereNull constraint', function () {
-    $scope = new SoftDeletingScope();
-    $model = new SoftDeletingScopeTestModel();
+    $scope = new SoftDeletingScope;
+    $model = new SoftDeletingScopeTestModel;
 
     // Use a real builder instead of mock to avoid method not found issues
     $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
@@ -43,7 +43,7 @@ test('apply adds whereNull constraint', function () {
 });
 
 test('extend adds builder extensions', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
 
@@ -55,9 +55,9 @@ test('extend adds builder extensions', function () {
 });
 
 test('getDeletedAtColumn gets column from model', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
-    $model = new SoftDeletingScopeTestModel(); // Use real model that has the method
+    $model = new SoftDeletingScopeTestModel; // Use real model that has the method
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('getModel')
@@ -75,7 +75,7 @@ test('getDeletedAtColumn gets column from model', function () {
 });
 
 test('getDeletedAtColumn returns default when no model', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('getModel')
@@ -93,7 +93,7 @@ test('getDeletedAtColumn returns default when no model', function () {
 });
 
 test('addRestore adds restore macro', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')
@@ -109,7 +109,7 @@ test('addRestore adds restore macro', function () {
 });
 
 test('addWithTrashed adds withTrashed macro', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')
@@ -124,7 +124,7 @@ test('addWithTrashed adds withTrashed macro', function () {
 });
 
 test('addWithoutTrashed adds withoutTrashed macro', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')
@@ -139,7 +139,7 @@ test('addWithoutTrashed adds withoutTrashed macro', function () {
 });
 
 test('addOnlyTrashed adds onlyTrashed macro', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')
@@ -154,7 +154,7 @@ test('addOnlyTrashed adds onlyTrashed macro', function () {
 });
 
 test('addRestoreOrCreate adds restoreOrCreate macro', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')
@@ -169,7 +169,7 @@ test('addRestoreOrCreate adds restoreOrCreate macro', function () {
 });
 
 test('addCreateOrRestore adds createOrRestore macro', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('macro')
@@ -184,7 +184,7 @@ test('addCreateOrRestore adds createOrRestore macro', function () {
 });
 
 test('extensions property contains all extensions', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     $reflection = new ReflectionClass($scope);
     $prop = $reflection->getProperty('extensions');

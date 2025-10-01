@@ -172,12 +172,13 @@ class BobCommand
             }
 
             // For aggregates, don't execute in build mode
-            if (!$execute && $builder->aggregate) {
+            if (! $execute && $builder->aggregate) {
                 $this->success('Aggregate query detected:');
-                $this->output("Function: " . $builder->aggregate['function']);
+                $this->output('Function: '.$builder->aggregate['function']);
                 if (isset($builder->aggregate['columns'])) {
-                    $this->output("Columns: " . implode(', ', $builder->aggregate['columns']));
+                    $this->output('Columns: '.implode(', ', $builder->aggregate['columns']));
                 }
+
                 return 0;
             }
 
@@ -204,7 +205,7 @@ class BobCommand
             if ($execute) {
                 $this->info("\nExecuting query...");
                 $results = $builder->get();
-                $this->success("Results (" . count($results) . " rows):");
+                $this->success('Results ('.count($results).' rows):');
                 foreach ($results as $row) {
                     $this->output(json_encode($row));
                 }
@@ -223,6 +224,7 @@ class BobCommand
         if (count($args) < 2) {
             $this->error('Please provide driver and query.');
             $this->info("\nUsage: bob execute <driver> <query>");
+
             return 1;
         }
 
@@ -243,7 +245,7 @@ class BobCommand
 
             // Execute
             $results = $builder->get();
-            $this->success("Results (" . count($results) . " rows):");
+            $this->success('Results ('.count($results).' rows):');
 
             // Output as table or JSON based on flag
             foreach ($results as $row) {
@@ -253,6 +255,7 @@ class BobCommand
             return 0;
         } catch (Exception $e) {
             $this->error('Execution failed: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -262,6 +265,7 @@ class BobCommand
         if (empty($args)) {
             $this->error('Please provide driver and optional table name.');
             $this->info("\nUsage: bob schema <driver> [table]");
+
             return 1;
         }
 
@@ -277,12 +281,12 @@ class BobCommand
                 $columns = $this->getTableSchema($connection, $driver, $table);
                 $this->success("Schema for table '$table':");
                 foreach ($columns as $column) {
-                    $this->output("  - " . json_encode($column));
+                    $this->output('  - '.json_encode($column));
                 }
             } else {
                 // List all tables
                 $tables = $this->getTableList($connection, $driver);
-                $this->success("Available tables:");
+                $this->success('Available tables:');
                 foreach ($tables as $table) {
                     $this->output("  - $table");
                 }
@@ -291,6 +295,7 @@ class BobCommand
             return 0;
         } catch (Exception $e) {
             $this->error('Failed to get schema: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -300,6 +305,7 @@ class BobCommand
         if (count($args) < 2) {
             $this->error('Please provide driver and query.');
             $this->info("\nUsage: bob export <driver> <query> [--format=csv|json]");
+
             return 1;
         }
 
@@ -335,14 +341,14 @@ class BobCommand
                 // Output as CSV
                 if (count($results) > 0) {
                     // Headers
-                    $headers = array_keys((array)$results[0]);
+                    $headers = array_keys((array) $results[0]);
                     $this->output(implode(',', $headers));
 
                     // Data
                     foreach ($results as $row) {
-                        $values = array_map(function($v) {
-                            return is_string($v) ? '"' . str_replace('"', '""', $v) . '"' : $v;
-                        }, (array)$row);
+                        $values = array_map(function ($v) {
+                            return is_string($v) ? '"'.str_replace('"', '""', $v).'"' : $v;
+                        }, (array) $row);
                         $this->output(implode(',', $values));
                     }
                 }
@@ -354,6 +360,7 @@ class BobCommand
             return 0;
         } catch (Exception $e) {
             $this->error('Export failed: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -596,11 +603,11 @@ class BobCommand
                 return $connection->select("SHOW COLUMNS FROM `$table`");
 
             case 'pgsql':
-                return $connection->select("
+                return $connection->select('
                     SELECT column_name, data_type, is_nullable, column_default
                     FROM information_schema.columns
                     WHERE table_name = ?
-                ", [$table]);
+                ', [$table]);
 
             case 'sqlite':
                 return $connection->select("PRAGMA table_info($table)");
@@ -637,7 +644,7 @@ class BobCommand
             case 'mysql':
                 $results = $connection->select('SHOW TABLES');
 
-                return array_map(fn ($row) => array_values((array)$row)[0], $results);
+                return array_map(fn ($row) => array_values((array) $row)[0], $results);
 
             case 'pgsql':
                 $results = $connection->select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
@@ -858,7 +865,7 @@ class BobCommand
     /**
      * Display database version information
      *
-     * @param array|null $version The version query result
+     * @param  array|null  $version  The version query result
      */
     protected function displayDatabaseVersion(mixed $version): void
     {

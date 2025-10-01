@@ -1,12 +1,12 @@
 <?php
 
-use Bob\Query\Builder;
+use Bob\Contracts\BuilderInterface;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
-use Bob\Query\Processor;
-use Bob\Contracts\BuilderInterface;
 use Bob\Query\JoinClause;
+use Bob\Query\Processor;
 use Mockery as m;
 
 beforeEach(function () {
@@ -42,7 +42,7 @@ describe('Builder Uncovered Lines Tests', function () {
         $builder->where([
             ['status', '=', 'active'],
             ['role', 'admin'],
-            'name' => 'John'
+            'name' => 'John',
         ]);
 
         expect($builder->wheres)->toHaveCount(3);
@@ -107,7 +107,7 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $result = $builder->whereColumn([
             ['first_name', '=', 'last_name'],
-            ['updated_at', '>', 'created_at']
+            ['updated_at', '>', 'created_at'],
         ]);
 
         expect($result)->toBe($builder);
@@ -119,7 +119,7 @@ describe('Builder Uncovered Lines Tests', function () {
         $builder = new Builder($this->connection);
 
         $result = $builder->having('total', '>', 100)
-                          ->having('count', '<', 50);
+            ->having('count', '<', 50);
 
         expect($result)->toBe($builder);
         expect($builder->havings)->toHaveCount(2);
@@ -180,10 +180,10 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $this->grammar->shouldReceive('compileSelect')->andReturn('SELECT * FROM users WHERE id = ? LIMIT 1');
         $this->processor->shouldReceive('processSelect')->andReturn([
-            (object)['id' => 1, 'name' => 'John']
+            (object) ['id' => 1, 'name' => 'John'],
         ]);
         $this->connection->shouldReceive('selectOne')->andReturn(
-            (object)['id' => 1, 'name' => 'John']
+            (object) ['id' => 1, 'name' => 'John']
         );
 
         $result = $builder->find(1);
@@ -198,10 +198,10 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $this->grammar->shouldReceive('compileSelect')->andReturn('SELECT name FROM users LIMIT 1');
         $this->processor->shouldReceive('processSelect')->andReturn([
-            (object)['name' => 'John']
+            (object) ['name' => 'John'],
         ]);
         $this->connection->shouldReceive('selectOne')->andReturn(
-            (object)['name' => 'John']
+            (object) ['name' => 'John']
         );
 
         $result = $builder->value('name');
@@ -241,7 +241,7 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $values = [
             ['name' => 'John', 'email' => 'john@example.com'],
-            ['email' => 'jane@example.com', 'name' => 'Jane'] // Different order
+            ['email' => 'jane@example.com', 'name' => 'Jane'], // Different order
         ];
 
         $this->grammar->shouldReceive('compileInsertOrIgnore')
@@ -308,7 +308,7 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $values = [
             ['email' => 'john@example.com', 'name' => 'John'],
-            ['email' => 'jane@example.com', 'name' => 'Jane']
+            ['email' => 'jane@example.com', 'name' => 'Jane'],
         ];
 
         $this->grammar->shouldReceive('compileUpsert')
@@ -357,12 +357,12 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $this->grammar->shouldReceive('compileSelect')->andReturn('SELECT name, id FROM users');
         $this->processor->shouldReceive('processSelect')->andReturn([
-            (object)['id' => 1, 'name' => 'John'],
-            (object)['id' => 2, 'name' => 'Jane']
+            (object) ['id' => 1, 'name' => 'John'],
+            (object) ['id' => 2, 'name' => 'Jane'],
         ]);
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['id' => 1, 'name' => 'John'],
-            (object)['id' => 2, 'name' => 'Jane']
+            (object) ['id' => 1, 'name' => 'John'],
+            (object) ['id' => 2, 'name' => 'Jane'],
         ]);
 
         $result = $builder->pluck('name', 'id');
@@ -376,14 +376,14 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $this->grammar->shouldReceive('compileSelect')->andReturn('SELECT name FROM users');
         $this->processor->shouldReceive('processSelect')->andReturn([
-            (object)['name' => 'John'],
-            (object)['name' => 'Jane'],
-            (object)['name' => 'Bob']
+            (object) ['name' => 'John'],
+            (object) ['name' => 'Jane'],
+            (object) ['name' => 'Bob'],
         ]);
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['name' => 'John'],
-            (object)['name' => 'Jane'],
-            (object)['name' => 'Bob']
+            (object) ['name' => 'John'],
+            (object) ['name' => 'Jane'],
+            (object) ['name' => 'Bob'],
         ]);
 
         $result = $builder->implode('name', ', ');
@@ -397,10 +397,10 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $this->grammar->shouldReceive('compileExists')->andReturn('SELECT EXISTS(...) as exists');
         $this->processor->shouldReceive('processSelect')->andReturn([
-            (object)['exists' => 1]
+            (object) ['exists' => 1],
         ]);
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['exists' => 1]
+            (object) ['exists' => 1],
         ]);
 
         expect($builder->exists())->toBeTrue();
@@ -429,10 +429,10 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $this->grammar->shouldReceive('compileExists')->andReturn('SELECT EXISTS(...) as exists');
         $this->processor->shouldReceive('processSelect')->andReturn([
-            (object)['exists' => 1]
+            (object) ['exists' => 1],
         ]);
         $this->connection->shouldReceive('select')->andReturn([
-            (object)['exists' => 1]
+            (object) ['exists' => 1],
         ]);
 
         $called = false;
@@ -542,7 +542,7 @@ describe('Builder Uncovered Lines Tests', function () {
 
         $builder->whereColumn([
             ['first_name', '=', 'last_name'],
-            ['updated_at', '>', 'created_at']
+            ['updated_at', '>', 'created_at'],
         ]);
 
         expect($builder->wheres)->toHaveCount(2);

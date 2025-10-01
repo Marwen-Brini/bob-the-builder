@@ -70,7 +70,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         // Validate driver before proceeding
         $driver = $config['driver'] ?? 'mysql';
         $supportedDrivers = ['mysql', 'pgsql', 'postgres', 'postgresql', 'sqlite'];
-        if (!in_array($driver, $supportedDrivers)) {
+        if (! in_array($driver, $supportedDrivers)) {
             throw new \InvalidArgumentException("Database driver [{$driver}] not supported");
         }
 
@@ -204,6 +204,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -356,6 +357,7 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         // Return the first value from the result
         if (is_object($result)) {
             $values = get_object_vars($result);
+
             return reset($values);
         } elseif (is_array($result)) {
             return reset($result);
@@ -391,13 +393,14 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
         if (empty($query)) {
             return true;
         }
+
         return $this->statement($query, $bindings);
     }
 
     /**
      * Get the last insert ID from the database.
      *
-     * @param string|null $sequence The sequence name (for PostgreSQL)
+     * @param  string|null  $sequence  The sequence name (for PostgreSQL)
      * @return int|string The last insert ID
      */
     public function lastInsertId(?string $sequence = null): int|string
@@ -408,14 +411,15 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
     /**
      * Insert a record and get the ID.
      *
-     * @param string $table The table to insert into
-     * @param array $values The values to insert
-     * @param string|null $sequence The sequence name (for PostgreSQL)
+     * @param  string  $table  The table to insert into
+     * @param  array  $values  The values to insert
+     * @param  string|null  $sequence  The sequence name (for PostgreSQL)
      * @return int|string The inserted ID
      */
     public function insertGetId(string $table, array $values, ?string $sequence = null): int|string
     {
         $this->table($table)->insert($values);
+
         return $this->lastInsertId($sequence);
     }
 
@@ -757,5 +761,4 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
             $listener($query);
         }
     }
-
 }

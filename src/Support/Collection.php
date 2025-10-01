@@ -83,6 +83,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             } elseif (is_object($value) && method_exists($value, 'toArray')) {
                 return $value->toArray();
             }
+
             return $value;
         }, $this->items);
     }
@@ -302,6 +303,7 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             foreach ($keys as $key) {
                 $shuffled[$key] = $this->items[$key];
             }
+
             return new static($shuffled);
         }
 

@@ -1,5 +1,127 @@
 # What's New
 
+## v3.0.0 - Complete Migration System & Schema Builder 🎉
+
+### 🗄️ Major Release: Database Migrations & Schema Management
+
+Bob v3.0 introduces the most significant update since the ORM was added in v2.0! This release transforms Bob from a query builder + ORM into a **complete database toolkit** with full migration and schema management capabilities.
+
+### Database Migrations
+
+Bob now includes a comprehensive migration system:
+
+```php
+use Bob\Database\Migrations\Migration;
+use Bob\Schema\Schema;
+use Bob\Schema\Blueprint;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('email')->unique();
+            $table->string('password');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
+    }
+};
+```
+
+**Migration Features:**
+- ✅ Dependency resolution between migrations
+- ✅ Transaction support with automatic rollback on failure
+- ✅ Batch tracking for organized rollbacks
+- ✅ Lifecycle hooks (`before()`, `after()`)
+- ✅ Event system for logging and monitoring
+- ✅ Pretend mode for safe testing
+- ✅ Migration status and history tracking
+
+[Learn more about Database Migrations →](/guide/migrations)
+
+### Schema Builder
+
+Create and modify database tables with a fluent interface:
+
+```php
+Schema::create('posts', function (Blueprint $table) {
+    $table->id();
+    $table->string('title');
+    $table->string('slug')->unique();
+    $table->foreignId('author_id')->constrained('users');
+    $table->enum('status', ['draft', 'published'])->default('draft');
+    $table->timestamps();
+    $table->softDeletes();
+});
+```
+
+**Supported Operations:**
+- ✅ All standard column types (string, integer, decimal, json, etc.)
+- ✅ Column modifiers (nullable, default, unique, etc.)
+- ✅ Indexes (primary, unique, index, fulltext)
+- ✅ Foreign key constraints
+- ✅ Works across MySQL, PostgreSQL, and SQLite
+
+[Learn more about Schema Builder →](/guide/schema-builder)
+
+### WordPress Schema Helpers
+
+Specialized helpers for WordPress and WooCommerce:
+
+```php
+Schema::createWordPress('custom_posts', function (WordPressBlueprint $table) {
+    $table->wpPost();           // All standard WordPress post columns
+    $table->wpPostIndexes();    // Standard WordPress indexes
+});
+
+Schema::createWordPress('custom_meta', function (WordPressBlueprint $table) {
+    $table->wpMeta('custom');   // Instant meta table structure
+});
+```
+
+[Learn more about WordPress Schema →](/guide/wordpress-schema)
+
+### Schema Inspector
+
+Reverse engineer existing databases:
+
+```php
+$inspector = new Inspector($connection);
+
+// Get all tables
+$tables = $inspector->getTables();
+
+// Get detailed structure
+$columns = $inspector->getColumns('users');
+$indexes = $inspector->getIndexes('users');
+$foreignKeys = $inspector->getForeignKeys('users');
+
+// Auto-generate migration from existing table
+$migration = $inspector->generateMigration('users');
+```
+
+[Learn more about Schema Inspector →](/guide/schema-inspector)
+
+### 🔄 Backward Compatibility
+
+**All existing functionality remains 100% backward compatible!** The migration system is entirely new functionality that integrates seamlessly with your existing Bob code.
+
+### 📚 Complete Documentation
+
+New comprehensive guides:
+- [Database Migrations Guide](/guide/migrations)
+- [Schema Builder Reference](/guide/schema-builder)
+- [WordPress Schema Helpers](/guide/wordpress-schema)
+- [Schema Inspector Guide](/guide/schema-inspector)
+
+---
+
 ## v2.2.2 - 100% Test Coverage Achieved
 
 ### 🎯 Major Milestone

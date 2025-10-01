@@ -2,8 +2,6 @@
 
 namespace Bob\Database\Relations;
 
-use Bob\Database\Model;
-
 class HasMany extends HasOneOrMany
 {
     /**

@@ -2,16 +2,19 @@
 
 namespace Tests\Unit\Database;
 
-use Bob\Database\Model;
 use Bob\Database\Connection;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 
 // Test Models
 class Post extends Model
 {
     protected string $table = 'posts';
+
     protected string $primaryKey = 'id';
+
     protected array $fillable = ['id', 'title', 'content', 'post_type', 'author_id', 'parent_id'];
+
     protected string $postType = 'post';
 
     // Disable global scopes in relationships to fix the inheritance issue
@@ -54,7 +57,9 @@ class Page extends Post
 class User extends Model
 {
     protected string $table = 'users';
+
     protected string $primaryKey = 'id';
+
     protected array $fillable = ['id', 'name', 'email', 'status'];
 
     // Disable global scopes in relationships
@@ -246,7 +251,7 @@ test('global scopes affect eager loading', function () {
     foreach ($posts as $post) {
         if ($post->author_id === 1) {
             expect($post->author)->not->toBeNull();
-        } else if ($post->author_id === 2) {
+        } elseif ($post->author_id === 2) {
             // BUG: Author is null because they're inactive
             expect($post->author)->toBeNull();
         }

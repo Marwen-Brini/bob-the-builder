@@ -5,6 +5,149 @@ All notable changes to Bob Query Builder will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-10-01
+
+### Added - Complete Migration System & Schema Builder 🎉
+
+This is a **major release** introducing a comprehensive database migration and schema management system, transforming Bob from a query builder + ORM into a complete database toolkit.
+
+#### Schema Builder
+- **Schema Facade** - Static interface for database schema operations across all drivers
+  - `Schema::create()` - Create new tables with fluent Blueprint interface
+  - `Schema::table()` - Modify existing tables
+  - `Schema::drop()` / `Schema::dropIfExists()` - Remove tables
+  - `Schema::rename()` - Rename tables
+  - `Schema::hasTable()` / `Schema::hasColumn()` - Schema introspection
+  - `Schema::enableForeignKeyConstraints()` / `Schema::disableForeignKeyConstraints()` - Constraint management
+  - `Schema::withoutForeignKeyConstraints()` - Execute callbacks with constraints temporarily disabled
+
+- **Blueprint Class** - Comprehensive fluent interface for table definition
+  - **Column Types**: id, bigInteger, integer, smallInteger, tinyInteger, string, text, longText, mediumText, char, decimal, float, double, boolean, date, dateTime, timestamp, time, json, binary, uuid, enum, and more
+  - **Column Modifiers**: nullable(), default(), unique(), unsigned(), index(), primary(), comment(), after(), first()
+  - **Indexes**: primary(), unique(), index(), fullText(), spatialIndex()
+  - **Foreign Keys**: foreign()->references()->on()->onDelete()->onUpdate()
+  - **Table Modifications**: dropColumn(), renameColumn(), dropIndex(), dropForeign()
+  - **Timestamps**: timestamps(), softDeletes(), rememberToken()
+
+- **WordPress Blueprint** - Specialized helpers for WordPress/WooCommerce schemas
+  - `Schema::createWordPress()` - Create WordPress-style tables
+  - WordPress column helpers: wpId(), wpAuthor(), wpDatetime(), wpDates(), wpTitle(), wpContent(), wpStatus(), wpSlug()
+  - Complete table presets: wpPost(), wpUser(), wpMeta(), wpTaxonomy(), wpTerm(), wpOption(), wpComment()
+  - WooCommerce support: wcOrder(), wcOrderItem(), wcHposStructure()
+  - Foreign key helpers: wpForeignPost(), wpForeignUser(), wpForeignTerm()
+
+- **Schema Grammars** - Database-specific SQL compilation
+  - MySQLGrammar - MySQL/MariaDB schema operations
+  - PostgreSQLGrammar - PostgreSQL schema operations with native features
+  - SQLiteGrammar - SQLite schema operations with limitations handling
+
+#### Migration System
+- **Migration Class** - Base class for database migrations
+  - `up()` / `down()` - Define forward and reverse migrations
+  - `before()` / `after()` - Lifecycle hooks for setup/cleanup
+  - `dependencies()` - Declare migration dependencies
+  - `withinTransaction()` - Control transaction wrapping
+  - `shouldRun()` - Conditional migration execution
+  - `description()` / `version()` - Migration metadata
+
+- **MigrationRunner** - Complete migration lifecycle management
+  - `run()` - Execute pending migrations with dependency resolution
+  - `rollback()` - Rollback last batch or specific steps
+  - `reset()` - Rollback all migrations
+  - `refresh()` - Rollback and re-run all migrations
+  - `fresh()` - Drop all tables and run migrations from scratch
+  - `status()` - Get detailed migration status (ran, pending, batches)
+  - Dependency resolution with circular dependency detection
+  - Transaction support with automatic rollback on failure
+  - Batch tracking for organized rollbacks
+  - Execution time tracking for performance monitoring
+  - Pretend mode for safe migration testing
+
+- **MigrationRepository** - Migration state management
+  - Track executed migrations with timestamps and batch numbers
+  - Query migration history and status
+  - Support for custom migration table names
+  - Database-agnostic implementation
+
+- **Migration Events** - Comprehensive event system
+  - BEFORE_RUN / AFTER_RUN - Migration batch lifecycle
+  - BEFORE_MIGRATION / AFTER_MIGRATION - Individual migration execution
+  - BEFORE_ROLLBACK / AFTER_ROLLBACK - Rollback operations
+  - REPOSITORY_CREATED - Migration table creation
+  - STATUS_CHECK - Status queries
+  - ERROR - Migration failures
+  - PRETEND - Dry-run operations
+
+- **Event Dispatcher Interface** - PSR-14 compatible event system
+  - Hook into migration lifecycle for logging, monitoring, and custom workflows
+  - Support for custom event listeners and subscribers
+
+#### Schema Inspector
+- **Inspector Class** - Reverse engineer existing databases
+  - `getTables()` - List all tables in database
+  - `getColumns()` - Get detailed column information with types, defaults, and constraints
+  - `getIndexes()` - Extract index definitions
+  - `getForeignKeys()` - Discover foreign key relationships
+  - `generateMigration()` - Auto-generate migration files from existing tables
+  - Support for MySQL, PostgreSQL, and SQLite
+  - Intelligent type mapping for Blueprint column methods
+
+#### Additional Components
+- **MigrationCreator** - Generate migration file stubs
+- **DefaultMigrationLoader** - Load migration classes from files
+- **MigrationLoaderInterface** - Extensible migration loading system
+- **Seeder Base Class** - Foundation for database seeding (extensibility point)
+
+### Changed
+- **Breaking**: Schema operations now use `Schema` facade instead of direct Blueprint instantiation
+- **Breaking**: Migration files should extend `Bob\Database\Migrations\Migration` base class
+- Blueprint column methods now return ColumnDefinition for better fluent chaining
+- Enhanced Connection class with schema transaction support
+- Improved error messages for schema operations across all databases
+
+### Technical Details
+- 2000+ lines of new schema/migration code
+- Full test coverage for all new components
+- Database-specific implementations for MySQL, PostgreSQL, SQLite
+- PSR-4 autoloading for new namespaces (`Bob\Schema`, `Bob\Database\Migrations`, `Bob\Events`)
+- Comprehensive inline documentation and PHPDoc annotations
+
+### Migration Guide
+
+#### Creating Tables
+```php
+use Bob\Schema\Schema;
+
+Schema::create('users', function (Blueprint $table) {
+    $table->id();
+    $table->string('email')->unique();
+    $table->timestamps();
+});
+```
+
+#### Running Migrations
+```php
+use Bob\Database\Migrations\MigrationRunner;
+use Bob\Database\Migrations\MigrationRepository;
+
+$repository = new MigrationRepository($connection, 'migrations');
+$runner = new MigrationRunner($connection, $repository, ['/path/to/migrations']);
+$runner->run();
+```
+
+#### WordPress Integration
+```php
+Schema::createWordPress('custom_meta', function (WordPressBlueprint $table) {
+    $table->wpMeta('custom'); // Instant WordPress meta table
+});
+```
+
+### Upgrade Notes
+- Update `composer.json` to require `^3.0`
+- Existing query builder and ORM functionality remains **100% backward compatible**
+- Migration system is entirely new - no breaking changes to existing code
+- Schema builder integrates seamlessly with existing Connection instances
+
 ## [2.2.2] - 2025-01-27
 
 ### Added

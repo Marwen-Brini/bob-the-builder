@@ -1,7 +1,7 @@
 <?php
 
-use Bob\Database\ConnectionPool;
 use Bob\Database\Connection;
+use Bob\Database\ConnectionPool;
 use Mockery as m;
 
 describe('ConnectionPool Full Coverage Tests', function () {

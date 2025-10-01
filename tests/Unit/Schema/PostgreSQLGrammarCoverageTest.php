@@ -4,13 +4,13 @@
 // CONVERTED TO PEST - Original PHPUnit code commented below for reference
 // =============================================================================
 
-use Bob\Schema\Blueprint;
-use Bob\Schema\Grammars\PostgreSQLGrammar;
-use Bob\Schema\Fluent;
 use Bob\Database\Connection;
+use Bob\Schema\Blueprint;
+use Bob\Schema\Fluent;
+use Bob\Schema\Grammars\PostgreSQLGrammar;
 
 beforeEach(function () {
-    $this->grammar = new PostgreSQLGrammar();
+    $this->grammar = new PostgreSQLGrammar;
 
     $this->connection = \Mockery::mock(Connection::class);
     $this->connection->shouldReceive('getTablePrefix')->andReturn('');
@@ -29,6 +29,7 @@ function callProtectedMethodPostgreSQL($object, $method, ...$args)
     $reflection = new ReflectionClass($object);
     $reflectionMethod = $reflection->getMethod($method);
     $reflectionMethod->setAccessible(true);
+
     return $reflectionMethod->invoke($object, ...$args);
 }
 
@@ -45,7 +46,7 @@ test('compile change column with nullable (covers lines 83-85)', function () {
     $addColumnMethod->invoke($blueprint, 'string', 'test_col', $column->toArray());
 
     $change = $this->grammar->compileChange($blueprint, new Fluent([
-        'name' => 'change'
+        'name' => 'change',
     ]), $this->connection);
 
     expect($change)->toContain('drop not null');
@@ -59,7 +60,7 @@ test('compile change column with default (covers lines 89-94)', function () {
         'name' => 'test_col',
         'type' => 'string',
         'default' => "'test_default'",
-        'change' => true
+        'change' => true,
     ]);
 
     // Use reflection to access protected addColumn method
@@ -69,7 +70,7 @@ test('compile change column with default (covers lines 89-94)', function () {
     $addColumnMethod->invoke($blueprint, 'string', 'test_col', $column->toArray());
 
     $change = $this->grammar->compileChange($blueprint, new Fluent([
-        'name' => 'change'
+        'name' => 'change',
     ]), $this->connection);
 
     expect($change)->toContain('set default');
@@ -101,7 +102,7 @@ test('type timestampTz with useCurrent (covers line 443)', function () {
     $column = new Fluent([
         'type' => 'timestampTz',
         'useCurrent' => true,
-        'precision' => 6
+        'precision' => 6,
     ]);
 
     $result = callProtectedMethodPostgreSQL($this->grammar, 'typeTimestampTz', $column);
@@ -120,7 +121,7 @@ test('type computed (covers line 558)', function () {
 test('format postGis type with geography (covers lines 567-570)', function () {
     $column = new Fluent([
         'isGeography' => true,
-        'srid' => 3857
+        'srid' => 3857,
     ]);
 
     $result = callProtectedMethodPostgreSQL($this->grammar, 'formatPostGisType', 'point', $column);
@@ -130,7 +131,7 @@ test('format postGis type with geography (covers lines 567-570)', function () {
 
 test('format postGis type with geography default srid (covers line 571)', function () {
     $column = new Fluent([
-        'isGeography' => true
+        'isGeography' => true,
         // No srid specified, should use default 4326
     ]);
 
@@ -142,7 +143,7 @@ test('format postGis type with geography default srid (covers line 571)', functi
 test('format postGis type with geometry srid (covers line 575)', function () {
     $column = new Fluent([
         'isGeography' => false,
-        'srid' => 2154
+        'srid' => 2154,
     ]);
 
     $result = callProtectedMethodPostgreSQL($this->grammar, 'formatPostGisType', 'polygon', $column);
@@ -153,7 +154,7 @@ test('format postGis type with geometry srid (covers line 575)', function () {
 test('modify nullable with false (covers line 603)', function () {
     $blueprint = new Blueprint('test_table');
     $column = new Fluent([
-        'nullable' => false
+        'nullable' => false,
     ]);
 
     $result = callProtectedMethodPostgreSQL($this->grammar, 'modifyNullable', $blueprint, $column);
@@ -194,7 +195,7 @@ test('column types via blueprint', function () {
 test('postGis type variations', function () {
     // Test geometry without SRID (should return just 'geometry')
     $geometryColumn = new Fluent([
-        'isGeography' => false
+        'isGeography' => false,
         // No srid property
     ]);
     $geometryResult = callProtectedMethodPostgreSQL($this->grammar, 'formatPostGisType', 'point', $geometryColumn);
@@ -203,7 +204,7 @@ test('postGis type variations', function () {
     // Test geography with custom SRID
     $geographyColumn = new Fluent([
         'isGeography' => true,
-        'srid' => 4269
+        'srid' => 4269,
     ]);
     $geographyResult = callProtectedMethodPostgreSQL($this->grammar, 'formatPostGisType', 'multipoint', $geographyColumn);
     expect($geographyResult)->toBe('geography(MULTIPOINT, 4269)');
@@ -237,7 +238,7 @@ test('complete change column scenario', function () {
         'type' => 'string',
         'nullable' => true,  // Set to true to trigger 'drop not null'
         'default' => "'complex_default'",
-        'change' => true
+        'change' => true,
     ]);
 
     // Use reflection to access protected addColumn method
@@ -247,7 +248,7 @@ test('complete change column scenario', function () {
     $addColumnMethod->invoke($blueprint, 'string', 'complex_col', $column->toArray());
 
     $sql = $this->grammar->compileChange($blueprint, new Fluent([
-        'name' => 'change'
+        'name' => 'change',
     ]), $this->connection);
 
     // Should contain both nullable and default modifications

@@ -11,7 +11,6 @@ use Bob\Database\Migrations\Migration;
 use Bob\Database\Migrations\MigrationRepository;
 use Bob\Database\Migrations\MigrationRunner;
 use Bob\Schema\Schema;
-use Bob\Schema\Blueprint;
 
 beforeEach(function () {
     $this->connection = new Connection([
@@ -22,11 +21,11 @@ beforeEach(function () {
     Schema::setConnection($this->connection);
 
     $this->repository = new MigrationRepository($this->connection);
-    $this->migrationPath = __DIR__ . '/stubs';
+    $this->migrationPath = __DIR__.'/stubs';
     $this->runner = new MigrationRunner($this->connection, $this->repository, [$this->migrationPath]);
 
     // Create migration stubs directory
-    if (!is_dir($this->migrationPath)) {
+    if (! is_dir($this->migrationPath)) {
         mkdir($this->migrationPath, 0755, true);
     }
 
@@ -47,13 +46,13 @@ function cleanupMigrationsRunner(string $migrationPath): void
 
     // Clean up migration files
     if (is_dir($migrationPath)) {
-        array_map('unlink', glob($migrationPath . '/*.php'));
+        array_map('unlink', glob($migrationPath.'/*.php'));
     }
 }
 
 function createMigrationFile(string $migrationPath, string $name, string $className, callable $content): void
 {
-    $filePath = $migrationPath . '/' . $name . '.php';
+    $filePath = $migrationPath.'/'.$name.'.php';
     $content = $content();
     // Replace all known class names with the provided className
     $content = str_replace('CreateTestTable', $className, $content);
@@ -161,7 +160,7 @@ test('create migration repository', function () {
 
 test('run single migration', function () {
     // Create a migration file
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_test_table', 'CreateTestTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_test_table', 'CreateTestTable', function () {
         return getSimpleTableMigration();
     });
 
@@ -178,11 +177,11 @@ test('run single migration', function () {
 
 test('run multiple migrations', function () {
     // Create multiple migration files
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function () {
         return getUsersTableMigration();
     });
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function () {
         return getPostsTableMigration();
     });
 
@@ -199,7 +198,7 @@ test('run multiple migrations', function () {
 })->group('feature', 'migrations');
 
 test('rollback last batch', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_test_table', 'CreateTestTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_test_table', 'CreateTestTable', function () {
         return getSimpleTableMigration();
     });
 
@@ -219,17 +218,17 @@ test('rollback last batch', function () {
 
 test('rollback by steps', function () {
     // Create and run 3 migrations in different batches
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function () {
         return getUsersTableMigration();
     });
     $this->runner->run(); // Batch 1
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function () {
         return getPostsTableMigration();
     });
     $this->runner->run(); // Batch 2
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000003_create_test_table', 'CreateTestTable3', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000003_create_test_table', 'CreateTestTable3', function () {
         return getSimpleTableMigration();
     });
     $this->runner->run(); // Batch 3
@@ -244,11 +243,11 @@ test('rollback by steps', function () {
 })->group('feature', 'migrations');
 
 test('reset all migrations', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function () {
         return getUsersTableMigration();
     });
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function () {
         return getPostsTableMigration();
     });
 
@@ -270,7 +269,7 @@ test('reset all migrations', function () {
 })->group('feature', 'migrations');
 
 test('refresh migrations', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function () {
         return getUsersTableMigration();
     });
 
@@ -290,11 +289,11 @@ test('refresh migrations', function () {
 })->group('feature', 'migrations');
 
 test('migration status', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_users_table', 'CreateUsersTable', function () {
         return getUsersTableMigration();
     });
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000002_create_posts_table', 'CreatePostsTable', function () {
         return getPostsTableMigration();
     });
 
@@ -313,7 +312,7 @@ test('migration status', function () {
 })->group('feature', 'migrations');
 
 test('migration with transaction', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_transactional_migration', 'TransactionalMigration', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_transactional_migration', 'TransactionalMigration', function () {
         return <<<'PHP'
 <?php
 
@@ -348,7 +347,7 @@ PHP;
     });
 
     // Migration should fail and rollback
-    expect(fn() => $this->runner->run())
+    expect(fn () => $this->runner->run())
         ->toThrow(Exception::class);
 
     // Table should not exist due to transaction rollback
@@ -356,13 +355,13 @@ PHP;
 })->group('feature', 'migrations');
 
 test('pretend mode', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_test_table', 'CreateTestTable', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_create_test_table', 'CreateTestTable', function () {
         return getSimpleTableMigration();
     });
 
     // Capture output
     $output = [];
-    $this->runner->setOutput(function($message) use (&$output) {
+    $this->runner->setOutput(function ($message) use (&$output) {
         $output[] = $message;
     });
 
@@ -377,15 +376,15 @@ test('pretend mode', function () {
 })->group('feature', 'migrations');
 
 test('get migration files', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_first', 'First', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_first', 'First', function () {
         return getSimpleTableMigration();
     });
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000003_third', 'Third', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000003_third', 'Third', function () {
         return getSimpleTableMigration();
     });
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000002_second', 'Second', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000002_second', 'Second', function () {
         return getSimpleTableMigration();
     });
 
@@ -399,7 +398,7 @@ test('get migration files', function () {
 })->group('feature', 'migrations');
 
 test('migration batches', function () {
-    createMigrationFile($this->migrationPath, '2024_01_01_000001_batch_one', 'BatchOne', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000001_batch_one', 'BatchOne', function () {
         return getSimpleTableMigration();
     });
 
@@ -407,7 +406,7 @@ test('migration batches', function () {
     $this->runner->run();
     $batch1 = $this->repository->getLastBatchNumber();
 
-    createMigrationFile($this->migrationPath, '2024_01_01_000002_batch_two', 'BatchTwo', function() {
+    createMigrationFile($this->migrationPath, '2024_01_01_000002_batch_two', 'BatchTwo', function () {
         return getUsersTableMigration();
     });
 
@@ -424,4 +423,3 @@ test('migration batches', function () {
     expect($batch1Migrations)->toHaveCount(1);
     expect($batch2Migrations)->toHaveCount(1);
 })->group('feature', 'migrations');
-

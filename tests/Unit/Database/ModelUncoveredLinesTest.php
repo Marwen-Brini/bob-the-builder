@@ -1,8 +1,8 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\Scope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -10,11 +10,12 @@ use Mockery as m;
  * Tests for uncovered lines in Model class
  * Targeting lines 254, 536, 565, 1315-1318
  */
-
 class UncoveredLinesTestModel extends Model
 {
     protected string $table = 'coverage_model';
+
     protected string $primaryKey = 'id';
+
     protected bool $timestamps = false;
 }
 
@@ -49,7 +50,7 @@ test('line 254: early return when class_uses returns false', function () {
     // We can test that bootTraits handles this gracefully
 
     // Create a mock that simulates a class with no traits
-    $model = new UncoveredLinesTestModel();
+    $model = new UncoveredLinesTestModel;
 
     // Use reflection to call bootTraits
     $reflection = new ReflectionClass($model);
@@ -102,7 +103,7 @@ test('lines 1315-1318: newQueryWithoutScopes creates builder without scopes', fu
         $builder->where('active', 1);
     });
 
-    $model = new UncoveredLinesTestModel();
+    $model = new UncoveredLinesTestModel;
 
     // Call newQueryWithoutScopes - this executes lines 1315-1318
     $builder = $model->newQueryWithoutScopes();
@@ -146,7 +147,7 @@ test('line 536: addGlobalScope with string key and Closure implementation', func
 
 test('line 565: getGlobalScope with Scope class that exists', function () {
     // Add a scope by class
-    $scope = new TestScope();
+    $scope = new TestScope;
     UncoveredLinesTestModel::addGlobalScope($scope);
 
     // Retrieve it by class name
@@ -159,18 +160,18 @@ test('multiple paths through addGlobalScope method', function () {
     // Test all three paths through addGlobalScope
 
     // Path 1: String key with implementation (line 534)
-    UncoveredLinesTestModel::addGlobalScope('named', function($b) {
+    UncoveredLinesTestModel::addGlobalScope('named', function ($b) {
         $b->where('named', true);
     });
 
     // Path 2: Closure only (line 536)
-    $closure = function($b) {
+    $closure = function ($b) {
         $b->where('closure', true);
     };
     UncoveredLinesTestModel::addGlobalScope($closure);
 
     // Path 3: Scope instance (line 538)
-    $scopeInstance = new TestScope();
+    $scopeInstance = new TestScope;
     UncoveredLinesTestModel::addGlobalScope($scopeInstance);
 
     // Verify all three were added

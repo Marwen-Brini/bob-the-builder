@@ -69,11 +69,11 @@ test('whereIn with Builder subquery', function () {
 test('whereIn with Closure subquery', function () {
     // Use a closure for the subquery
     $posts = $this->connection->table('posts')
-        ->whereIn('id', function($query) {
+        ->whereIn('id', function ($query) {
             $query->from('post_meta')
-                  ->select('post_id')
-                  ->where('meta_key', 'featured')
-                  ->where('meta_value', 'yes');
+                ->select('post_id')
+                ->where('meta_key', 'featured')
+                ->where('meta_value', 'yes');
         })
         ->get();
 
@@ -106,11 +106,11 @@ test('complex whereIn with multiple conditions in subquery', function () {
         ->select('post_id')
         ->where('meta_key', 'featured')
         ->where('meta_value', 'yes')
-        ->whereExists(function($q) {
+        ->whereExists(function ($q) {
             $q->from('post_meta as pm2')
-              ->whereRaw('pm2.post_id = post_meta.post_id')
-              ->where('pm2.meta_key', 'priority')
-              ->where('pm2.meta_value', 'high');
+                ->whereRaw('pm2.post_id = post_meta.post_id')
+                ->where('pm2.meta_key', 'priority')
+                ->where('pm2.meta_value', 'high');
         });
 
     $posts = $this->connection->table('posts')
@@ -151,8 +151,10 @@ test('whereIn generates correct SQL with subquery', function () {
     expect($sql)->toContain('where "meta_key" = ?');
 });
 
-class TestSubqueryPost extends Model {
+class TestSubqueryPost extends Model
+{
     protected string $table = 'posts';
+
     protected bool $timestamps = false;
 }
 

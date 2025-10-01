@@ -6,7 +6,6 @@
 
 use Bob\Schema\Blueprint;
 use Bob\Schema\ColumnDefinition;
-use Bob\Schema\Fluent;
 
 beforeEach(function () {
     $this->blueprint = new Blueprint('test_table');
@@ -106,7 +105,7 @@ test('adding indexes', function () {
     $commands = $this->blueprint->getCommands();
 
     // Find index commands
-    $indexCommands = array_filter($commands, fn($cmd) => $cmd->name === 'index');
+    $indexCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'index');
     expect($indexCommands)->toHaveCount(2);
 });
 
@@ -114,7 +113,7 @@ test('adding primary key', function () {
     $this->blueprint->primary(['id']);
 
     $commands = $this->blueprint->getCommands();
-    $primaryCommand = array_filter($commands, fn($cmd) => $cmd->name === 'primary');
+    $primaryCommand = array_filter($commands, fn ($cmd) => $cmd->name === 'primary');
 
     expect($primaryCommand)->toHaveCount(1);
     $primary = array_values($primaryCommand)[0];
@@ -126,7 +125,7 @@ test('adding unique index', function () {
     $this->blueprint->unique(['username']);
 
     $commands = $this->blueprint->getCommands();
-    $uniqueCommands = array_filter($commands, fn($cmd) => $cmd->name === 'unique');
+    $uniqueCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'unique');
 
     expect($uniqueCommands)->toHaveCount(2);
 });
@@ -138,7 +137,7 @@ test('adding foreign key', function () {
         ->cascadeOnDelete();
 
     $commands = $this->blueprint->getCommands();
-    $foreignCommand = array_filter($commands, fn($cmd) => $cmd->name === 'foreign');
+    $foreignCommand = array_filter($commands, fn ($cmd) => $cmd->name === 'foreign');
 
     expect($foreignCommand)->toHaveCount(1);
     $fk = array_values($foreignCommand)[0];
@@ -153,7 +152,7 @@ test('drop column', function () {
     $this->blueprint->dropColumn(['col1', 'col2']);
 
     $commands = $this->blueprint->getCommands();
-    $dropCommands = array_filter($commands, fn($cmd) => $cmd->name === 'dropColumn');
+    $dropCommands = array_filter($commands, fn ($cmd) => $cmd->name === 'dropColumn');
 
     expect($dropCommands)->toHaveCount(2);
 });
@@ -162,7 +161,7 @@ test('rename column', function () {
     $this->blueprint->renameColumn('old_name', 'new_name');
 
     $commands = $this->blueprint->getCommands();
-    $renameCommand = array_filter($commands, fn($cmd) => $cmd->name === 'renameColumn');
+    $renameCommand = array_filter($commands, fn ($cmd) => $cmd->name === 'renameColumn');
 
     expect($renameCommand)->toHaveCount(1);
     $rename = array_values($renameCommand)[0];
@@ -174,7 +173,7 @@ test('table creation', function () {
     $this->blueprint->create();
 
     $commands = $this->blueprint->getCommands();
-    $createCommand = array_filter($commands, fn($cmd) => $cmd->name === 'create');
+    $createCommand = array_filter($commands, fn ($cmd) => $cmd->name === 'create');
 
     expect($createCommand)->toHaveCount(1);
 });
@@ -183,14 +182,14 @@ test('table drop', function () {
     $this->blueprint->drop();
 
     $commands = $this->blueprint->getCommands();
-    $dropCommand = array_filter($commands, fn($cmd) => $cmd->name === 'drop');
+    $dropCommand = array_filter($commands, fn ($cmd) => $cmd->name === 'drop');
 
     expect($dropCommand)->toHaveCount(1);
 });
 
 test('after column', function () {
     $this->blueprint->string('email');
-    $this->blueprint->after('email', function($table) {
+    $this->blueprint->after('email', function ($table) {
         $table->string('phone');
         $table->string('address');
     });
@@ -234,9 +233,9 @@ test('all numeric types', function () {
     $columns = $this->blueprint->getColumns();
     expect($columns)->toHaveCount(8);
 
-    $types = array_map(fn($col) => $col->type, $columns);
+    $types = array_map(fn ($col) => $col->type, $columns);
     expect($types)->toBe(['tinyInteger', 'smallInteger', 'mediumInteger', 'integer',
-                       'bigInteger', 'float', 'double', 'decimal']);
+        'bigInteger', 'float', 'double', 'decimal']);
 });
 
 test('all date types', function () {
@@ -252,9 +251,9 @@ test('all date types', function () {
     $columns = $this->blueprint->getColumns();
     expect($columns)->toHaveCount(8);
 
-    $types = array_map(fn($col) => $col->type, $columns);
+    $types = array_map(fn ($col) => $col->type, $columns);
     expect($types)->toBe(['date', 'dateTime', 'dateTimeTz', 'time',
-                       'timeTz', 'timestamp', 'timestampTz', 'year']);
+        'timeTz', 'timestamp', 'timestampTz', 'year']);
 });
 
 test('all text types', function () {
@@ -268,7 +267,7 @@ test('all text types', function () {
     $columns = $this->blueprint->getColumns();
     expect($columns)->toHaveCount(6);
 
-    $types = array_map(fn($col) => $col->type, $columns);
+    $types = array_map(fn ($col) => $col->type, $columns);
     expect($types)->toBe(['char', 'string', 'tinyText', 'text', 'mediumText', 'longText']);
 });
 
@@ -283,6 +282,6 @@ test('special types', function () {
     $columns = $this->blueprint->getColumns();
     expect($columns)->toHaveCount(6);
 
-    $types = array_map(fn($col) => $col->type, $columns);
+    $types = array_map(fn ($col) => $col->type, $columns);
     expect($types)->toBe(['binary', 'uuid', 'ipAddress', 'macAddress', 'geometry', 'point']);
 });

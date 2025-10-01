@@ -265,7 +265,7 @@ test('Collection search with callback function', function () {
     $collection = new Collection([
         ['id' => 1, 'name' => 'John'],
         ['id' => 2, 'name' => 'Jane'],
-        ['id' => 3, 'name' => 'Bob']
+        ['id' => 3, 'name' => 'Bob'],
     ]);
 
     $result = $collection->search(function ($item) {
@@ -302,8 +302,10 @@ test('Collection getArrayableItems with Collection instance', function () {
 });
 
 test('Collection getArrayableItems with JsonSerializable', function () {
-    $jsonable = new class implements JsonSerializable {
-        public function jsonSerialize(): array {
+    $jsonable = new class implements JsonSerializable
+    {
+        public function jsonSerialize(): array
+        {
             return ['foo' => 'bar', 'baz' => 'qux'];
         }
     };
@@ -323,7 +325,7 @@ test('Collection collapse static method', function () {
     $result = Collection::collapse([
         [1, 2, 3],
         [4, 5, 6],
-        [7, 8, 9]
+        [7, 8, 9],
     ]);
 
     expect($result)->toBe([1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -334,7 +336,7 @@ test('Collection collapse with non-array values', function () {
         [1, 2],
         'string',
         [3, 4],
-        5
+        5,
     ]);
 
     expect($result)->toBe([1, 2, 'string', 3, 4, 5]);
@@ -351,9 +353,9 @@ test('Collection dataGet with nested dot notation', function () {
     $target = [
         'user' => [
             'profile' => [
-                'name' => 'John Doe'
-            ]
-        ]
+                'name' => 'John Doe',
+            ],
+        ],
     ];
 
     $result = Collection::dataGet($target, 'user.profile.name');
@@ -367,9 +369,9 @@ test('Collection dataGet with array key', function () {
     $target = [
         'user' => [
             'profile' => [
-                'name' => 'John Doe'
-            ]
-        ]
+                'name' => 'John Doe',
+            ],
+        ],
     ];
 
     $result = Collection::dataGet($target, ['user', 'profile', 'name']);
@@ -381,8 +383,8 @@ test('Collection dataGet with wildcard', function () {
         'users' => [
             ['name' => 'John', 'age' => 30],
             ['name' => 'Jane', 'age' => 25],
-            ['name' => 'Bob', 'age' => 35]
-        ]
+            ['name' => 'Bob', 'age' => 35],
+        ],
     ];
 
     $names = Collection::dataGet($target, 'users.*.name');
@@ -400,8 +402,8 @@ test('Collection dataGet with nested wildcards', function () {
     $target = [
         'groups' => [
             ['users' => [['name' => 'John'], ['name' => 'Jane']]],
-            ['users' => [['name' => 'Bob'], ['name' => 'Alice']]]
-        ]
+            ['users' => [['name' => 'Bob'], ['name' => 'Alice']]],
+        ],
     ];
 
     $names = Collection::dataGet($target, 'groups.*.users.*.name');
@@ -411,8 +413,8 @@ test('Collection dataGet with nested wildcards', function () {
 test('Collection dataGet with object properties', function () {
     $target = (object) [
         'user' => (object) [
-            'name' => 'John Doe'
-        ]
+            'name' => 'John Doe',
+        ],
     ];
 
     $result = Collection::dataGet($target, 'user.name');
@@ -427,7 +429,7 @@ test('Collection unique with key', function () {
         ['id' => 1, 'name' => 'John'],
         ['id' => 2, 'name' => 'Jane'],
         ['id' => 3, 'name' => 'John'],
-        ['id' => 4, 'name' => 'Bob']
+        ['id' => 4, 'name' => 'Bob'],
     ]);
 
     $unique = $collection->unique('name');
@@ -440,7 +442,7 @@ test('Collection unique with callback', function () {
         ['id' => 1, 'category' => ['name' => 'A']],
         ['id' => 2, 'category' => ['name' => 'B']],
         ['id' => 3, 'category' => ['name' => 'A']],
-        ['id' => 4, 'category' => ['name' => 'C']]
+        ['id' => 4, 'category' => ['name' => 'C']],
     ]);
 
     $unique = $collection->unique(function ($item) {

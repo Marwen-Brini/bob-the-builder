@@ -1,25 +1,32 @@
 <?php
 
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
-use Bob\Database\Model;
-use Bob\Database\Expression;
 use Mockery as m;
 
 // Create test models
-class TestUser extends Model {
+class TestUser extends Model
+{
     protected string $table = 'users';
+
     protected string $primaryKey = 'id';
+
     protected string $keyType = 'int';
+
     public bool $timestamps = true;
 }
 
-class TestPost extends Model {
+class TestPost extends Model
+{
     protected string $table = 'posts';
+
     protected string $primaryKey = 'id';
+
     protected string $keyType = 'int';
+
     public bool $timestamps = false;
 }
 
@@ -40,7 +47,7 @@ afterEach(function () {
 
 // Test getModel and setModel
 test('Builder getModel and setModel work with Model instances', function () {
-    $model = new TestUser();
+    $model = new TestUser;
 
     expect($this->builder->getModel())->toBeNull();
 
@@ -51,14 +58,14 @@ test('Builder getModel and setModel work with Model instances', function () {
 
 // Test line 1910 - find with single ID returns Model when model is set
 test('Builder find with single ID returns Model instance when model is set', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users where id = ? limit 1');
     $this->connection->shouldReceive('selectOne')->andReturn(
         (object) ['id' => 1, 'name' => 'John']
     );
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $result = $this->builder->from('users')->find(1);
 
@@ -69,15 +76,15 @@ test('Builder find with single ID returns Model instance when model is set', fun
 
 // Test find with array of IDs returns collection of Models
 test('Builder find with array of IDs returns Model instances', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users where id in (?, ?)');
     $this->connection->shouldReceive('select')->andReturn([
         (object) ['id' => 1, 'name' => 'John'],
-        (object) ['id' => 2, 'name' => 'Jane']
+        (object) ['id' => 2, 'name' => 'Jane'],
     ]);
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $result = $this->builder->from('users')->find([1, 2]);
 
@@ -88,14 +95,14 @@ test('Builder find with array of IDs returns Model instances', function () {
 
 // Test first() returns Model when model is set
 test('Builder first returns Model instance when model is set', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users limit 1');
     $this->connection->shouldReceive('selectOne')->andReturn(
         (object) ['id' => 1, 'name' => 'John']
     );
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $result = $this->builder->from('users')->first();
 
@@ -105,15 +112,15 @@ test('Builder first returns Model instance when model is set', function () {
 
 // Test get() returns array of Models when model is set
 test('Builder get returns Model instances when model is set', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users');
     $this->connection->shouldReceive('select')->andReturn([
         (object) ['id' => 1, 'name' => 'John'],
-        (object) ['id' => 2, 'name' => 'Jane']
+        (object) ['id' => 2, 'name' => 'Jane'],
     ]);
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $result = $this->builder->from('users')->get();
 
@@ -128,7 +135,7 @@ test('Builder value returns column value from first result', function () {
     $this->connection->shouldReceive('selectOne')->andReturn(
         (object) ['name' => 'John']
     );
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $result = $this->builder->from('users')->value('name');
 
@@ -149,8 +156,9 @@ test('Builder value returns null when no results', function () {
 test('Builder get with columns parameter selects only specified columns', function () {
     $columnsUsed = null;
 
-    $this->grammar->shouldReceive('compileSelect')->andReturnUsing(function($builder) use (&$columnsUsed) {
+    $this->grammar->shouldReceive('compileSelect')->andReturnUsing(function ($builder) use (&$columnsUsed) {
         $columnsUsed = $builder->columns;
+
         return 'select id, name from users';
     });
     $this->connection->shouldReceive('select')->andReturn([]);
@@ -163,14 +171,14 @@ test('Builder get with columns parameter selects only specified columns', functi
 });
 
 test('Builder get with columns and Model returns Models with selected attributes', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select id, name from users');
     $this->connection->shouldReceive('select')->andReturn([
-        (object) ['id' => 1, 'name' => 'John']
+        (object) ['id' => 1, 'name' => 'John'],
     ]);
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $result = $this->builder->from('users')->get(['id', 'name']);
 
@@ -264,15 +272,15 @@ test('Builder clone creates deep copy', function () {
 
 // Test cursor with Model
 test('Builder cursor returns generator of Models when model is set', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users');
     $this->connection->shouldReceive('select')->andReturn([
         (object) ['id' => 1, 'name' => 'John'],
-        (object) ['id' => 2, 'name' => 'Jane']
+        (object) ['id' => 2, 'name' => 'Jane'],
     ]);
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($q, $r) => $r);
 
     $cursor = $this->builder->from('users')->cursor();
 
@@ -288,18 +296,18 @@ test('Builder cursor returns generator of Models when model is set', function ()
 
 // Test chunk with Model
 test('Builder chunk processes Models in batches when model is set', function () {
-    $model = new TestUser();
+    $model = new TestUser;
     $this->builder->setModel($model);
 
     $this->grammar->shouldReceive('compileSelect')->twice()->andReturn('select * from users limit 2');
     $this->connection->shouldReceive('select')->twice()->andReturn(
         [
             (object) ['id' => 1, 'name' => 'John'],
-            (object) ['id' => 2, 'name' => 'Jane']
+            (object) ['id' => 2, 'name' => 'Jane'],
         ],
         []  // Empty result to end chunking
     );
-    $this->processor->shouldReceive('processSelect')->twice()->andReturnUsing(fn($q, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->twice()->andReturnUsing(fn ($q, $r) => $r);
 
     $chunks = [];
     $this->builder->from('users')->chunk(2, function ($users) use (&$chunks) {

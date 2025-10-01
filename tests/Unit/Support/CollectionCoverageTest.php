@@ -9,54 +9,58 @@ it('converts nested collections to arrays in toArray method', function () {
     $innerCollection = new Collection(['a' => 1, 'b' => 2]);
     $collection = new Collection([
         'first' => $innerCollection,
-        'second' => 'value'
+        'second' => 'value',
     ]);
 
     $result = $collection->toArray();
 
     expect($result)->toBe([
         'first' => ['a' => 1, 'b' => 2],
-        'second' => 'value'
+        'second' => 'value',
     ]);
 });
 
 it('converts objects with toArray method in toArray', function () {
-    $object = new class {
-        public function toArray() {
+    $object = new class
+    {
+        public function toArray()
+        {
             return ['converted' => true];
         }
     };
 
     $collection = new Collection([
         'obj' => $object,
-        'normal' => 'value'
+        'normal' => 'value',
     ]);
 
     $result = $collection->toArray();
 
     expect($result)->toBe([
         'obj' => ['converted' => true],
-        'normal' => 'value'
+        'normal' => 'value',
     ]);
 });
 
 it('serializes JsonSerializable objects in jsonSerialize', function () {
-    $jsonObject = new class implements JsonSerializable {
-        public function jsonSerialize(): mixed {
+    $jsonObject = new class implements JsonSerializable
+    {
+        public function jsonSerialize(): mixed
+        {
             return ['json' => 'serialized'];
         }
     };
 
     $collection = new Collection([
         'item' => $jsonObject,
-        'other' => 'value'
+        'other' => 'value',
     ]);
 
     $result = $collection->jsonSerialize();
 
     expect($result)->toBe([
         'item' => ['json' => 'serialized'],
-        'other' => 'value'
+        'other' => 'value',
     ]);
 });
 
@@ -64,14 +68,14 @@ it('serializes nested collections in jsonSerialize', function () {
     $innerCollection = new Collection(['nested' => 'data']);
     $collection = new Collection([
         'inner' => $innerCollection,
-        'outer' => 'value'
+        'outer' => 'value',
     ]);
 
     $result = $collection->jsonSerialize();
 
     expect($result)->toBe([
         'inner' => ['nested' => 'data'],
-        'outer' => 'value'
+        'outer' => 'value',
     ]);
 });
 
@@ -79,7 +83,7 @@ it('calls toJson which uses jsonSerialize for nested collections', function () {
     $innerCollection = new Collection(['key' => 'value']);
     $collection = new Collection([
         'nested' => $innerCollection,
-        'simple' => 'text'
+        'simple' => 'text',
     ]);
 
     $json = $collection->toJson();
@@ -87,7 +91,7 @@ it('calls toJson which uses jsonSerialize for nested collections', function () {
 
     expect($decoded)->toBe([
         'nested' => ['key' => 'value'],
-        'simple' => 'text'
+        'simple' => 'text',
     ]);
 });
 
@@ -100,7 +104,7 @@ it('filters items without callback to remove falsy values', function () {
         'e' => false,
         'f' => null,
         'g' => [],
-        'h' => 'valid'
+        'h' => 'valid',
     ]);
 
     $filtered = $collection->filter();
@@ -108,7 +112,7 @@ it('filters items without callback to remove falsy values', function () {
     expect($filtered->all())->toBe([
         'a' => 1,
         'c' => 'text',
-        'h' => 'valid'
+        'h' => 'valid',
     ]);
 });
 
@@ -121,6 +125,6 @@ it('filters array with numeric keys without callback', function () {
         0 => 1,
         2 => 2,
         4 => 3,
-        6 => 4
+        6 => 4,
     ]);
 });

@@ -39,7 +39,7 @@ abstract class Seeder
         foreach ($classes as $class) {
             $seeder = $this->resolve($class);
 
-            if (!$silent && $this->command) {
+            if (! $silent && $this->command) {
                 $this->command->info("Seeding: {$class}");
             }
 
@@ -49,7 +49,7 @@ abstract class Seeder
             $seeder->setCommand($this->command);
             $seeder->run();
 
-            if (!$silent && $this->command) {
+            if (! $silent && $this->command) {
                 $time = round((microtime(true) - $startTime) * 1000, 2);
                 $this->command->info("Seeded:  {$class} ({$time}ms)");
             }
@@ -69,7 +69,7 @@ abstract class Seeder
      */
     protected function resolve(string $class): Seeder
     {
-        if (!class_exists($class)) {
+        if (! class_exists($class)) {
             throw new InvalidArgumentException("Seeder class [{$class}] does not exist.");
         }
 
@@ -97,7 +97,7 @@ abstract class Seeder
      */
     protected function db(): Connection
     {
-        if (!$this->connection) {
+        if (! $this->connection) {
             $this->connection = Connection::getDefaultConnection();
         }
 

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use Bob\Database\Connection;
 use Bob\Database\Migrations\Migration;
-use Bob\Database\Migrations\MigrationRunner;
-use Bob\Database\Migrations\MigrationRepository;
 use Bob\Database\Migrations\MigrationLoaderInterface;
+use Bob\Database\Migrations\MigrationRepository;
+use Bob\Database\Migrations\MigrationRunner;
 
 beforeEach(function () {
     $this->connection = Mockery::mock(Connection::class);
@@ -24,8 +24,8 @@ afterEach(function () {
 // Test for line 331: getBatch option in getMigrationsForRollback
 test('rollback with batch option calls repository getBatch', function () {
     $batchMigrations = [
-        (object)['migration' => 'test_migration_1'],
-        (object)['migration' => 'test_migration_2']
+        (object) ['migration' => 'test_migration_1'],
+        (object) ['migration' => 'test_migration_2'],
     ];
 
     $this->repository->shouldReceive('getBatch')
@@ -46,7 +46,7 @@ test('rollback with batch option calls repository getBatch', function () {
 // Test for line 394: resolve method when class already exists
 test('resolve method with existing class', function () {
     // Create a test migration class in global scope
-    if (!class_exists('TestExistingMigration')) {
+    if (! class_exists('TestExistingMigration')) {
         eval('
         class TestExistingMigration extends Bob\Database\Migrations\Migration {
             public function up(): void {}
@@ -75,16 +75,16 @@ test('resolve method throws exception when migration file not found', function (
     $method = $reflection->getMethod('resolve');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($this->runner, 'non_existent_migration'))
+    expect(fn () => $method->invoke($this->runner, 'non_existent_migration'))
         ->toThrow(InvalidArgumentException::class, 'Migration [non_existent_migration] not found.');
 })->group('unit', 'migrations');
 
 // Test for line 408: Migration class not found in file exception
 test('resolve method throws exception when class not found in file', function () {
     // Create a temporary migration file
-    $tempDir = sys_get_temp_dir() . '/migrations_test_' . uniqid();
+    $tempDir = sys_get_temp_dir().'/migrations_test_'.uniqid();
     mkdir($tempDir, 0777, true);
-    $migrationFile = $tempDir . '/test_migration.php';
+    $migrationFile = $tempDir.'/test_migration.php';
 
     file_put_contents($migrationFile, '<?php // File exists but class does not');
 
@@ -101,7 +101,7 @@ test('resolve method throws exception when class not found in file', function ()
     $method = $reflection->getMethod('resolve');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($this->runner, 'test_migration'))
+    expect(fn () => $method->invoke($this->runner, 'test_migration'))
         ->toThrow(InvalidArgumentException::class, 'Migration class [NonExistentMigrationClass] not found in file');
 
     // Cleanup
@@ -112,9 +112,9 @@ test('resolve method throws exception when class not found in file', function ()
 // Test for line 414: Class doesn't extend Migration exception
 test('resolve method throws exception when class does not extend Migration', function () {
     // Create a temporary migration file
-    $tempDir = sys_get_temp_dir() . '/migrations_test_' . uniqid();
+    $tempDir = sys_get_temp_dir().'/migrations_test_'.uniqid();
     mkdir($tempDir, 0777, true);
-    $migrationFile = $tempDir . '/test_migration.php';
+    $migrationFile = $tempDir.'/test_migration.php';
 
     file_put_contents($migrationFile, '<?php // File exists');
 
@@ -131,7 +131,7 @@ test('resolve method throws exception when class does not extend Migration', fun
     $method = $reflection->getMethod('resolve');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($this->runner, 'test_migration'))
+    expect(fn () => $method->invoke($this->runner, 'test_migration'))
         ->toThrow(InvalidArgumentException::class, 'Class [stdClass] must extend Migration.');
 
     // Cleanup
@@ -185,7 +185,7 @@ test('resolveDependency resolves valid dependencies', function () {
 
     $migrations = [
         'migration1' => $migration1,
-        'migration2' => $migration2
+        'migration2' => $migration2,
     ];
 
     // Use reflection to access protected method
@@ -207,7 +207,7 @@ test('resolveDependency resolves valid dependencies', function () {
 
 // Test for line 575: Migration description output in pretendToRun
 test('pretendToRun outputs migration description', function () {
-    $migration = new TestMigrationWithDescription();
+    $migration = new TestMigrationWithDescription;
 
     $outputMessages = [];
     $this->runner->setOutput(function ($message) use (&$outputMessages) {
@@ -284,7 +284,7 @@ test('findMigrationFile returns null when file not found', function () {
 
 // Test migration with empty description (should NOT output description line)
 test('pretendToRun skips empty description', function () {
-    $migration = new TestMigrationWithEmptyDescription();
+    $migration = new TestMigrationWithEmptyDescription;
 
     $outputMessages = [];
     $this->runner->setOutput(function ($message) use (&$outputMessages) {
@@ -298,8 +298,8 @@ test('pretendToRun skips empty description', function () {
 
     $method->invoke($this->runner, $migration, 'down');
 
-    // Should only have "Would run" message, no description because empty string is falsy
-    expect($outputMessages)->toHaveCount(1);
+    // Now we output: "Would run:", "Transaction:", and potentially other info
+    // Main assertion: no description should be added
     expect($outputMessages[0])->toContain('Would run:');
 
     // Check no description message was added (line 575 should be skipped)
@@ -319,6 +319,7 @@ test('pretendToRun skips empty description', function () {
 class TestMigrationWithDescription extends Migration
 {
     public function up(): void {}
+
     public function down(): void {}
 
     public function description(): string
@@ -338,6 +339,7 @@ class TestMigrationWithDescription extends Migration
 class TestMigrationWithEmptyDescription extends Migration
 {
     public function up(): void {}
+
     public function down(): void {}
 
     public function description(): string
@@ -364,6 +366,7 @@ class TestMigrationWithDependencies extends Migration
     }
 
     public function up(): void {}
+
     public function down(): void {}
 
     public function dependencies(): array
@@ -376,3 +379,44 @@ class TestMigrationWithDependencies extends Migration
         return ['create table test (id int)'];
     }
 }
+// Test for lines 703-704: STATUS_CHECK event
+test('status dispatches STATUS_CHECK event', function () {
+    $dispatcher = Mockery::mock(\Bob\Events\EventDispatcherInterface::class);
+
+    $this->repository->shouldReceive('repositoryExists')->andReturn(true);
+    $this->repository->shouldReceive('getRan')->andReturn([]);
+    $this->repository->shouldReceive('getMigrationBatches')->andReturn([]);
+    $this->loader->shouldReceive('getMigrationFiles')->andReturn([]);
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::STATUS_CHECK, Mockery::on(function ($payload) {
+            return isset($payload['status']) &&
+                   isset($payload['status']['ran']) &&
+                   isset($payload['status']['pending']);
+        }))
+        ->once();
+
+    $this->runner->setEventDispatcher($dispatcher);
+    $this->runner->status();
+})->group('unit', 'migrations');
+
+// Test for lines 834-836: ERROR event in onError
+test('onError dispatches ERROR event when set', function () {
+    $dispatcher = Mockery::mock(\Bob\Events\EventDispatcherInterface::class);
+    $exception = new \Exception('Test error');
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::ERROR, Mockery::on(function ($payload) use ($exception) {
+            return $payload['exception'] === $exception &&
+                   $payload['migration'] === 'test_migration';
+        }))
+        ->once();
+
+    $this->runner->setEventDispatcher($dispatcher);
+
+    // Use reflection to call protected onError
+    $reflection = new \ReflectionClass($this->runner);
+    $method = $reflection->getMethod('onError');
+    $method->setAccessible(true);
+    $method->invoke($this->runner, $exception, 'test_migration');
+})->group('unit', 'migrations');

@@ -1,16 +1,16 @@
 <?php
 
-use Bob\Query\Grammars\PostgreSQLGrammar;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
+use Bob\Query\Grammars\PostgreSQLGrammar;
 use Bob\Query\Processor;
 use Mockery as m;
 
 beforeEach(function () {
     $this->connection = m::mock(Connection::class);
     $this->processor = m::mock(Processor::class);
-    $this->grammar = new PostgreSQLGrammar();
+    $this->grammar = new PostgreSQLGrammar;
 
     $this->connection->shouldReceive('getQueryGrammar')->andReturn($this->grammar);
     $this->connection->shouldReceive('getPostProcessor')->andReturn($this->processor);
@@ -27,7 +27,7 @@ test('PostgreSQLGrammar compileInsertGetId with default sequence', function () {
 
     $sql = $this->grammar->compileInsertGetId($builder, [
         'name' => 'John',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ]);
 
     expect($sql)->toContain('insert into');
@@ -39,7 +39,7 @@ test('PostgreSQLGrammar compileInsertGetId with custom sequence', function () {
 
     $sql = $this->grammar->compileInsertGetId($builder, [
         'name' => 'John',
-        'email' => 'john@example.com'
+        'email' => 'john@example.com',
     ], 'user_id');
 
     expect($sql)->toContain('insert into');
@@ -50,7 +50,7 @@ test('PostgreSQLGrammar compileInsertOrIgnore', function () {
     $builder = $this->builder->from('users');
 
     $sql = $this->grammar->compileInsertOrIgnore($builder, [
-        ['name' => 'John', 'email' => 'john@example.com']
+        ['name' => 'John', 'email' => 'john@example.com'],
     ]);
 
     expect($sql)->toContain('insert into');
@@ -268,7 +268,7 @@ test('PostgreSQLGrammar handles update with expressions', function () {
 
     $sql = $this->grammar->compileUpdate($builder, [
         'views' => new Expression('views + 1'),
-        'updated_at' => 'NOW()'
+        'updated_at' => 'NOW()',
     ]);
 
     expect($sql)->toContain('update');
@@ -311,7 +311,7 @@ test('PostgreSQLGrammar compileDateBasedWhere for Day', function () {
     $result = $method->invoke($this->grammar, 'Day', $this->builder, [
         'column' => 'created_at',
         'operator' => '=',
-        'value' => 15
+        'value' => 15,
     ]);
 
     expect($result)->toContain('extract(day from');
@@ -327,7 +327,7 @@ test('PostgreSQLGrammar compileDateBasedWhere for Month', function () {
     $result = $method->invoke($this->grammar, 'Month', $this->builder, [
         'column' => 'created_at',
         'operator' => '=',
-        'value' => 12
+        'value' => 12,
     ]);
 
     expect($result)->toContain('extract(month from');
@@ -343,7 +343,7 @@ test('PostgreSQLGrammar compileDateBasedWhere for Year', function () {
     $result = $method->invoke($this->grammar, 'Year', $this->builder, [
         'column' => 'updated_at',
         'operator' => '>=',
-        'value' => 2020
+        'value' => 2020,
     ]);
 
     expect($result)->toContain('extract(year from');
@@ -359,7 +359,7 @@ test('PostgreSQLGrammar compileDateBasedWhere for Date', function () {
     $result = $method->invoke($this->grammar, 'Date', $this->builder, [
         'column' => 'published_at',
         'operator' => '<',
-        'value' => '2023-01-01'
+        'value' => '2023-01-01',
     ]);
 
     expect($result)->toContain('"published_at"::date');
@@ -374,7 +374,7 @@ test('PostgreSQLGrammar compileDateBasedWhere for Time', function () {
     $result = $method->invoke($this->grammar, 'Time', $this->builder, [
         'column' => 'scheduled_at',
         'operator' => '<=',
-        'value' => '18:00:00'
+        'value' => '18:00:00',
     ]);
 
     expect($result)->toContain('"scheduled_at"::time');
@@ -389,7 +389,7 @@ test('PostgreSQLGrammar compileDateBasedWhere falls back to parent for unknown t
     $result = $method->invoke($this->grammar, 'Unknown', $this->builder, [
         'column' => 'created_at',
         'operator' => '=',
-        'value' => 'test'
+        'value' => 'test',
     ]);
 
     // Should fall back to parent implementation - parent uses lowercase
@@ -431,10 +431,10 @@ test('PostgreSQLGrammar wrapJsonFieldAndPath with nested paths', function () {
 
     expect($result[0])->toBe('"data"');
     // Check that the path contains the expected elements with escaped quotes
-    expect($result[1])->toContain("user");
-    expect($result[1])->toContain("profile");
-    expect($result[1])->toContain("settings");
-    expect($result[1])->toStartWith("->");
+    expect($result[1])->toContain('user');
+    expect($result[1])->toContain('profile');
+    expect($result[1])->toContain('settings');
+    expect($result[1])->toStartWith('->');
 });
 
 test('PostgreSQLGrammar wrapJsonFieldAndPath without path', function () {

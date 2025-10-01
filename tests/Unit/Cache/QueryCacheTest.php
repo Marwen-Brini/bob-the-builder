@@ -3,11 +3,11 @@
 use Bob\Cache\QueryCache;
 
 beforeEach(function () {
-    $this->cache = new QueryCache();
+    $this->cache = new QueryCache;
 });
 
 test('QueryCache constructor sets default values', function () {
-    $cache = new QueryCache();
+    $cache = new QueryCache;
     expect($cache->getMaxItems())->toBe(1000);
     expect($cache->getTtl())->toBe(3600);
     expect($cache->isEnabled())->toBeTrue();
@@ -261,7 +261,7 @@ test('cache handles various data types', function () {
     expect($this->cache->get('array'))->toBe(['a', 'b', 'c']);
 
     // Object
-    $obj = (object)['name' => 'test'];
+    $obj = (object) ['name' => 'test'];
     $this->cache->put('object', $obj);
     expect($this->cache->get('object'))->toEqual($obj);
 

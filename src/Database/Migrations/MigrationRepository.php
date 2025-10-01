@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Bob\Database\Migrations;
 
 use Bob\Database\Connection;
-use Bob\Schema\Schema;
 use Bob\Schema\Blueprint;
+use Bob\Schema\Schema;
 
 /**
  * Migration Repository

@@ -1,8 +1,8 @@
 <?php
 
 use Bob\Database\Connection;
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletingScope;
+use Bob\Database\Model;
 use Bob\Query\Builder;
 use Mockery as m;
 
@@ -10,10 +10,10 @@ use Mockery as m;
  * Test for SoftDeletingScope onDelete callback
  * Targeting lines 49-53
  */
-
 class OnDeleteTestModel extends Model
 {
     protected string $table = 'ondelete_test';
+
     protected string $primaryKey = 'id';
 
     public function getDeletedAtColumn(): string
@@ -32,8 +32,8 @@ afterEach(function () {
 });
 
 test('onDelete callback execution covers lines 49-53', function () {
-    $scope = new SoftDeletingScope();
-    $model = new OnDeleteTestModel();
+    $scope = new SoftDeletingScope;
+    $model = new OnDeleteTestModel;
 
     // Create a real builder
     $connection = new Connection(['driver' => 'sqlite', 'database' => ':memory:']);
@@ -47,8 +47,9 @@ test('onDelete callback execution covers lines 49-53', function () {
     $onDeleteCallback = null;
 
     // Add onDelete method to Builder via macro
-    Builder::macro('onDelete', function($callback) use (&$onDeleteCallback) {
+    Builder::macro('onDelete', function ($callback) use (&$onDeleteCallback) {
         $onDeleteCallback = $callback;
+
         return $this;
     });
 
@@ -72,14 +73,14 @@ test('onDelete callback execution covers lines 49-53', function () {
 });
 
 test('onDelete callback with getDeletedAtColumn using model', function () {
-    $scope = new SoftDeletingScope();
-    $model = new OnDeleteTestModel();
+    $scope = new SoftDeletingScope;
+    $model = new OnDeleteTestModel;
 
     // Create mock builder
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('getModel')->andReturn($model);
     $builder->shouldReceive('update')->once()->with([
-        'deleted_at' => '2024-01-01 12:00:00'
+        'deleted_at' => '2024-01-01 12:00:00',
     ])->andReturn(1);
 
     // Mock the macro calls for all extensions
@@ -87,8 +88,9 @@ test('onDelete callback with getDeletedAtColumn using model', function () {
 
     // Store the callback
     $onDeleteCallback = null;
-    $builder->shouldReceive('onDelete')->once()->andReturnUsing(function($callback) use (&$onDeleteCallback, $builder) {
+    $builder->shouldReceive('onDelete')->once()->andReturnUsing(function ($callback) use (&$onDeleteCallback, $builder) {
         $onDeleteCallback = $callback;
+
         return $builder;
     });
 
@@ -102,7 +104,7 @@ test('onDelete callback with getDeletedAtColumn using model', function () {
 });
 
 test('onDelete callback with getDeletedAtColumn without model', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     // Create mock builder with no model
     $builder = m::mock(Builder::class);
@@ -114,8 +116,9 @@ test('onDelete callback with getDeletedAtColumn without model', function () {
 
     // Store the callback
     $onDeleteCallback = null;
-    $builder->shouldReceive('onDelete')->once()->andReturnUsing(function($callback) use (&$onDeleteCallback, $builder) {
+    $builder->shouldReceive('onDelete')->once()->andReturnUsing(function ($callback) use (&$onDeleteCallback, $builder) {
         $onDeleteCallback = $callback;
+
         return $builder;
     });
 
@@ -136,10 +139,10 @@ test('onDelete callback with getDeletedAtColumn without model', function () {
 });
 
 test('getDeletedAtColumn method coverage', function () {
-    $scope = new SoftDeletingScope();
+    $scope = new SoftDeletingScope;
 
     // Test with model that has the method
-    $model = new OnDeleteTestModel();
+    $model = new OnDeleteTestModel;
     $builder = m::mock(Builder::class);
     $builder->shouldReceive('getModel')->atLeast()->once()->andReturn($model);
 

@@ -1,9 +1,9 @@
 <?php
 
-use Bob\Database\Relations\HasOne;
-use Bob\Database\Model;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
+use Bob\Database\Model;
+use Bob\Database\Relations\HasOne;
+use Bob\Query\Builder;
 use Mockery as m;
 
 describe('HasOne Tests', function () {

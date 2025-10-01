@@ -143,6 +143,7 @@ abstract class HasOneOrMany extends Relation
     {
         $instance = $this->related->newInstance();
         $instance->setAttribute($this->getForeignKeyName(), $this->getParentKey());
+
         return $instance;
     }
 
@@ -175,6 +176,7 @@ abstract class HasOneOrMany extends Relation
     {
         $instance = $this->related->newInstance(array_merge($attributes, $values));
         $instance->setAttribute($this->getForeignKeyName(), $this->getParentKey());
+
         return $instance;
     }
 
@@ -233,6 +235,7 @@ abstract class HasOneOrMany extends Relation
     {
         $instance = $this->prepareInstanceForCreation($attributes);
         $this->persistInstance($instance);
+
         return $instance;
     }
 
@@ -244,6 +247,7 @@ abstract class HasOneOrMany extends Relation
         $instance = $this->related->newInstance($attributes);
         $foreignKey = $this->extractForeignKeyName();
         $instance->setAttribute($foreignKey, $this->getParentKey());
+
         return $instance;
     }
 

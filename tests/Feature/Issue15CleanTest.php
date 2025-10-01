@@ -8,12 +8,14 @@ use Bob\Database\Model;
 /**
  * Clean test to reproduce Issue #15 precisely
  */
-
 class SimpleModel extends Model
 {
     protected string $table = 'simple_table';
+
     protected string $primaryKey = 'id';
+
     public bool $timestamps = false;
+
     protected array $fillable = ['name']; // 'extra_field' is NOT fillable
 }
 
@@ -62,7 +64,7 @@ test('ISSUE #15: Assigning non-existent column should fail gracefully', function
 
         $queries = $this->connection->getQueryLog();
 
-        if (!empty($queries)) {
+        if (! empty($queries)) {
         }
 
         // If we get here, save() didn't throw - check what actually happened
@@ -92,7 +94,7 @@ test('ISSUE #15: Save should only update existing columns', function () {
 
         $queries = $this->connection->getQueryLog();
 
-        if (!empty($queries)) {
+        if (! empty($queries)) {
             $sql = $queries[0]['query'];
 
             // The SQL should only include valid columns

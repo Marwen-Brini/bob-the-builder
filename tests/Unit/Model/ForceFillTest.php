@@ -19,13 +19,13 @@ class ForceFillTestModel extends Model
 }
 
 test('fill respects fillable attributes', function () {
-    $model = new ForceFillTestModel();
+    $model = new ForceFillTestModel;
 
     $attributes = [
         'name' => 'John Doe',
         'email' => 'john@example.com',
         'admin' => true,  // This is guarded
-        'role' => 'superadmin'  // This is guarded
+        'role' => 'superadmin',  // This is guarded
     ];
 
     $model->fill($attributes);
@@ -38,14 +38,14 @@ test('fill respects fillable attributes', function () {
 });
 
 test('force fill bypasses mass assignment protection', function () {
-    $model = new ForceFillTestModel();
+    $model = new ForceFillTestModel;
 
     $attributes = [
         'name' => 'John Doe',
         'email' => 'john@example.com',
         'admin' => true,  // This is guarded
         'role' => 'superadmin',  // This is guarded
-        'random_field' => 'value'  // Not in fillable
+        'random_field' => 'value',  // Not in fillable
     ];
 
     $model->forceFill($attributes);
@@ -59,7 +59,7 @@ test('force fill bypasses mass assignment protection', function () {
 });
 
 test('force fill returns model instance for chaining', function () {
-    $model = new ForceFillTestModel();
+    $model = new ForceFillTestModel;
 
     $result = $model->forceFill(['name' => 'Test']);
 
@@ -69,13 +69,13 @@ test('force fill returns model instance for chaining', function () {
 });
 
 test('force fill can be used with sync original', function () {
-    $model = new ForceFillTestModel();
+    $model = new ForceFillTestModel;
 
     $attributes = [
         'id' => 123,
         'name' => 'John Doe',
         'admin' => true,
-        'created_at' => '2024-01-01 00:00:00'
+        'created_at' => '2024-01-01 00:00:00',
     ];
 
     // This is the pattern from the workaround in the bug report
@@ -92,7 +92,7 @@ test('force fill can be used with sync original', function () {
 });
 
 test('force fill with empty array', function () {
-    $model = new ForceFillTestModel();
+    $model = new ForceFillTestModel;
     $model->forceFill(['name' => 'Test']);
 
     // Force fill with empty array should not clear existing attributes
@@ -102,7 +102,7 @@ test('force fill with empty array', function () {
 });
 
 test('force fill overwrites existing attributes', function () {
-    $model = new ForceFillTestModel();
+    $model = new ForceFillTestModel;
 
     $model->forceFill(['name' => 'Original', 'email' => 'original@example.com']);
     $model->forceFill(['name' => 'Updated']);

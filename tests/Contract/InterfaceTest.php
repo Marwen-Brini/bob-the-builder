@@ -5,9 +5,9 @@ use Bob\Contracts\ConnectionInterface;
 use Bob\Contracts\ExpressionInterface;
 use Bob\Contracts\GrammarInterface;
 use Bob\Contracts\ProcessorInterface;
-use Bob\Query\Builder;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
 use Bob\Query\Grammar;
 use Bob\Query\Processor;
 

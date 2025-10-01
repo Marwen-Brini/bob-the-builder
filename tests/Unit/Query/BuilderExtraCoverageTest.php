@@ -1,11 +1,11 @@
 <?php
 
-use Bob\Query\Builder;
-use Bob\Query\Grammar;
-use Bob\Query\Processor;
 use Bob\Database\Connection;
 use Bob\Database\Expression;
+use Bob\Query\Builder;
+use Bob\Query\Grammar;
 use Bob\Query\JoinClause;
+use Bob\Query\Processor;
 
 beforeEach(function () {
     $this->connection = Mockery::mock(Connection::class);
@@ -135,7 +135,7 @@ describe('Builder Additional Coverage', function () {
     test('join with closure', function () {
         $this->builder->from('users')->join('posts', function ($join) {
             $join->on('users.id', '=', 'posts.user_id')
-                 ->where('posts.published', '=', true);
+                ->where('posts.published', '=', true);
         });
 
         expect($this->builder->joins)->toHaveCount(1);
@@ -369,11 +369,11 @@ test('get method executes query', function () {
         ->with('select * from users', [], true)
         ->andReturn([
             (object) ['id' => 1, 'name' => 'John'],
-            (object) ['id' => 2, 'name' => 'Jane']
+            (object) ['id' => 2, 'name' => 'Jane'],
         ]);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users');
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($b, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($b, $r) => $r);
 
     $results = $this->builder->from('users')->get();
 
@@ -387,7 +387,7 @@ test('first returns single record', function () {
         ->andReturn((object) ['id' => 1, 'name' => 'John']);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select * from users limit 1');
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($b, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($b, $r) => $r);
 
     $result = $this->builder->from('users')->first();
 
@@ -400,7 +400,7 @@ test('value returns single column value', function () {
         ->andReturn((object) ['name' => 'John']);
 
     $this->grammar->shouldReceive('compileSelect')->andReturn('select name from users limit 1');
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($b, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($b, $r) => $r);
 
     $value = $this->builder->from('users')->value('name');
 
@@ -413,7 +413,7 @@ test('exists returns boolean', function () {
         ->andReturn([['exists' => 1]]);
 
     $this->grammar->shouldReceive('compileExists')->andReturn('select exists(select * from users)');
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($b, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($b, $r) => $r);
 
     $exists = $this->builder->from('users')->exists();
 
@@ -426,7 +426,7 @@ test('doesntExist returns boolean', function () {
         ->andReturn([]);
 
     $this->grammar->shouldReceive('compileExists')->andReturn('select exists(select * from users)');
-    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn($b, $r) => $r);
+    $this->processor->shouldReceive('processSelect')->andReturnUsing(fn ($b, $r) => $r);
 
     $doesntExist = $this->builder->from('users')->doesntExist();
 

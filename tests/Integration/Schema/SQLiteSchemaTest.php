@@ -5,8 +5,8 @@
 // =============================================================================
 
 use Bob\Database\Connection;
-use Bob\Schema\Schema;
 use Bob\Schema\Blueprint;
+use Bob\Schema\Schema;
 
 beforeEach(function () {
     $this->connection = new Connection([
@@ -181,7 +181,7 @@ test('indexes', function () {
         'age' => 30,
     ]);
 
-    expect(fn() => $this->connection->table('test_table')->insert([
+    expect(fn () => $this->connection->table('test_table')->insert([
         'email' => 'test@example.com',
         'name' => 'Jane',
         'age' => 25,
@@ -230,7 +230,7 @@ test('enum column', function () {
 
     // SQLite implements enum as CHECK constraint
     // Invalid value should fail
-    expect(fn() => $this->connection->table('test_table')->insert(['status' => 'invalid']))
+    expect(fn () => $this->connection->table('test_table')->insert(['status' => 'invalid']))
         ->toThrow(Exception::class);
 })->group('sqlite', 'integration-sqlite');
 

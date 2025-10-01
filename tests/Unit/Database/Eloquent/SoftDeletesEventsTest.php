@@ -1,14 +1,13 @@
 <?php
 
-use Bob\Database\Model;
 use Bob\Database\Eloquent\SoftDeletes;
+use Bob\Database\Model;
 use Mockery as m;
 
 /**
  * Tests for SoftDeletes event registration methods
  * to cover lines 199-243
  */
-
 class EventTestModel extends Model
 {
     use SoftDeletes;
@@ -109,11 +108,11 @@ test('forceDeleted registers forceDeleted event', function () {
 
 test('multiple event registrations work independently', function () {
     $callbacks = [
-        'soft' => fn() => 'soft',
-        'restoring' => fn() => 'restoring',
-        'restored' => fn() => 'restored',
-        'deleting' => fn() => 'deleting',
-        'deleted' => fn() => 'deleted'
+        'soft' => fn () => 'soft',
+        'restoring' => fn () => 'restoring',
+        'restored' => fn () => 'restored',
+        'deleting' => fn () => 'deleting',
+        'deleted' => fn () => 'deleted',
     ];
 
     EventTestModel::softDeleted($callbacks['soft']);

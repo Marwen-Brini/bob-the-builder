@@ -1,8 +1,8 @@
 <?php
 
-use Bob\Exceptions\QueryException;
 use Bob\Exceptions\ConnectionException;
 use Bob\Exceptions\GrammarException;
+use Bob\Exceptions\QueryException;
 
 test('QueryException formats message correctly', function () {
     $exception = new QueryException(
@@ -55,7 +55,7 @@ test('ConnectionException static methods', function () {
     $exception = ConnectionException::connectionFailed([
         'driver' => 'mysql',
         'host' => 'localhost',
-        'database' => 'test_db'
+        'database' => 'test_db',
     ]);
 
     expect($exception)->toBeInstanceOf(ConnectionException::class);
