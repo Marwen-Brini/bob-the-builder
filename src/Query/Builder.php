@@ -362,6 +362,18 @@ class Builder implements BuilderInterface
             return $this;
         }
 
+        // Handle empty array: IN () is invalid SQL
+        // - whereIn with empty array should return no results (impossible condition)
+        // - whereNotIn with empty array should be a no-op (everything passes)
+        if (is_array($values) && empty($values)) {
+            if ($not) {
+                // NOT IN () is always true, so it's a no-op - just return
+                return $this;
+            }
+            // IN () is always false, add an impossible condition
+            return $this->whereRaw('0 = 1', [], $boolean);
+        }
+
         $this->wheres[] = compact('type', 'column', 'values', 'boolean');
 
         if (is_array($values)) {
