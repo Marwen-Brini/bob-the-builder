@@ -2,7 +2,9 @@
 
 namespace Bob\Query;
 
+use Bob\Database\Relations\BelongsTo;
 use Bob\Database\Relations\BelongsToMany;
+use Bob\Database\Relations\HasOne;
 use Bob\Database\Relations\Relation;
 
 /**
@@ -16,13 +18,11 @@ class RelationshipLoader
      */
     public function loadRelated($relation, array $models): array
     {
-        $relationClass = get_class($relation);
-
-        if ($this->isBelongsToMany($relationClass)) {
+        if ($relation instanceof BelongsToMany) {
             return $this->loadBelongsToMany($relation, $models);
         }
 
-        if ($this->isBelongsTo($relationClass)) {
+        if ($relation instanceof BelongsTo) {
             return $this->loadBelongsTo($relation, $models);
         }
 
@@ -32,18 +32,25 @@ class RelationshipLoader
     /**
      * Check if relation is BelongsToMany
      */
-    protected function isBelongsToMany(string $relationClass): bool
+    protected function isBelongsToMany($relation): bool
     {
-        return strpos($relationClass, 'BelongsToMany') !== false;
+        return $relation instanceof BelongsToMany;
     }
 
     /**
      * Check if relation is BelongsTo (but not BelongsToMany)
      */
-    protected function isBelongsTo(string $relationClass): bool
+    protected function isBelongsTo($relation): bool
     {
-        return strpos($relationClass, 'BelongsTo') !== false &&
-               strpos($relationClass, 'BelongsToMany') === false;
+        return $relation instanceof BelongsTo;
+    }
+
+    /**
+     * Check if relation is HasOne
+     */
+    protected function isHasOne($relation): bool
+    {
+        return $relation instanceof HasOne;
     }
 
     /**
@@ -158,9 +165,7 @@ class RelationshipLoader
      */
     public function matchRelated(array &$models, array $related, $relation, string $name): void
     {
-        $relationClass = get_class($relation);
-
-        if ($this->isBelongsToMany($relationClass)) {
+        if ($this->isBelongsToMany($relation)) {
             $relation->match($models, $related, $name);
 
             return;
@@ -169,7 +174,7 @@ class RelationshipLoader
         $dictionary = $this->buildDictionary($related, $relation);
 
         foreach ($models as &$model) {
-            $key = $this->getMatchKey($model, $relation, $relationClass);
+            $key = $this->getMatchKey($model, $relation);
 
             if (isset($dictionary[$key])) {
                 $model->setRelation($name, $dictionary[$key]);
@@ -180,9 +185,9 @@ class RelationshipLoader
     /**
      * Get the key for matching relationships
      */
-    protected function getMatchKey($model, $relation, string $relationClass)
+    protected function getMatchKey($model, $relation)
     {
-        if ($this->isBelongsTo($relationClass)) {
+        if ($this->isBelongsTo($relation)) {
             $foreignKey = $this->extractKeyName($relation->getForeignKeyName());
 
             return $model->getAttribute($foreignKey);
@@ -197,9 +202,8 @@ class RelationshipLoader
     protected function buildDictionary(array $related, $relation): array
     {
         $dictionary = [];
-        $relationClass = get_class($relation);
 
-        if ($this->isBelongsTo($relationClass)) {
+        if ($this->isBelongsTo($relation)) {
             $keyName = basename(str_replace('\\', '/', $relation->getOwnerKeyName()));
             foreach ($related as $item) {
                 $key = $item->getAttribute($keyName);
@@ -209,7 +213,7 @@ class RelationshipLoader
             $foreignKey = $this->extractKeyName($relation->getForeignKeyName());
             foreach ($related as $item) {
                 $key = $item->getAttribute($foreignKey);
-                if (strpos($relationClass, 'HasOne') !== false) {
+                if ($this->isHasOne($relation)) {
                     $dictionary[$key] = $item;
                 } else {
                     if (! isset($dictionary[$key])) {
