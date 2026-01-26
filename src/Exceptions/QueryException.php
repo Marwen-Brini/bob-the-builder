@@ -13,6 +13,12 @@ class QueryException extends Exception
 
     protected array $bindings = [];
 
+    /**
+     * Whether to include SQL details in exception messages.
+     * Set to false in production to prevent information disclosure.
+     */
+    protected static bool $includeSqlInMessage = true;
+
     public function __construct(
         string $message = '',
         string $sql = '',
@@ -26,11 +32,32 @@ class QueryException extends Exception
     }
 
     /**
+     * Enable or disable SQL details in exception messages.
+     * Disable in production environments to prevent sensitive data exposure.
+     */
+    public static function setIncludeSqlInMessage(bool $include): void
+    {
+        self::$includeSqlInMessage = $include;
+    }
+
+    /**
+     * Check if SQL details should be included in exception messages.
+     */
+    public static function shouldIncludeSqlInMessage(): bool
+    {
+        return self::$includeSqlInMessage;
+    }
+
+    /**
      * Format the SQL error message.
      */
     public static function formatMessage(string $sql, array $bindings, ?Throwable $previous = null): string
     {
         $message = $previous ? $previous->getMessage() : 'Database query error';
+
+        if (!self::$includeSqlInMessage) {
+            return $message . ' (SQL details hidden - enable debug mode for full query)';
+        }
 
         return sprintf(
             '%s (SQL: %s)',
