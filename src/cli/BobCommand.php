@@ -87,7 +87,7 @@ class BobCommand
 
         try {
             $config = $this->getConnectionConfig($driver, $args);
-            $connection = new Connection($config);
+            $connection = $this->createConnection($config);
             $connection->getPdo();
 
             $this->success('Connection successful!');
@@ -156,7 +156,7 @@ class BobCommand
             // Use real connection if executing, mock otherwise
             if ($execute) {
                 $config = $this->getConnectionConfig($driver, $args);
-                $connection = new Connection($config);
+                $connection = $this->createConnection($config);
             } else {
                 $grammar = $this->createGrammar($driver);
                 $processor = new Processor;
@@ -236,7 +236,7 @@ class BobCommand
 
         try {
             $config = $this->getConnectionConfigWithDefaults($driver);
-            $connection = new Connection($config);
+            $connection = $this->createConnection($config);
             $builder = new Builder($connection);
 
             // Parse query
@@ -277,7 +277,7 @@ class BobCommand
 
         try {
             $config = $this->getConnectionConfigWithDefaults($driver);
-            $connection = new Connection($config);
+            $connection = $this->createConnection($config);
 
             if ($table) {
                 // Show specific table schema
@@ -327,7 +327,7 @@ class BobCommand
 
         try {
             $config = $this->getConnectionConfigWithDefaults($driver);
-            $connection = new Connection($config);
+            $connection = $this->createConnection($config);
             $builder = new Builder($connection);
 
             // Parse query
@@ -512,6 +512,15 @@ class BobCommand
         }
     }
 
+    /**
+     * Create a database connection instance.
+     * Override in tests to provide mock connections.
+     */
+    protected function createConnection(array $config): Connection
+    {
+        return new Connection($config);
+    }
+
     protected function getConnectionConfig(string $driver, array $args): array
     {
         $config = ['driver' => $driver];
@@ -665,7 +674,7 @@ class BobCommand
     {
         // Create a mock connection for query building only
         $config = ['driver' => 'sqlite', 'database' => ':memory:'];
-        $connection = new Connection($config);
+        $connection = $this->createConnection($config);
         $connection->setQueryGrammar($grammar);
         $connection->setPostProcessor($processor);
 

@@ -271,4 +271,113 @@ describe('BobCommand 100% Coverage Tests', function () {
         expect($sql)->toContain('select `id`, `name` from `table`');
     });
 
+    test('BobCommand validateTableName throws exception for invalid table name (lines 642-644)', function () {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testValidate(string $table)
+            {
+                $this->validateTableName($table);
+            }
+        };
+
+        // Test invalid characters
+        expect(fn () => $command->testValidate('users; DROP TABLE users;--'))
+            ->toThrow(\InvalidArgumentException::class, 'Invalid table name');
+
+        expect(fn () => $command->testValidate('table`name'))
+            ->toThrow(\InvalidArgumentException::class, 'Invalid table name');
+
+        expect(fn () => $command->testValidate('123startswithnumber'))
+            ->toThrow(\InvalidArgumentException::class, 'Invalid table name');
+
+        expect(fn () => $command->testValidate('table-with-dashes'))
+            ->toThrow(\InvalidArgumentException::class, 'Invalid table name');
+    });
+
+    test('BobCommand validateTableName throws exception for table name too long (lines 648-650)', function () {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testValidate(string $table)
+            {
+                $this->validateTableName($table);
+            }
+        };
+
+        // Create a table name that's 129 characters (over the 128 limit)
+        $longName = str_repeat('a', 129);
+
+        expect(fn () => $command->testValidate($longName))
+            ->toThrow(\InvalidArgumentException::class, 'Table name too long');
+    });
+
+    test('BobCommand validateTableName accepts valid table names', function () {
+        $command = new class(['bob']) extends BobCommand
+        {
+            public function testValidate(string $table)
+            {
+                $this->validateTableName($table);
+                return true;
+            }
+        };
+
+        // Valid simple names
+        expect($command->testValidate('users'))->toBeTrue();
+        expect($command->testValidate('user_profiles'))->toBeTrue();
+        expect($command->testValidate('_private_table'))->toBeTrue();
+        expect($command->testValidate('Table123'))->toBeTrue();
+
+        // Valid schema.table format
+        expect($command->testValidate('public.users'))->toBeTrue();
+        expect($command->testValidate('schema_name.table_name'))->toBeTrue();
+    });
+
+    test('BobCommand shows version unavailable for non-sqlite when VERSION() fails (line 103)', function () {
+        // Test line 103: when VERSION() fails for a non-sqlite driver
+        $dbFile = sys_get_temp_dir().'/test_bob_version_'.uniqid().'.db';
+        touch($dbFile);
+
+        $command = new class(['bob']) extends BobCommand
+        {
+            public static $testDb;
+
+            protected function getConnectionConfig(string $driver, array $args): array
+            {
+                // Return SQLite config but we'll pass 'mysql' as driver
+                return ['driver' => 'sqlite', 'database' => self::$testDb];
+            }
+
+            protected function createConnection(array $config): \Bob\Database\Connection
+            {
+                // Return a connection that throws on VERSION() query
+                return new class($config) extends \Bob\Database\Connection
+                {
+                    public function selectOne($query, $bindings = [], $useReadPdo = true): mixed
+                    {
+                        if (strpos($query, 'VERSION()') !== false) {
+                            throw new \Exception('VERSION() not supported');
+                        }
+                        return parent::selectOne($query, $bindings, $useReadPdo);
+                    }
+                };
+            }
+
+            protected function getTableList(\Bob\Database\Connection $connection, string $driver): array
+            {
+                return []; // Return empty to simplify test
+            }
+        };
+
+        $command::$testDb = $dbFile;
+
+        ob_start();
+        // Run with 'mysql' driver to trigger line 103 (driver !== 'sqlite')
+        $command->run(['bob', 'test-connection', 'mysql']);
+        $output = ob_get_clean();
+
+        expect($output)->toContain('Database version: unavailable');
+        expect($output)->toContain('VERSION() not supported');
+
+        @unlink($dbFile);
+    });
+
 });
