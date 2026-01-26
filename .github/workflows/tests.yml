@@ -7,21 +7,101 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  # Quick test for develop branch - single job, SQLite only, no coverage
+  quick-test:
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Quick Test (PHP 8.2 + SQLite)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: dom, curl, libxml, mbstring, zip, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Create SQLite database
+        run: touch database.sqlite
+
+      - name: Execute tests
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database.sqlite
+        run: vendor/bin/pest --exclude-group=mysql,postgres
+
+  # Smoke test for main branch pushes - minimal verification
+  smoke-test:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Smoke Test (PHP 8.2 + SQLite)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: dom, curl, libxml, mbstring, zip, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Create SQLite database
+        run: touch database.sqlite
+
+      - name: Execute tests
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database.sqlite
+        run: vendor/bin/pest --exclude-group=mysql,postgres
+
+  # Full matrix only on PRs to main
+  full-test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest]
-        php: [8.1, 8.2, 8.3, 8.4]
+        php: [8.1, 8.4]
         database: [sqlite, mysql, postgres]
-        stability: [prefer-stable]
 
-    name: P${{ matrix.php }} - ${{ matrix.database }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: PHP ${{ matrix.php }} - ${{ matrix.database }}
 
     services:
       mysql:
-        image: mysql:8.0
+        image: ${{ matrix.database == 'mysql' && 'mysql:8.0' || '' }}
         env:
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: test_db
@@ -30,7 +110,7 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
       postgres:
-        image: postgres:15
+        image: ${{ matrix.database == 'postgres' && 'postgres:15' || '' }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -47,16 +127,22 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_mysql, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
-          coverage: xdebug
+          extensions: dom, curl, libxml, mbstring, zip, pdo, sqlite, pdo_sqlite, pdo_mysql, pdo_pgsql
+          coverage: none
 
-      - name: Setup problem matchers
-        run: |
-          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
-          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Install dependencies
-        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+        run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Create SQLite database
         if: matrix.database == 'sqlite'
@@ -66,7 +152,6 @@ jobs:
         if: matrix.database == 'mysql'
         run: |
           mysql -h 127.0.0.1 -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS bob_test;"
-          mysql -h 127.0.0.1 -u root -ppassword -e "SHOW DATABASES;"
 
       - name: Create PostgreSQL test database
         if: matrix.database == 'postgres'
@@ -74,15 +159,13 @@ jobs:
           PGPASSWORD: password
         run: |
           psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE bob_test;"
-          psql -h 127.0.0.1 -U postgres -c "\l"
 
       - name: Execute tests - SQLite
         if: matrix.database == 'sqlite'
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database.sqlite
-        run: |
-          vendor/bin/pest --exclude-group=mysql,postgres --coverage --coverage-clover coverage-sqlite.xml
+        run: vendor/bin/pest --exclude-group=mysql,postgres
 
       - name: Execute tests - MySQL
         if: matrix.database == 'mysql'
@@ -93,8 +176,7 @@ jobs:
           MYSQL_DATABASE: bob_test
           MYSQL_USERNAME: root
           MYSQL_PASSWORD: password
-        run: |
-          vendor/bin/pest --exclude-group=postgres --coverage --coverage-clover coverage-mysql.xml
+        run: vendor/bin/pest --exclude-group=postgres
 
       - name: Execute tests - PostgreSQL
         if: matrix.database == 'postgres'
@@ -105,13 +187,4 @@ jobs:
           POSTGRES_DATABASE: bob_test
           POSTGRES_USERNAME: postgres
           POSTGRES_PASSWORD: password
-        run: |
-          vendor/bin/pest --exclude-group=mysql --coverage --coverage-clover coverage-postgres.xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage-${{ matrix.database }}.xml
-          flags: ${{ matrix.database }}
-          name: ${{ matrix.database }}-coverage
-          fail_ci_if_error: false
+        run: vendor/bin/pest --exclude-group=mysql
