@@ -92,13 +92,16 @@ class BobCommand
 
             $this->success('Connection successful!');
 
-            // Show database version
+            // Show database version (not all databases support VERSION())
             try {
                 $version = $connection->selectOne('SELECT VERSION() as version');
                 $this->displayDatabaseVersion($version); // @codeCoverageIgnore
             } catch (Exception $e) {
-                // Some databases (like SQLite) don't support VERSION()
-                // Continue without showing version
+                // SQLite and some other databases don't support VERSION()
+                // Show a note rather than silently failing
+                if ($driver !== 'sqlite') {
+                    $this->info('Database version: unavailable (' . $e->getMessage() . ')');
+                }
             }
 
             // Show available tables
