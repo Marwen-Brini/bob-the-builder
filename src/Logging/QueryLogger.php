@@ -222,8 +222,7 @@ class QueryLogger implements LoggerInterface
         }
 
         // Remove sensitive information
-        $safeConfig = $config;
-        unset($safeConfig['password']);
+        $safeConfig = $this->removeSensitiveData($config);
 
         // Store in internal query log
         $this->addToQueryLog([
@@ -282,9 +281,9 @@ class QueryLogger implements LoggerInterface
         ];
 
         foreach ($this->queryLog as $query) {
-            // Calculate time statistics
+            // Calculate time statistics (time is stored as raw float in milliseconds)
             if (isset($query['time'])) {
-                $time = (float) str_replace('ms', '', $query['time']);
+                $time = (float) $query['time'];
                 $stats['total_time'] += $time;
 
                 if ($time > $this->slowQueryThreshold) {
@@ -310,6 +309,33 @@ class QueryLogger implements LoggerInterface
         $stats['average_time'] .= 'ms';
 
         return $stats;
+    }
+
+    /**
+     * Remove sensitive data from configuration array.
+     */
+    protected function removeSensitiveData(array $config): array
+    {
+        $sensitiveKeys = [
+            'password',
+            'passwd',
+            'secret',
+            'api_key',
+            'apikey',
+            'token',
+            'access_token',
+            'private_key',
+            'credentials',
+            'auth',
+            'authorization',
+        ];
+
+        $safeConfig = $config;
+        foreach ($sensitiveKeys as $key) {
+            unset($safeConfig[$key]);
+        }
+
+        return $safeConfig;
     }
 
     /**
