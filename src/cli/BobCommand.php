@@ -598,9 +598,14 @@ class BobCommand
 
     protected function getTableSchema(Connection $connection, string $driver, string $table): array
     {
+        // Validate table name to prevent SQL injection
+        $this->validateTableName($table);
+
         switch ($driver) {
             case 'mysql':
-                return $connection->select("SHOW COLUMNS FROM `$table`");
+                // Use validated table name with proper quoting
+                $quotedTable = '`' . str_replace('`', '``', $table) . '`';
+                return $connection->select("SHOW COLUMNS FROM {$quotedTable}");
 
             case 'pgsql':
                 return $connection->select('
@@ -610,10 +615,36 @@ class BobCommand
                 ', [$table]);
 
             case 'sqlite':
-                return $connection->select("PRAGMA table_info($table)");
+                // Use validated table name with proper quoting
+                $quotedTable = '"' . str_replace('"', '""', $table) . '"';
+                return $connection->select("PRAGMA table_info({$quotedTable})");
 
             default:
                 return [];
+        }
+    }
+
+    /**
+     * Validate table name to prevent SQL injection.
+     *
+     * @throws \InvalidArgumentException If table name is invalid
+     */
+    protected function validateTableName(string $table): void
+    {
+        // Table names must be valid identifiers:
+        // - Start with letter or underscore
+        // - Contain only alphanumeric characters, underscores, or dots (for schema.table)
+        // - Maximum reasonable length
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/', $table)) {
+            throw new \InvalidArgumentException(
+                "Invalid table name: '{$table}'. Table names must contain only alphanumeric characters, underscores, and optionally a schema prefix."
+            );
+        }
+
+        if (strlen($table) > 128) {
+            throw new \InvalidArgumentException(
+                "Table name too long: '{$table}'. Maximum length is 128 characters."
+            );
         }
     }
 
