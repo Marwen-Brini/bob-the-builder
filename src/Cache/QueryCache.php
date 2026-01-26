@@ -16,10 +16,64 @@ class QueryCache
 
     protected ?int $currentTime = null; // For testing
 
+    /**
+     * Lock file handle for thread safety
+     */
+    protected $lockHandle = null;
+
+    /**
+     * Lock file path
+     */
+    protected ?string $lockFile = null;
+
     public function __construct(int $maxItems = 1000, int $ttl = 3600)
     {
         $this->maxItems = $maxItems;
         $this->ttl = $ttl;
+        $this->initializeLock();
+    }
+
+    /**
+     * Initialize the lock file for thread-safe operations
+     */
+    protected function initializeLock(): void
+    {
+        $this->lockFile = sys_get_temp_dir() . '/bob_cache_' . spl_object_hash($this) . '.lock';
+        $this->lockHandle = fopen($this->lockFile, 'c');
+    }
+
+    /**
+     * Acquire an exclusive lock
+     */
+    protected function lock(): bool
+    {
+        if ($this->lockHandle === null || $this->lockHandle === false) {
+            return false;
+        }
+
+        return flock($this->lockHandle, LOCK_EX);
+    }
+
+    /**
+     * Release the lock
+     */
+    protected function unlock(): void
+    {
+        if ($this->lockHandle !== null && $this->lockHandle !== false) {
+            flock($this->lockHandle, LOCK_UN);
+        }
+    }
+
+    public function __destruct()
+    {
+        if ($this->lockHandle !== null && $this->lockHandle !== false) {
+            fclose($this->lockHandle);
+            $this->lockHandle = null;
+        }
+
+        if ($this->lockFile !== null && file_exists($this->lockFile)) {
+            @unlink($this->lockFile);
+        }
     }
 
     /**
@@ -44,19 +98,25 @@ class QueryCache
             return null;
         }
 
-        if (! $this->has($key)) {
-            return null;
+        $this->lock();
+
+        try {
+            if (! $this->has($key)) {
+                return null;
+            }
+
+            $item = $this->cache[$key];
+
+            if ($this->isExpired($item)) {
+                $this->forgetWithoutLock($key);
+
+                return null;
+            }
+
+            return $item['value'];
+        } finally {
+            $this->unlock();
         }
-
-        $item = $this->cache[$key];
-
-        if ($this->isExpired($item)) {
-            $this->forget($key);
-
-            return null;
-        }
-
-        return $item['value'];
     }
 
     public function put(string $key, mixed $value, ?int $ttl = null): void
@@ -70,11 +130,17 @@ class QueryCache
             return;
         }
 
-        if ($this->shouldEvict()) {
-            $this->evictOldest();
-        }
+        $this->lock();
 
-        $this->cache[$key] = $this->createCacheItem($value, $ttl);
+        try {
+            if ($this->shouldEvict()) {
+                $this->evictOldest();
+            }
+
+            $this->cache[$key] = $this->createCacheItem($value, $ttl);
+        } finally {
+            $this->unlock();
+        }
     }
 
     public function has(string $key): bool
@@ -83,6 +149,20 @@ class QueryCache
     }
 
     public function forget(string $key): bool
+    {
+        $this->lock();
+
+        try {
+            return $this->forgetWithoutLock($key);
+        } finally {
+            $this->unlock();
+        }
+    }
+
+    /**
+     * Internal forget without locking (for use within locked sections)
+     */
+    protected function forgetWithoutLock(string $key): bool
     {
         if ($this->has($key)) {
             unset($this->cache[$key]);
@@ -95,7 +175,13 @@ class QueryCache
 
     public function flush(): void
     {
-        $this->cache = [];
+        $this->lock();
+
+        try {
+            $this->cache = [];
+        } finally {
+            $this->unlock();
+        }
     }
 
     public function enable(): void
