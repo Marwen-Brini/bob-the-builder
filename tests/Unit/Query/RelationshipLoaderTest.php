@@ -407,9 +407,13 @@ describe('RelationshipLoader Tests', function () {
         $method = $reflection->getMethod('isBelongsToMany');
         $method->setAccessible(true);
 
-        expect($method->invoke($this->loader, 'Bob\Database\Relations\BelongsToMany'))->toBeTrue();
-        expect($method->invoke($this->loader, 'Bob\Database\Relations\BelongsTo'))->toBeFalse();
-        expect($method->invoke($this->loader, 'Bob\Database\Relations\HasMany'))->toBeFalse();
+        $belongsToMany = Mockery::mock(\Bob\Database\Relations\BelongsToMany::class);
+        $belongsTo = Mockery::mock(\Bob\Database\Relations\BelongsTo::class);
+        $hasMany = Mockery::mock(\Bob\Database\Relations\HasMany::class);
+
+        expect($method->invoke($this->loader, $belongsToMany))->toBeTrue();
+        expect($method->invoke($this->loader, $belongsTo))->toBeFalse();
+        expect($method->invoke($this->loader, $hasMany))->toBeFalse();
     });
 
     test('isBelongsTo correctly identifies BelongsTo but not BelongsToMany', function () {
@@ -417,9 +421,13 @@ describe('RelationshipLoader Tests', function () {
         $method = $reflection->getMethod('isBelongsTo');
         $method->setAccessible(true);
 
-        expect($method->invoke($this->loader, 'Bob\Database\Relations\BelongsTo'))->toBeTrue();
-        expect($method->invoke($this->loader, 'Bob\Database\Relations\BelongsToMany'))->toBeFalse();
-        expect($method->invoke($this->loader, 'Bob\Database\Relations\HasMany'))->toBeFalse();
+        $belongsTo = Mockery::mock(\Bob\Database\Relations\BelongsTo::class);
+        $belongsToMany = Mockery::mock(\Bob\Database\Relations\BelongsToMany::class);
+        $hasMany = Mockery::mock(\Bob\Database\Relations\HasMany::class);
+
+        expect($method->invoke($this->loader, $belongsTo))->toBeTrue();
+        expect($method->invoke($this->loader, $belongsToMany))->toBeFalse();
+        expect($method->invoke($this->loader, $hasMany))->toBeFalse();
     });
 
     test('extractKeysFromModels filters null values', function () {

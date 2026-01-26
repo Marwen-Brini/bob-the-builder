@@ -31,7 +31,8 @@ describe('Exists Query Caching', function () {
 
         $sql = 'select exists(select * from users where id = ?) as `exists`';
         $bindings = [1];
-        $cacheKey = 'exists_'.md5($sql.serialize($bindings));
+        $generatedKey = md5($sql.serialize($bindings));
+        $cacheKey = 'exists_'.$generatedKey;
 
         // Mock the cache and connection
         $this->connection->shouldReceive('getQueryCache')
@@ -40,6 +41,11 @@ describe('Exists Query Caching', function () {
         $this->grammar->shouldReceive('compileExists')
             ->once()
             ->andReturn($sql);
+
+        $this->queryCache->shouldReceive('generateKey')
+            ->with($sql, $bindings)
+            ->once()
+            ->andReturn($generatedKey);
 
         $this->queryCache->shouldReceive('get')
             ->with($cacheKey)
@@ -74,7 +80,8 @@ describe('Exists Query Caching', function () {
 
         $sql = 'select exists(select * from posts where status = ?) as `exists`';
         $bindings = ['published'];
-        $cacheKey = 'exists_'.md5($sql.serialize($bindings));
+        $generatedKey = md5($sql.serialize($bindings));
+        $cacheKey = 'exists_'.$generatedKey;
 
         // Mock the cache and connection
         $this->connection->shouldReceive('getQueryCache')
@@ -83,6 +90,11 @@ describe('Exists Query Caching', function () {
         $this->grammar->shouldReceive('compileExists')
             ->once()
             ->andReturn($sql);
+
+        $this->queryCache->shouldReceive('generateKey')
+            ->with($sql, $bindings)
+            ->once()
+            ->andReturn($generatedKey);
 
         $this->queryCache->shouldReceive('get')
             ->with($cacheKey)
@@ -153,7 +165,8 @@ describe('Exists Query Caching', function () {
 
         $sql = 'select exists(select * from orders where status = ?) as `exists`';
         $bindings = ['pending'];
-        $cacheKey = 'exists_'.md5($sql.serialize($bindings));
+        $generatedKey = md5($sql.serialize($bindings));
+        $cacheKey = 'exists_'.$generatedKey;
 
         // Mock the cache and connection
         $this->connection->shouldReceive('getQueryCache')
@@ -162,6 +175,11 @@ describe('Exists Query Caching', function () {
         $this->grammar->shouldReceive('compileExists')
             ->once()
             ->andReturn($sql);
+
+        $this->queryCache->shouldReceive('generateKey')
+            ->with($sql, $bindings)
+            ->once()
+            ->andReturn($generatedKey);
 
         // First call - cache miss
         $this->queryCache->shouldReceive('get')
