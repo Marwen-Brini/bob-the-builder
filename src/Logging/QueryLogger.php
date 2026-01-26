@@ -22,9 +22,19 @@ class QueryLogger implements LoggerInterface
     protected bool $enabled = true;
 
     /**
-     * Query log storage when no logger is provided
+     * Query log storage when no logger is provided (ring buffer)
      */
     protected array $queryLog = [];
+
+    /**
+     * Current position in the ring buffer
+     */
+    protected int $queryLogIndex = 0;
+
+    /**
+     * Total number of queries logged (may exceed maxQueryLog)
+     */
+    protected int $queryLogCount = 0;
 
     /**
      * Maximum number of queries to keep in memory
@@ -239,24 +249,44 @@ class QueryLogger implements LoggerInterface
     }
 
     /**
-     * Add a query to the internal log
+     * Add a query to the internal log using ring buffer (O(1) operation)
      */
     protected function addToQueryLog(array $query): void
     {
-        $this->queryLog[] = $query;
-
-        // Keep only the last N queries
-        if (count($this->queryLog) > $this->maxQueryLog) {
-            array_shift($this->queryLog);
+        if ($this->maxQueryLog <= 0) {
+            return;
         }
+
+        // Use ring buffer: overwrite oldest entry when full
+        $this->queryLog[$this->queryLogIndex] = $query;
+        $this->queryLogIndex = ($this->queryLogIndex + 1) % $this->maxQueryLog;
+        $this->queryLogCount++;
     }
 
     /**
-     * Get the query log
+     * Get the query log in chronological order
      */
     public function getQueryLog(): array
     {
-        return $this->queryLog;
+        if (empty($this->queryLog)) {
+            return [];
+        }
+
+        $count = count($this->queryLog);
+
+        // If buffer isn't full yet, return as-is
+        if ($count < $this->maxQueryLog || $this->queryLogCount <= $this->maxQueryLog) {
+            return array_values($this->queryLog);
+        }
+
+        // Ring buffer is full: reorder from oldest to newest
+        $result = [];
+        for ($i = 0; $i < $count; $i++) {
+            $index = ($this->queryLogIndex + $i) % $count;
+            $result[] = $this->queryLog[$index];
+        }
+
+        return $result;
     }
 
     /**
@@ -265,6 +295,8 @@ class QueryLogger implements LoggerInterface
     public function clearQueryLog(): void
     {
         $this->queryLog = [];
+        $this->queryLogIndex = 0;
+        $this->queryLogCount = 0;
     }
 
     /**
