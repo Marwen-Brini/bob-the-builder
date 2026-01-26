@@ -493,9 +493,12 @@ class BelongsToMany extends Relation
         foreach ($currentResults as $result) {
             // Handle both array and stdClass results
             if (is_array($result)) {
-                $current[] = $result[$this->relatedPivotKey];
+                $value = $result[$this->relatedPivotKey] ?? null;
             } else {
-                $current[] = $result->{$this->relatedPivotKey};
+                $value = $result->{$this->relatedPivotKey} ?? null;
+            }
+            if ($value !== null) {
+                $current[] = $value;
             }
         }
 
