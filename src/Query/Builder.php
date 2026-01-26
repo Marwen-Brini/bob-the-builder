@@ -1212,10 +1212,10 @@ class Builder implements BuilderInterface
         if ($this->existsCaching && $this->connection->getQueryCache()) {
             $queryCache = $this->connection->getQueryCache();
 
-            // Generate cache key from the SQL and bindings
+            // Generate cache key from the SQL and bindings using safe serialization
             $sql = $this->grammar->compileExists($this);
             $bindings = $this->getBindings();
-            $cacheKey = 'exists_'.md5($sql.serialize($bindings));
+            $cacheKey = 'exists_' . $queryCache->generateKey($sql, $bindings);
 
             // Check if we have a cached result
             $cached = $queryCache->get($cacheKey);
