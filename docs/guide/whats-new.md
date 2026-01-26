@@ -1,5 +1,77 @@
 # What's New
 
+## v3.0.1 - Security & Quality Release 🔒
+
+### 🛡️ Security Improvements
+
+This release addresses several security concerns and achieves 100% code coverage:
+
+#### SQL Injection Prevention
+```php
+// BobCommand now validates table names before use
+// Invalid characters, SQL keywords, and injection attempts are blocked
+$command->schema('mysql', 'users'); // ✅ Valid
+$command->schema('mysql', 'users; DROP TABLE users;--'); // ❌ Blocked
+```
+
+#### Safe Serialization
+```php
+// QueryCache now safely handles non-serializable values
+$cache->generateKey($sql, [
+    'callback' => fn() => 'test',  // ✅ Closures converted to safe hash
+    'stream' => fopen('php://memory', 'r'),  // ✅ Resources handled
+    'handler' => new NonSerializableClass(),  // ✅ Objects safely converted
+]);
+```
+
+#### Production SQL Hiding
+```php
+// Hide SQL details in production error messages
+QueryException::setIncludeSqlInMessage(false);
+
+// Now exceptions won't leak sensitive query information
+throw QueryException::fromSqlAndBindings($sql, $bindings, $e);
+// Message: "Query failed. (SQL details hidden for security)"
+```
+
+### 🔧 New Features
+
+#### Thread-Safe Operations
+```php
+// QueryCache and ConnectionPool now use flock-based locking
+// Safe for multi-process environments like PHP-FPM
+$pool = new ConnectionPool($config);
+$pool->acquire(); // Thread-safe acquisition
+```
+
+#### Connection Health Checks
+```php
+// ConnectionPool validates connections before reuse
+$pool->setMaxLifetime(3600); // Connections expire after 1 hour
+$connection = $pool->acquire(); // Unhealthy connections are replaced
+```
+
+#### Query Logger Controls
+```php
+// Control query log size
+$logger = new QueryLogger();
+$logger->setMaxQueryLog(0); // Disable logging entirely
+$logger->setMaxQueryLog(500); // Keep last 500 queries
+```
+
+### 🐛 Bug Fixes
+
+- **Transaction Rollback**: Connections now properly rollback active transactions on disconnect
+- **Empty Arrays**: `whereIn([])` returns no results, `whereNotIn([])` is a no-op (always true)
+- **Sensitive Data**: Expanded filtering for tokens, secrets, credentials in logs
+
+### 📊 Quality
+
+- **100% Code Coverage** achieved across all source files
+- **Optimized CI/CD** pipeline for faster, cheaper builds
+
+---
+
 ## v3.0.0 - Complete Migration System & Schema Builder 🎉
 
 ### 🗄️ Major Release: Database Migrations & Schema Management
