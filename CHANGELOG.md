@@ -5,6 +5,28 @@ All notable changes to Bob Query Builder will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-01-26
+
+### Security
+- **SQL Injection Prevention** - Added `validateTableName()` method in BobCommand to prevent SQL injection via table names
+- **Safe Serialization** - Added `makeSafeForSerialization()` in QueryCache to handle closures, resources, and non-serializable objects safely
+- **Configurable SQL Exposure** - Added `QueryException::setIncludeSqlInMessage()` to hide SQL details in production error messages
+
+### Added
+- **Thread Safety** - Added flock-based locking to QueryCache and ConnectionPool for thread-safe operations
+- **Connection Health Checks** - ConnectionPool now validates connections with ping queries before reuse
+- **Ring Buffer Query Log** - QueryLogger now uses O(1) ring buffer implementation for efficient logging
+- **Query Logger Controls** - Added `setMaxQueryLog()` method to configure query log size
+
+### Fixed
+- **Transaction Rollback on Disconnect** - Connection now properly rolls back active transactions when disconnecting
+- **Empty whereIn/whereNotIn Handling** - Builder now correctly handles empty arrays (whereIn returns no results, whereNotIn is a no-op)
+- **Sensitive Data Filtering** - QueryLogger now filters expanded list of sensitive keys including tokens, secrets, and credentials
+
+### Improved
+- **100% Code Coverage** - Achieved complete test coverage across all source files
+- **CI/CD Optimization** - Reduced GitHub Actions matrix to minimize costs while maintaining quality
+
 ## [3.0.0] - 2025-10-01
 
 ### Added - Complete Migration System & Schema Builder 🎉
