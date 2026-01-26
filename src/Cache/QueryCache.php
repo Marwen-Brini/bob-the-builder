@@ -238,7 +238,69 @@ class QueryCache
 
     public function generateKey(string $query, array $bindings = []): string
     {
-        return md5($query.serialize($bindings));
+        $safeBindings = $this->makeSafeForSerialization($bindings);
+
+        return md5($query . serialize($safeBindings));
+    }
+
+    /**
+     * Convert bindings array to a serialization-safe format.
+     *
+     * Handles non-serializable values like closures, resources, and certain objects
+     * by replacing them with unique identifier strings.
+     */
+    protected function makeSafeForSerialization(array $bindings): array
+    {
+        $safe = [];
+
+        foreach ($bindings as $key => $value) {
+            $safe[$key] = $this->makeValueSafeForSerialization($value);
+        }
+
+        return $safe;
+    }
+
+    /**
+     * Make a single value safe for serialization.
+     */
+    protected function makeValueSafeForSerialization(mixed $value): mixed
+    {
+        if ($value instanceof \Closure) {
+            return '__closure_' . spl_object_hash($value);
+        }
+
+        if (is_resource($value)) {
+            return '__resource_' . get_resource_type($value) . '_' . (int) $value;
+        }
+
+        if (is_object($value)) {
+            if ($this->isSerializable($value)) {
+                return $value;
+            }
+
+            return '__object_' . get_class($value) . '_' . spl_object_hash($value);
+        }
+
+        if (is_array($value)) {
+            return $this->makeSafeForSerialization($value);
+        }
+
+        // Scalar values are safe
+        return $value;
+    }
+
+    /**
+     * Check if an object can be serialized.
+     */
+    protected function isSerializable(object $object): bool
+    {
+        try {
+            serialize($object);
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
