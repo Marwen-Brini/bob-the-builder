@@ -217,6 +217,16 @@ class Connection implements ConnectionInterface, LoggerAwareInterface
 
     public function disconnect(): void
     {
+        // Roll back any active transactions before disconnecting
+        if ($this->pdo !== null && $this->transactions > 0) {
+            try {
+                $this->getPdo()->rollBack();
+            } catch (\Throwable $e) {
+                // Ignore rollback errors during disconnect
+            }
+            $this->transactions = 0;
+        }
+
         $this->pdo = null;
         $this->readPdo = null;
     }
