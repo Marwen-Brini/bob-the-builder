@@ -343,3 +343,127 @@ test('evictOldest handles empty cache gracefully', function () {
 
     expect($cache->size())->toBe(0);
 });
+
+// Test line 51: lock() returns false when lockHandle is null
+test('lock returns false when lockHandle is invalid', function () {
+    $cache = new class extends QueryCache {
+        public function __construct()
+        {
+            parent::__construct();
+            // Set lockHandle to null to test line 51
+            $this->lockHandle = null;
+        }
+
+        public function testLock(): bool
+        {
+            return $this->lock();
+        }
+    };
+
+    expect($cache->testLock())->toBeFalse();
+});
+
+// Test line 355: makeValueSafeForSerialization with Closure
+test('generateKey handles Closure in bindings', function () {
+    $closure = function () {
+        return 'test';
+    };
+
+    $cache = new QueryCache();
+    $key = $cache->generateKey('SELECT * FROM users WHERE callback = ?', [$closure]);
+
+    // Should generate a key without throwing
+    expect($key)->toBeString();
+    expect(strlen($key))->toBe(32);
+});
+
+// Test line 359: makeValueSafeForSerialization with resource
+test('generateKey handles resource in bindings', function () {
+    $resource = fopen('php://memory', 'r');
+
+    $cache = new QueryCache();
+    $key = $cache->generateKey('SELECT * FROM users WHERE stream = ?', [$resource]);
+
+    // Should generate a key without throwing
+    expect($key)->toBeString();
+    expect(strlen($key))->toBe(32);
+
+    fclose($resource);
+});
+
+// Test lines 363-367: makeValueSafeForSerialization with serializable object
+test('generateKey handles serializable object in bindings', function () {
+    $obj = new stdClass();
+    $obj->name = 'test';
+
+    $cache = new QueryCache();
+    $key = $cache->generateKey('SELECT * FROM users WHERE data = ?', [$obj]);
+
+    // Should generate a key without throwing
+    expect($key)->toBeString();
+    expect(strlen($key))->toBe(32);
+});
+
+// Test lines 363-367: makeValueSafeForSerialization with non-serializable object
+test('generateKey handles non-serializable object in bindings', function () {
+    // Create an object that cannot be serialized (has closure property)
+    $obj = new class {
+        public \Closure $callback;
+        public function __construct()
+        {
+            $this->callback = function () {};
+        }
+    };
+
+    $cache = new QueryCache();
+    $key = $cache->generateKey('SELECT * FROM users WHERE handler = ?', [$obj]);
+
+    // Should generate a key without throwing
+    expect($key)->toBeString();
+    expect(strlen($key))->toBe(32);
+});
+
+// Test line 371: makeValueSafeForSerialization with nested array containing closure
+test('generateKey handles nested array with closure in bindings', function () {
+    $closure = function () {
+        return 'nested';
+    };
+
+    $nestedArray = [
+        'level1' => [
+            'level2' => [
+                'callback' => $closure,
+            ],
+        ],
+    ];
+
+    $cache = new QueryCache();
+    $key = $cache->generateKey('SELECT * FROM users WHERE data = ?', [$nestedArray]);
+
+    // Should generate a key without throwing
+    expect($key)->toBeString();
+    expect(strlen($key))->toBe(32);
+});
+
+// Test lines 384-388: isSerializable returns false for non-serializable object
+test('isSerializable returns false for object that throws on serialize', function () {
+    $cache = new class extends QueryCache {
+        public function testIsSerializable(object $obj): bool
+        {
+            return $this->isSerializable($obj);
+        }
+    };
+
+    // stdClass is serializable
+    expect($cache->testIsSerializable(new stdClass()))->toBeTrue();
+
+    // Object with closure property is not serializable
+    $nonSerializable = new class {
+        public \Closure $fn;
+        public function __construct()
+        {
+            $this->fn = function () {};
+        }
+    };
+    expect($cache->testIsSerializable($nonSerializable))->toBeFalse();
+});

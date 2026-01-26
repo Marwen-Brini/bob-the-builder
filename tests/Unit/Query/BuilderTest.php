@@ -69,6 +69,18 @@ describe('Builder', function () {
         expect($this->builder->wheres[0]['values'])->toBe([1, 2, 3]);
     });
 
+    test('whereIn with empty array adds impossible condition', function () {
+        $this->builder->whereIn('id', []);
+        expect($this->builder->wheres[0]['type'])->toBe('Raw');
+        expect($this->builder->wheres[0]['sql'])->toBe('0 = 1');
+    });
+
+    test('whereNotIn with empty array is a no-op', function () {
+        $this->builder->whereNotIn('id', []);
+        // No condition should be added - NOT IN () is always true
+        expect($this->builder->wheres)->toBeEmpty();
+    });
+
     test('whereNull conditions', function () {
         $this->builder->whereNull('deleted_at');
         expect($this->builder->wheres[0]['type'])->toBe('Null');

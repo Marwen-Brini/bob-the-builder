@@ -420,3 +420,204 @@ test('onError dispatches ERROR event when set', function () {
     $method->setAccessible(true);
     $method->invoke($this->runner, $exception, 'test_migration');
 })->group('unit', 'migrations');
+
+// Test for lines 203-206: BEFORE_MIGRATION event dispatch
+test('runUp dispatches BEFORE_MIGRATION event', function () {
+    $dispatcher = Mockery::mock(\Bob\Events\EventDispatcherInterface::class);
+    $migration = new TestMigrationWithDescription;
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::BEFORE_MIGRATION, Mockery::on(function ($payload) {
+            return isset($payload['migration']) && isset($payload['class']);
+        }))
+        ->once();
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::AFTER_MIGRATION, Mockery::any())
+        ->once();
+
+    $this->connection->shouldReceive('transaction')
+        ->once()
+        ->andReturnUsing(function ($callback) {
+            $callback();
+        });
+
+    $this->repository->shouldReceive('log')
+        ->once();
+
+    $this->runner->setEventDispatcher($dispatcher);
+
+    // Use reflection to call protected runUp
+    $reflection = new \ReflectionClass($this->runner);
+    $method = $reflection->getMethod('runUp');
+    $method->setAccessible(true);
+    $method->invoke($this->runner, 'test_migration', $migration, 1, false);
+})->group('unit', 'migrations');
+
+// Test for lines 264-266: BEFORE_ROLLBACK event (fires even with nothing to rollback)
+test('rollback dispatches BEFORE_ROLLBACK event', function () {
+    $dispatcher = Mockery::mock(\Bob\Events\EventDispatcherInterface::class);
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::BEFORE_ROLLBACK, Mockery::on(function ($payload) {
+            return isset($payload['options']);
+        }))
+        ->once();
+
+    // Setup for empty rollback (nothing to rollback)
+    $this->repository->shouldReceive('getLast')
+        ->once()
+        ->andReturn([]);
+
+    $this->runner->setEventDispatcher($dispatcher);
+    $result = $this->runner->rollback();
+
+    expect($result)->toBe([]);
+})->group('unit', 'migrations');
+
+// Test for lines 289-291: AFTER_ROLLBACK event (fires only when there are migrations to rollback)
+test('rollback dispatches AFTER_ROLLBACK event when migrations exist', function () {
+    $dispatcher = Mockery::mock(\Bob\Events\EventDispatcherInterface::class);
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::BEFORE_ROLLBACK, Mockery::any())
+        ->once();
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::AFTER_ROLLBACK, Mockery::on(function ($payload) {
+            return isset($payload['migrations']) && is_array($payload['migrations']);
+        }))
+        ->once();
+
+    // Setup with a migration to rollback
+    $this->repository->shouldReceive('getLast')
+        ->once()
+        ->andReturn([(object) ['migration' => 'TestMigrationWithDescription']]);
+
+    $this->repository->shouldReceive('delete')
+        ->once();
+
+    $this->connection->shouldReceive('transaction')
+        ->once()
+        ->andReturnUsing(function ($callback) {
+            $callback();
+        });
+
+    // Use anonymous class to mock the resolve method
+    $runner = new class($this->connection, $this->repository) extends MigrationRunner {
+        public function resolve(string $file): Migration
+        {
+            return new TestMigrationWithDescription;
+        }
+    };
+    $runner->setLoader($this->loader);
+    $runner->setEventDispatcher($dispatcher);
+
+    $result = $runner->rollback();
+
+    expect($result)->toBe(['TestMigrationWithDescription']);
+})->group('unit', 'migrations');
+
+// Test for lines 651-652: Dependencies display in pretendToRun
+test('pretendToRun outputs dependencies when present', function () {
+    $migration = new TestMigrationWithDependencies(['migration1', 'migration2']);
+
+    $outputMessages = [];
+    $this->runner->setOutput(function ($message) use (&$outputMessages) {
+        $outputMessages[] = $message;
+    });
+
+    // Use reflection to access protected pretendToRun method
+    $reflection = new \ReflectionClass($this->runner);
+    $method = $reflection->getMethod('pretendToRun');
+    $method->setAccessible(true);
+
+    $method->invoke($this->runner, $migration, 'up');
+
+    // Check that dependencies were output
+    $depsFound = false;
+    foreach ($outputMessages as $message) {
+        if (str_contains($message, 'Dependencies: migration1, migration2')) {
+            $depsFound = true;
+            break;
+        }
+    }
+
+    expect($depsFound)->toBeTrue();
+})->group('unit', 'migrations');
+
+// Test for line 657: Connection display in pretendToRun
+test('pretendToRun outputs connection when specified', function () {
+    $migration = new TestMigrationWithConnection;
+
+    $outputMessages = [];
+    $this->runner->setOutput(function ($message) use (&$outputMessages) {
+        $outputMessages[] = $message;
+    });
+
+    // Use reflection to access protected pretendToRun method
+    $reflection = new \ReflectionClass($this->runner);
+    $method = $reflection->getMethod('pretendToRun');
+    $method->setAccessible(true);
+
+    $method->invoke($this->runner, $migration, 'up');
+
+    // Check that connection was output
+    $connectionFound = false;
+    foreach ($outputMessages as $message) {
+        if (str_contains($message, 'Connection: mysql_secondary')) {
+            $connectionFound = true;
+            break;
+        }
+    }
+
+    expect($connectionFound)->toBeTrue();
+})->group('unit', 'migrations');
+
+// Test for lines 662-670: PRETEND event dispatch
+test('pretendToRun dispatches PRETEND event', function () {
+    $dispatcher = Mockery::mock(\Bob\Events\EventDispatcherInterface::class);
+    $migration = new TestMigrationWithDescription;
+
+    $dispatcher->shouldReceive('dispatch')
+        ->with(\Bob\Database\Migrations\MigrationEvents::PRETEND, Mockery::on(function ($payload) {
+            return isset($payload['migration']) &&
+                   isset($payload['method']) &&
+                   isset($payload['description']) &&
+                   isset($payload['version']) &&
+                   isset($payload['withinTransaction']) &&
+                   isset($payload['dependencies']) &&
+                   array_key_exists('connection', $payload);
+        }))
+        ->once();
+
+    $this->runner->setEventDispatcher($dispatcher);
+    $this->runner->setOutput(function ($message) {});
+
+    // Use reflection to access protected pretendToRun method
+    $reflection = new \ReflectionClass($this->runner);
+    $method = $reflection->getMethod('pretendToRun');
+    $method->setAccessible(true);
+
+    $method->invoke($this->runner, $migration, 'up');
+})->group('unit', 'migrations');
+
+/**
+ * Test migration with connection specified
+ */
+class TestMigrationWithConnection extends Migration
+{
+    public function up(): void {}
+
+    public function down(): void {}
+
+    public function getConnection(): ?string
+    {
+        return 'mysql_secondary';
+    }
+
+    public function getQueries(string $direction): array
+    {
+        return ['create table test (id int)'];
+    }
+}

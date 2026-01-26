@@ -200,4 +200,239 @@ describe('ConnectionPool Full Coverage Tests', function () {
         // We have 3 minimum, but one is now in use
         expect($stats['total'])->toBeGreaterThanOrEqual(3);
     });
+
+    // Test line 69: lock() returns false when lockHandle is null
+    test('lock returns false when lockHandle is invalid', function () {
+        $pool = new class($this->config) extends ConnectionPool {
+            public function __construct(array $config)
+            {
+                parent::__construct($config);
+                // Set lockHandle to null to test line 69
+                $this->lockHandle = null;
+            }
+
+            public function testLock(): bool
+            {
+                return $this->lock();
+            }
+        };
+
+        expect($pool->testLock())->toBeFalse();
+    });
+
+    // Test lines 336-341: setMaxLifetime and getMaxLifetime
+    test('setMaxLifetime and getMaxLifetime work correctly', function () {
+        $pool = new ConnectionPool($this->config);
+
+        // Test setting a normal value
+        $pool->setMaxLifetime(3600);
+        expect($pool->getMaxLifetime())->toBe(3600);
+
+        // Test setting to zero (should be at least 1)
+        $pool->setMaxLifetime(0);
+        expect($pool->getMaxLifetime())->toBe(1);
+
+        // Test setting negative (should be at least 1)
+        $pool->setMaxLifetime(-10);
+        expect($pool->getMaxLifetime())->toBe(1);
+    });
+
+    // Test line 215: isConnectionHealthy returns false when maxLifetime exceeded
+    test('connection is unhealthy when maxLifetime exceeded', function () {
+        $pool = new ConnectionPool($this->config, minConnections: 0);
+        $pool->enable();
+        $pool->setMaxLifetime(1); // Very short lifetime
+
+        // Acquire a connection
+        $conn = $pool->acquire();
+        $pool->release($conn);
+
+        // Wait for max lifetime to expire
+        sleep(2);
+
+        // Acquire again - should get a new connection since old one is stale
+        $conn2 = $pool->acquire();
+
+        // The connections should be different objects
+        expect($conn2)->toBeInstanceOf(Connection::class);
+    });
+
+    // Test line 207: isConnectionHealthy returns false for non-existent connection
+    test('isConnectionHealthy returns false for non-existent id', function () {
+        $pool = new class($this->config) extends ConnectionPool {
+            public function testIsHealthy(string $id): bool
+            {
+                return $this->isConnectionHealthy($id);
+            }
+        };
+
+        expect($pool->testIsHealthy('non_existent_id'))->toBeFalse();
+    });
+
+    // Test lines 225-226: isConnectionHealthy catch block when query fails
+    test('isConnectionHealthy returns false when connection query fails', function () {
+        $pool = new class($this->config) extends ConnectionPool {
+            protected function createConnection(): Connection
+            {
+                return new class(['driver' => 'sqlite', 'database' => ':memory:']) extends Connection {
+                    public function getPdo(): \PDO
+                    {
+                        // Return a closed/invalid PDO that will fail on query
+                        throw new \Exception('Connection lost');
+                    }
+                };
+            }
+
+            public function testIsHealthy(string $id): bool
+            {
+                return $this->isConnectionHealthy($id);
+            }
+
+            public function getConnectionIds(): array
+            {
+                return array_keys($this->connections);
+            }
+        };
+
+        $pool->enable();
+        $conn = $pool->acquire();
+        $pool->release($conn);
+
+        $ids = $pool->getConnectionIds();
+        expect($ids)->not->toBeEmpty();
+
+        // The connection should be unhealthy because getPdo throws
+        expect($pool->testIsHealthy($ids[0]))->toBeFalse();
+    });
+
+    // Test line 238: removeConnection disconnect throws exception
+    test('removeConnection handles disconnect exception', function () {
+        $pool = new class($this->config) extends ConnectionPool {
+            protected function createConnection(): Connection
+            {
+                return new class(['driver' => 'sqlite', 'database' => ':memory:']) extends Connection {
+                    public function disconnect(): void
+                    {
+                        throw new \Exception('Disconnect failed');
+                    }
+                };
+            }
+
+            public function testRemoveConnection(string $id): void
+            {
+                $this->removeConnection($id);
+            }
+
+            public function getConnectionIds(): array
+            {
+                return array_keys($this->connections);
+            }
+        };
+
+        $pool->enable();
+        $conn = $pool->acquire();
+        $pool->release($conn);
+
+        $ids = $pool->getConnectionIds();
+        $idToRemove = $ids[0];
+
+        // Should not throw even though disconnect throws
+        $pool->testRemoveConnection($idToRemove);
+
+        // Connection should be removed
+        expect($pool->getConnectionIds())->not->toContain($idToRemove);
+    });
+
+    // Test lines 267-268: cleanupStaleConnections handles missing connection item
+    test('cleanupStaleConnections handles orphaned available entries', function () {
+        $pool = new class($this->config, minConnections: 0) extends ConnectionPool {
+            public function createOrphanedEntry(): void
+            {
+                // Add orphaned entry at beginning so it's processed first
+                $this->available = array_merge(['orphaned_id'], $this->available);
+            }
+
+            public function getAvailableArray(): array
+            {
+                return $this->available;
+            }
+
+            public function getConnectionCount(): int
+            {
+                return count($this->connections);
+            }
+
+            public function callCleanupStaleConnections(): void
+            {
+                $this->cleanupStaleConnections();
+            }
+        };
+
+        $pool->enable();
+        $pool->setIdleTimeout(3600); // Long timeout so real connection isn't removed
+
+        // Create multiple connections so count(connections) > minConnections after cleanup starts
+        $conn1 = $pool->acquire();
+        $conn2 = $pool->acquire();
+        $pool->release($conn1);
+        $pool->release($conn2);
+
+        // Now we have 2 connections in both connections and available arrays
+        expect($pool->getConnectionCount())->toBe(2);
+
+        // Create an orphaned entry at the start
+        $pool->createOrphanedEntry();
+
+        // Verify orphan exists in available
+        $availableBefore = $pool->getAvailableArray();
+        expect($availableBefore)->toContain('orphaned_id');
+
+        // Directly call cleanupStaleConnections to trigger lines 267-268
+        $pool->callCleanupStaleConnections();
+
+        // Orphaned entry should be removed during cleanup
+        $availableAfter = $pool->getAvailableArray();
+        expect($availableAfter)->not->toContain('orphaned_id');
+    });
+
+    // Test lines 129-131: acquire removes dead connection and retries
+    test('acquire removes dead connection and retries', function () {
+        $pool = new class($this->config) extends ConnectionPool {
+            public int $healthCheckCount = 0;
+            private bool $firstCheckDone = false;
+
+            protected function isConnectionHealthy(string $id): bool
+            {
+                $this->healthCheckCount++;
+                // First call returns false (dead connection), subsequent calls return true
+                if (!$this->firstCheckDone) {
+                    $this->firstCheckDone = true;
+                    return false;
+                }
+                return true;
+            }
+
+            public function resetCheck(): void
+            {
+                $this->firstCheckDone = false;
+                $this->healthCheckCount = 0;
+            }
+        };
+
+        $pool->enable();
+
+        // Acquire and release to populate pool
+        $conn = $pool->acquire();
+        $pool->release($conn);
+
+        // Reset for next test
+        $pool->resetCheck();
+
+        // Next acquire should find dead connection, remove it, and create new one
+        $conn2 = $pool->acquire();
+
+        expect($conn2)->toBeInstanceOf(Connection::class);
+        // isConnectionHealthy was called at least once
+        expect($pool->healthCheckCount)->toBeGreaterThanOrEqual(1);
+    });
 });

@@ -138,3 +138,42 @@ test('ConnectionException with unknown config values', function () {
     expect($exception->getMessage())->toContain('unknown');
     expect($exception->getMessage())->toContain("database 'unknown'");
 });
+
+test('QueryException setIncludeSqlInMessage and shouldIncludeSqlInMessage', function () {
+    // Store original value
+    $original = QueryException::shouldIncludeSqlInMessage();
+
+    // Test setting to false
+    QueryException::setIncludeSqlInMessage(false);
+    expect(QueryException::shouldIncludeSqlInMessage())->toBeFalse();
+
+    // Test setting to true
+    QueryException::setIncludeSqlInMessage(true);
+    expect(QueryException::shouldIncludeSqlInMessage())->toBeTrue();
+
+    // Restore original value
+    QueryException::setIncludeSqlInMessage($original);
+});
+
+test('QueryException formatMessage hides SQL when disabled', function () {
+    // Store original value
+    $original = QueryException::shouldIncludeSqlInMessage();
+
+    // Disable SQL in messages
+    QueryException::setIncludeSqlInMessage(false);
+
+    $message = QueryException::formatMessage(
+        'select * from users where password = ?',
+        ['secret123'],
+        new Exception('Query failed')
+    );
+
+    // Should not contain the SQL or bindings
+    expect($message)->not->toContain('select * from users');
+    expect($message)->not->toContain('secret123');
+    expect($message)->toContain('Query failed');
+    expect($message)->toContain('SQL details hidden');
+
+    // Restore original value
+    QueryException::setIncludeSqlInMessage($original);
+});

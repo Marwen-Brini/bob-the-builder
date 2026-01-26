@@ -129,6 +129,14 @@ class QueryLogger implements LoggerInterface
     }
 
     /**
+     * Set the maximum number of queries to keep in the log
+     */
+    public function setMaxQueryLog(int $max): void
+    {
+        $this->maxQueryLog = $max;
+    }
+
+    /**
      * Log a query execution
      */
     public function logQuery(string $query, array $bindings = [], ?float $time = null): void

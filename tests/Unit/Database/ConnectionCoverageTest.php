@@ -486,6 +486,63 @@ test('Connection disconnect method', function () {
     expect($pdo)->toBeInstanceOf(PDO::class);
 });
 
+// Test lines 223-227: disconnect with active transaction rolls back
+test('Connection disconnect with active transaction rolls back', function () {
+    $dbFile = sys_get_temp_dir() . '/test_disconnect_' . uniqid() . '.db';
+
+    $connection = new Connection([
+        'driver' => 'sqlite',
+        'database' => $dbFile,
+    ]);
+
+    // Create a test table
+    $connection->statement('CREATE TABLE test_disconnect (id INTEGER PRIMARY KEY, name TEXT)');
+    $connection->statement('INSERT INTO test_disconnect (name) VALUES ("original")');
+
+    // Start a transaction and make changes
+    $connection->beginTransaction();
+    $connection->statement('UPDATE test_disconnect SET name = "changed"');
+
+    // Verify change is visible within transaction
+    $result = $connection->selectOne('SELECT name FROM test_disconnect');
+    expect($result->name)->toBe('changed');
+
+    // Disconnect - should roll back the transaction
+    $connection->disconnect();
+
+    // Reconnect and verify the change was rolled back
+    $result = $connection->selectOne('SELECT name FROM test_disconnect');
+    expect($result->name)->toBe('original');
+
+    // Cleanup
+    $connection->disconnect();
+    @unlink($dbFile);
+});
+
+// Test lines 224-226: disconnect handles rollback error gracefully
+test('Connection disconnect handles rollback error gracefully', function () {
+    $connection = new class(['driver' => 'sqlite', 'database' => ':memory:']) extends Connection {
+        public function simulateActiveTransaction(): void
+        {
+            // Artificially set transactions > 0 without actually starting one
+            $this->transactions = 1;
+        }
+    };
+
+    // Get PDO to ensure connected
+    $connection->getPdo();
+
+    // Simulate an active transaction count without actual transaction
+    // This will cause rollBack() to fail since no transaction is actually active
+    $connection->simulateActiveTransaction();
+
+    // Disconnect should not throw even though rollBack fails
+    $connection->disconnect();
+
+    // Connection should be nulled
+    expect(true)->toBeTrue(); // If we get here, no exception was thrown
+});
+
 test('Connection listen method', function () {
     $connection = new Connection([
         'driver' => 'sqlite',

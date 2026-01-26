@@ -475,4 +475,17 @@ describe('QueryLogger Tests', function () {
         expect($stats['average_time'])->toBe('62.75ms');
     });
 
+    test('addToQueryLog returns early when maxQueryLog is zero', function () {
+        // Create logger and set maxQueryLog to 0
+        $logger = new QueryLogger();
+        $logger->setMaxQueryLog(0);
+
+        // Log some queries
+        $logger->logQuery('SELECT * FROM users', [], 10.5);
+        $logger->logQuery('SELECT * FROM posts', [], 5.0);
+
+        // Query log should remain empty
+        expect($logger->getQueryLog())->toBeEmpty();
+    });
+
 });
